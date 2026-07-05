@@ -1,4 +1,30 @@
+"use client";
+
+import { useState } from "react";
+
 export default function Home() {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  async function analyzeQuestion() {
+    setLoading(true);
+    setAnswer("");
+
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ question }),
+    });
+
+    const data = await response.json();
+
+    setAnswer(data.answer);
+    setLoading(false);
+  }
+
   return (
     <main className="min-h-screen bg-black text-white">
       <section className="mx-auto flex min-h-screen max-w-5xl flex-col items-center justify-center px-6 text-center">
@@ -17,31 +43,26 @@ export default function Home() {
 
         <div className="mt-10 w-full max-w-2xl rounded-2xl border border-yellow-500/30 bg-zinc-950 p-4 shadow-2xl">
           <textarea
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
             className="h-32 w-full resize-none rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none placeholder:text-zinc-500"
-            placeholder="Ask EasyRunLine AI: Is Pittsburgh +4.5 a good bet tonight?"
+            placeholder="Ask EasyRunLine AI: Is White Sox +4.5 a good bet tonight?"
           />
 
-          <button className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300">
-            Analyze
+          <button
+            onClick={analyzeQuestion}
+            disabled={loading || !question}
+            className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:opacity-50"
+          >
+            {loading ? "Analyzing..." : "Analyze"}
           </button>
         </div>
 
-        <div className="mt-10 grid w-full max-w-3xl gap-4 sm:grid-cols-3">
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5">
-            <h3 className="font-bold text-yellow-400">Alternate Lines</h3>
-            <p className="mt-2 text-sm text-zinc-400">Compare safer markets.</p>
+        {answer && (
+          <div className="mt-8 w-full max-w-2xl whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left text-zinc-200">
+            {answer}
           </div>
-
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5">
-            <h3 className="font-bold text-yellow-400">Blowout Risk</h3>
-            <p className="mt-2 text-sm text-zinc-400">Avoid dangerous spots.</p>
-          </div>
-
-          <div className="rounded-xl border border-zinc-800 bg-zinc-950 p-5">
-            <h3 className="font-bold text-yellow-400">Hedge Ideas</h3>
-            <p className="mt-2 text-sm text-zinc-400">Protect the bankroll.</p>
-          </div>
-        </div>
+        )}
 
         <p className="mt-10 text-sm text-zinc-500">
           Discipline. Value. Results. One Unit At A Time.
