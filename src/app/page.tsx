@@ -219,9 +219,15 @@ Give a disciplined EasyRunLine-style answer with:
                   key={game.id}
                   className="rounded-2xl border border-zinc-800 bg-zinc-950 p-5 text-left shadow-xl"
                 >
-                  <p className="text-xs font-bold uppercase tracking-[0.25em] text-yellow-400">
-                    MLB Matchup
-                  </p>
+                  <div className="flex items-center justify-between">
+  <p className="text-xs font-bold uppercase tracking-[0.25em] text-yellow-400">
+    MLB Matchup
+  </p>
+
+  <span className="rounded-full bg-green-500/20 px-3 py-1 text-xs font-bold text-green-400">
+    Odds Live ✅
+  </span>
+</div>
 
                   <h3 className="mt-3 text-2xl font-bold">
                     {game.away_team} vs {game.home_team}
@@ -230,6 +236,9 @@ Give a disciplined EasyRunLine-style answer with:
                   <p className="mt-2 text-sm text-zinc-400">
                     {new Date(game.commence_time).toLocaleString()}
                   </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+  Bookmaker: {game.bookmakers?.[0]?.title || "Not available"}
+</p>
 
                   <div className="mt-5 space-y-4 text-sm">
                     <div className="rounded-xl border border-zinc-800 bg-black p-4">
