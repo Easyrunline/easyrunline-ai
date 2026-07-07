@@ -135,11 +135,11 @@ export default function Home() {
   }
 
   function analyzeGame(game: Game) {
-    const moneyline = getMarket(game, "h2h");
-    const spread = getMarket(game, "spreads");
-    const total = getMarket(game, "totals");
+  const moneyline = getMarket(game, "h2h");
+const spread = getMarket(game, "spreads");
+const total = getMarket(game, "totals");
 
-    const gameQuestion = `
+const gameQuestion = `
 Analyze this MLB game for EasyRunLine AI.
 
 Game:
@@ -157,23 +157,69 @@ ${spread?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 Total:
 ${total?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 
+Bookmaker:
+${game.bookmakers?.[0]?.title || "Not available"}
+
 Focus specifically on the safest +4.5 alternate run line angle.
 
-Do not invent pitcher, injury, weather, or bullpen information.
-If that data is not available, clearly say it is not connected yet.
-Give a disciplined EasyRunLine-style answer with:
-- Recommended +4.5 side if there is one
-- Confidence
-- Blowout risk
-- Market value
-- When to pass
-- What extra data is needed next
+Only recommend the underdog +4.5 side.
+
+Never recommend favorite +4.5.
 `;
 
-    setQuestion(gameQuestion);
-    analyzeQuestion(gameQuestion);
+setQuestion(gameQuestion);
+analyzeQuestion(gameQuestion);   
+  
   }
+function findBestThreeLegParlay() {
+  if (games.length === 0) return;
 
+  const gamesText = games
+    .map((game, index) => {
+      const moneyline = getMarket(game, "h2h");
+      const spread = getMarket(game, "spreads");
+      const total = getMarket(game, "totals");
+
+      return `
+Game ${index + 1}
+${game.away_team} vs ${game.home_team}
+
+Moneyline:
+${moneyline?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
+
+Run Line:
+${spread?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
+
+Total:
+${total?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
+
+Bookmaker:
+${game.bookmakers?.[0]?.title || "Not available"}
+`;
+    })
+    .join("\n━━━━━━━━━━━━━━━━━━━━━━\n");
+
+  const parlayQuestion = `
+Find the best 3-leg EasyRunLine parlay from tonight's MLB games.
+
+IMPORTANT:
+Only select underdogs for +4.5.
+Never select favorites for +4.5.
+Use moneyline to identify underdogs.
+Higher decimal odds = underdog.
+Lower decimal odds = favorite.
+Use real team names only.
+Do not use Team A, Team B or Team C.
+If fewer than 3 underdogs qualify, return fewer picks or PASS.
+
+Live games:
+
+${gamesText}
+`;
+
+  setQuestion(parlayQuestion);
+  analyzeQuestion(parlayQuestion);
+}
   return (
     <main className="min-h-screen bg-black text-white">
       <section className="mx-auto flex max-w-6xl flex-col items-center px-6 py-14 text-center">
@@ -220,33 +266,30 @@ Give a disciplined EasyRunLine-style answer with:
                 Live Odds
               </p>
               <h2 className="mt-2 text-3xl font-bold">Today&apos;s MLB Games</h2>
-              <p className="mt-2 text-sm text-zinc-400">
-                Games and odds pulled from The Odds API.
-              </p>
+              
             </div>
 
-            <button
-              onClick={loadMlbGames}
-              disabled={gamesLoading}
-              className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-50"
-            >
-              {gamesLoading ? "Loading..." : "Refresh Games"}
-            </button>
-          </div>
-
-          {gamesError && (
-            <div className="mt-6 rounded-xl border border-red-500/40 bg-red-950/30 p-4 text-red-300">
-              {gamesError}
             </div>
-          )}
 
-          {gamesLoading && (
-            <p className="mt-8 text-zinc-400">Loading today&apos;s MLB games...</p>
-          )}
+<div className="flex flex-col gap-3 sm:flex-row">
+  <button
+    onClick={loadMlbGames}
+    disabled={gamesLoading}
+    className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-50"
+  >
+    {gamesLoading ? "Loading..." : "Refresh Games"}
+  </button>
 
-          {!gamesLoading && games.length === 0 && !gamesError && (
-            <p className="mt-8 text-zinc-400">No MLB games found right now.</p>
-          )}
+  <button
+    onClick={findBestThreeLegParlay}
+    disabled={loading || games.length === 0}
+    className="rounded-xl bg-green-500 px-5 py-3 font-bold text-black transition hover:bg-green-400 disabled:opacity-50"
+  >
+    Find Best 3-Leg +4.5 Parlay
+  </button>
+</div>
+
+<div className="mt-8 grid w-full gap-5 md:grid-cols-2"></div>
 
           <div className="mt-8 grid w-full gap-5 md:grid-cols-2">
             {games.map((game) => {
