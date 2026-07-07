@@ -25,7 +25,47 @@ type Game = {
   commence_time: string;
   bookmakers?: Bookmaker[];
 };
+const teamCodes: Record<string, string> = {
+  "Arizona Diamondbacks": "ARI",
+  "Atlanta Braves": "ATL",
+  "Baltimore Orioles": "BAL",
+  "Boston Red Sox": "BOS",
+  "Chicago Cubs": "CHC",
+  "Chicago White Sox": "CWS",
+  "Cincinnati Reds": "CIN",
+  "Cleveland Guardians": "CLE",
+  "Colorado Rockies": "COL",
+  "Detroit Tigers": "DET",
+  "Houston Astros": "HOU",
+  "Kansas City Royals": "KC",
+  "Los Angeles Angels": "LAA",
+  "Los Angeles Dodgers": "LAD",
+  "Miami Marlins": "MIA",
+  "Milwaukee Brewers": "MIL",
+  "Minnesota Twins": "MIN",
+  "New York Mets": "NYM",
+  "New York Yankees": "NYY",
+  "Oakland Athletics": "OAK",
+  "Philadelphia Phillies": "PHI",
+  "Pittsburgh Pirates": "PIT",
+  "San Diego Padres": "SD",
+  "San Francisco Giants": "SF",
+  "Seattle Mariners": "SEA",
+  "St. Louis Cardinals": "STL",
+  "Tampa Bay Rays": "TB",
+  "Texas Rangers": "TEX",
+  "Toronto Blue Jays": "TOR",
+  "Washington Nationals": "WSH",
+};
 
+function teamCode(teamName: string) {
+  return teamCodes[teamName] || teamName.slice(0, 3).toUpperCase();
+}
+
+function logoUrl(teamName: string) {
+  const code = teamCode(teamName);
+  return `https://a.espncdn.com/i/teamlogos/mlb/500/${code.toLowerCase()}.png`;
+}
 export default function Home() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -229,9 +269,37 @@ Give a disciplined EasyRunLine-style answer with:
   </span>
 </div>
 
-                  <h3 className="mt-3 text-2xl font-bold">
-                    {game.away_team} vs {game.home_team}
-                  </h3>
+                  <div className="mt-5 flex items-center justify-between gap-4">
+  <div className="flex flex-1 flex-col items-center rounded-xl border border-zinc-800 bg-black p-4">
+    <img
+      src={logoUrl(game.away_team)}
+      alt={game.away_team}
+      className="h-16 w-16 object-contain"
+    />
+    <p className="mt-3 text-2xl font-black text-white">
+      {teamCode(game.away_team)}
+    </p>
+    <p className="mt-1 text-center text-xs text-zinc-500">
+      {game.away_team}
+    </p>
+  </div>
+
+  <div className="text-xl font-black text-yellow-400">VS</div>
+
+  <div className="flex flex-1 flex-col items-center rounded-xl border border-zinc-800 bg-black p-4">
+    <img
+      src={logoUrl(game.home_team)}
+      alt={game.home_team}
+      className="h-16 w-16 object-contain"
+    />
+    <p className="mt-3 text-2xl font-black text-white">
+      {teamCode(game.home_team)}
+    </p>
+    <p className="mt-1 text-center text-xs text-zinc-500">
+      {game.home_team}
+    </p>
+  </div>
+</div>
 
                   <p className="mt-2 text-sm text-zinc-400">
                     {new Date(game.commence_time).toLocaleString()}
