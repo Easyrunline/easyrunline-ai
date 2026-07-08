@@ -309,6 +309,63 @@ ${topPick.reasons.map((reason) => `- ${reason}`).join("\n")}
   setQuestion(singleQuestion);
   analyzeQuestion(singleQuestion);
 }
+function findBestTwoLegParlay() {
+  if (games.length === 0) return;
+
+  const rankedPicks = rankEasyRunLinePicks(games);
+  const topTwo = rankedPicks.slice(0, 2);
+
+  if (topTwo.length < 2) return;
+
+  const rankedText = rankedPicks
+    .map(
+      (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+ERL Score: ${pick.score}/100
+Moneyline: ${pick.moneyline}
+Standard Run Line Seen: ${pick.standardRunLine}
+Bookmaker: ${pick.bookmaker}
+
+Reasons:
+${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
+`
+    )
+    .join("\n────────────────────\n");
+
+  const selectedText = topTwo
+    .map(
+      (pick, index) =>
+        `${index + 1}. ${pick.team} +4.5 | ERL Score: ${pick.score}/100`
+    )
+    .join("\n");
+
+  const parlayQuestion = `
+Create an EasyRunLine AI report for the best 2-leg +4.5 MLB parlay.
+
+IMPORTANT:
+
+The picks below were selected by the EasyRunLine fixed scoring engine.
+
+Do not change the teams.
+
+Do not replace +4.5 with +1.5.
+
+Do not recommend favorites.
+
+Only explain the selected underdog +4.5 sides.
+
+Selected 2-leg parlay:
+
+${selectedText}
+
+Full ranked underdog board:
+
+${rankedText}
+`;
+
+  setQuestion(parlayQuestion);
+  analyzeQuestion(parlayQuestion);
+}
 function findBestThreeLegParlay() {
     if (games.length === 0) return;
 
@@ -421,6 +478,13 @@ ${rankedText}
   className="rounded-xl bg-blue-500 px-5 py-3 font-bold text-white transition hover:bg-blue-400 disabled:opacity-50"
 >
   Safest Single +4.5
+</button>
+<button
+  onClick={findBestTwoLegParlay}
+  disabled={loading || games.length === 0}
+  className="rounded-xl bg-purple-500 px-5 py-3 font-bold text-white transition hover:bg-purple-400 disabled:opacity-50"
+>
+  Best 2-Leg +4.5
 </button>
       <button
         onClick={findBestThreeLegParlay}
