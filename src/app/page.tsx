@@ -366,6 +366,45 @@ ${rankedText}
   setQuestion(parlayQuestion);
   analyzeQuestion(parlayQuestion);
 }
+function findGamesToAvoid() {
+  if (games.length === 0) return;
+
+  const rankedPicks = rankEasyRunLinePicks(games);
+  const avoidPicks = rankedPicks.slice(-5).reverse();
+
+  if (avoidPicks.length === 0) return;
+
+  const avoidText = avoidPicks
+    .map(
+      (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+ERL Score: ${pick.score}/100
+Moneyline: ${pick.moneyline}
+Standard Run Line Seen: ${pick.standardRunLine}
+Bookmaker: ${pick.bookmaker}
+
+Reasons:
+${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
+`
+    )
+    .join("\n────────────────────\n");
+
+  const avoidQuestion = `
+Create an EasyRunLine AI report for MLB games to avoid.
+
+IMPORTANT:
+These teams were flagged by the EasyRunLine fixed scoring engine.
+Do not turn these into recommended plays.
+Do not recommend favorites.
+Explain why these +4.5 underdog spots are weaker or risky.
+
+Games to avoid:
+${avoidText}
+`;
+
+  setQuestion(avoidQuestion);
+  analyzeQuestion(avoidQuestion);
+}
 function findBestThreeLegParlay() {
     if (games.length === 0) return;
 
@@ -484,13 +523,22 @@ ${rankedText}
   disabled={loading || games.length === 0}
   className="rounded-xl bg-purple-500 px-5 py-3 font-bold text-white transition hover:bg-purple-400 disabled:opacity-50"
 >
-  Best 2-Leg +4.5
+  Best 2-Leg +4.5 Parlay
+</button>
+
+<button
+  onClick={findGamesToAvoid}
+  disabled={loading || games.length === 0}
+  className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
+>
+  Games To Avoid
 </button>
       <button
         onClick={findBestThreeLegParlay}
         disabled={loading || games.length === 0}
         className="rounded-xl bg-green-500 px-5 py-3 font-bold text-black transition hover:bg-green-400 disabled:opacity-50"
       >
+  
         Find Best 3-Leg +4.5 Parlay
       </button>
     </div>
