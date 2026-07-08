@@ -277,6 +277,38 @@ setQuestion(gameQuestion);
 analyzeQuestion(gameQuestion);   
   
   }
+  function findSafestSingle() {
+  if (games.length === 0) return;
+
+  const rankedPicks = rankEasyRunLinePicks(games);
+  const topPick = rankedPicks[0];
+
+  if (!topPick) return;
+
+  const singleQuestion = `
+Create an EasyRunLine AI report for the safest single +4.5 MLB play.
+
+IMPORTANT:
+This pick was selected by the EasyRunLine fixed scoring engine.
+Do not change the team.
+Do not replace +4.5 with +1.5.
+Do not recommend favorites.
+Only explain the selected underdog +4.5 side.
+
+Safest single:
+${topPick.team} +4.5 vs ${topPick.opponent}
+ERL Score: ${topPick.score}/100
+Moneyline: ${topPick.moneyline}
+Standard Run Line Seen: ${topPick.standardRunLine}
+Bookmaker: ${topPick.bookmaker}
+
+Reasons:
+${topPick.reasons.map((reason) => `- ${reason}`).join("\n")}
+`;
+
+  setQuestion(singleQuestion);
+  analyzeQuestion(singleQuestion);
+}
 function findBestThreeLegParlay() {
     if (games.length === 0) return;
 
@@ -383,7 +415,13 @@ ${rankedText}
       >
         {gamesLoading ? "Loading..." : "Refresh Games"}
       </button>
-
+<button
+  onClick={findSafestSingle}
+  disabled={loading || games.length === 0}
+  className="rounded-xl bg-blue-500 px-5 py-3 font-bold text-white transition hover:bg-blue-400 disabled:opacity-50"
+>
+  Safest Single +4.5
+</button>
       <button
         onClick={findBestThreeLegParlay}
         disabled={loading || games.length === 0}
