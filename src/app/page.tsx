@@ -137,7 +137,18 @@ function getUnderdogPick(game: Game): ScoredPick | null {
     reasons.push("Sportsbook standard run line supports this underdog at +1.5");
   }
 
-  score = Math.max(0, Math.min(100, score));
+  // Strong underdog cap: keeps scores realistic until pitchers/weather/lineups are added
+if (underdog.price >= 3.0) {
+  score = Math.min(score, 78);
+} else if (underdog.price >= 2.6) {
+  score = Math.min(score, 84);
+} else if (underdog.price >= 2.25) {
+  score = Math.min(score, 90);
+} else {
+  score = Math.min(score, 94);
+}
+
+score = Math.max(0, Math.min(100, score));
 
   return {
     team: underdog.name,
