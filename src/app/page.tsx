@@ -22,6 +22,14 @@ type Bookmaker = {
   title: string;
   markets: Market[];
 };
+type ProbablePitcher = {
+  homeTeam: string;
+  awayTeam: string;
+  homePitcher: string;
+  awayPitcher: string;
+  homeERA: number | null;
+  awayERA: number | null;
+};
 
 type Game = {
   id: string;
@@ -111,6 +119,12 @@ export default function Home() {
     setAnswer(data.answer);
     setLoading(false);
   }
+  async function loadProbablePitchers() {
+  const response = await fetch("/api/mlb-probables");
+  const data = await response.json();
+
+  return (data.probables || []) as ProbablePitcher[];
+}
 
   async function loadMlbGames() {
     try {
@@ -126,7 +140,25 @@ export default function Home() {
         return;
       }
 
-      setGames(data.games || []);
+      const probables = await loadProbablePitchers();
+
+const gamesWithPitchers = (data.games || []).map((game: Game) => {
+  const probable = probables.find(
+    (p) =>
+      p.homeTeam === game.home_team &&
+      p.awayTeam === game.away_team
+  );
+
+  return {
+    ...game,
+    homePitcher: probable?.homePitcher,
+    awayPitcher: probable?.awayPitcher,
+    homeERA: probable?.homeERA ?? undefined,
+    awayERA: probable?.awayERA ?? undefined,
+  };
+});
+
+setGames(gamesWithPitchers);
     } catch {
       setGamesError("Could not load MLB games.");
       setGames([]);

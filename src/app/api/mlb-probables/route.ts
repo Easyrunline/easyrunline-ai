@@ -1,6 +1,15 @@
 export async function GET() {
   return Response.json({
-    message: "MLB probable pitchers route is working",
     status: "ready",
+    probables: [
+      {
+        homeTeam: "San Francisco Giants",
+        awayTeam: "Toronto Blue Jays",
+        homePitcher: "TBD",
+        awayPitcher: "TBD",
+        homeERA: null,
+        awayERA: null,
+      },
+    ],
   });
 }
