@@ -405,6 +405,38 @@ ${avoidText}
   setQuestion(avoidQuestion);
   analyzeQuestion(avoidQuestion);
 }
+function findBestF5() {
+  if (games.length === 0) return;
+
+  const rankedPicks = rankEasyRunLinePicks(games);
+  const topPick = rankedPicks[0];
+
+  if (!topPick) return;
+
+  const f5Question = `
+Create an EasyRunLine AI report for the best F5 MLB angle.
+
+IMPORTANT:
+This is for First 5 Innings only.
+Focus on early-game risk, starting pitching, early offense, and first-half cover potential.
+Do not present it as a full-game play.
+If starting pitcher data is missing, clearly say F5 confidence is limited.
+Do not call anything a lock.
+
+Best F5 candidate:
+${topPick.team} F5 +2.5 or safer F5 alternate line vs ${topPick.opponent}
+ERL Score: ${topPick.score}/100
+Moneyline: ${topPick.moneyline}
+Standard Run Line Seen: ${topPick.standardRunLine}
+Bookmaker: ${topPick.bookmaker}
+
+Reasons:
+${topPick.reasons.map((reason) => `- ${reason}`).join("\n")}
+`;
+
+  setQuestion(f5Question);
+  analyzeQuestion(f5Question);
+}
 function findBestThreeLegParlay() {
     if (games.length === 0) return;
 
@@ -532,6 +564,13 @@ ${rankedText}
   className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
 >
   Games To Avoid
+</button>
+<button
+  onClick={findBestF5}
+  disabled={loading || games.length === 0}
+  className="rounded-xl bg-cyan-500 px-5 py-3 font-bold text-black transition hover:bg-cyan-400 disabled:opacity-50"
+>
+  Best F5
 </button>
       <button
         onClick={findBestThreeLegParlay}
