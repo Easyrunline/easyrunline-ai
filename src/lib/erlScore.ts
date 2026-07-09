@@ -1,3 +1,4 @@
+import { calculatePitcherScore } from "./pitchers";
 export type Outcome = {
   name: string;
   price: number;
@@ -56,6 +57,12 @@ export function getUnderdogPick(game: Game): ScoredPick | null {
   const opponent = favorite.name;
 
   let score = 50;
+  const pitcherResult = calculatePitcherScore(
+  isHome ? game.homeERA : game.awayERA,
+  isHome ? game.awayERA : game.homeERA
+);
+
+score += pitcherResult.score;
   const reasons: string[] = [];
 
   score += 20;
@@ -108,6 +115,7 @@ export function getUnderdogPick(game: Game): ScoredPick | null {
   }
 
   score = Math.max(0, Math.min(100, score));
+  reasons.push(pitcherResult.reason);
 
   return {
     team: underdog.name,
