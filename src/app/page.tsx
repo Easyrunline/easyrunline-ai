@@ -585,6 +585,17 @@ ${rankedText}
                   <p className="mt-1 text-xs text-zinc-500">
   Bookmaker: {game.bookmakers?.[0]?.title || "Not available"}
 </p>
+<div className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3 text-xs text-cyan-200">
+  <p className="font-bold text-cyan-300">Starting Pitchers</p>
+  <p className="mt-1">
+    Away: {game.awayPitcher || "TBD"}
+    {game.awayERA !== undefined ? ` | ERA: ${game.awayERA}` : ""}
+  </p>
+  <p>
+    Home: {game.homePitcher || "TBD"}
+    {game.homeERA !== undefined ? ` | ERA: ${game.homeERA}` : ""}
+  </p>
+</div>
 
                   <div className="mt-5 space-y-4 text-sm">
                     <div className="rounded-xl border border-zinc-800 bg-black p-4">
