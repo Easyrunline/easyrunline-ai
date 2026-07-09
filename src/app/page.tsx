@@ -28,6 +28,10 @@ type Game = {
   home_team: string;
   away_team: string;
   commence_time: string;
+  homePitcher?: string;
+awayPitcher?: string;
+homeERA?: number;
+awayERA?: number;
   bookmakers?: Bookmaker[];
 };
 
