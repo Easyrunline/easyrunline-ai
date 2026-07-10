@@ -8,14 +8,15 @@ export function calculateRecentFormScore(
   favoriteWinsLast10?: number
 ): RecentFormResult {
   if (
-    underdogWinsLast10 === undefined ||
-    favoriteWinsLast10 === undefined
-  ) {
-    return {
-      score: 0,
-      reason: "Recent form data unavailable",
-    };
-  }
+  underdogWinsLast10 === undefined ||
+  favoriteWinsLast10 === undefined ||
+  underdogWinsLast10 + favoriteWinsLast10 === 0
+) {
+  return {
+    score: 0,
+    reason: "Recent form data unavailable",
+  };
+}
 
   const formDifference = underdogWinsLast10 - favoriteWinsLast10;
 

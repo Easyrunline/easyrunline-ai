@@ -48,6 +48,8 @@ homeLast10Wins?: number;
 homeLast10Losses?: number;
 awayLast10Wins?: number;
 awayLast10Losses?: number;
+homeBullpenERA?: number;
+awayBullpenERA?: number;
   bookmakers?: Bookmaker[];
 };
 

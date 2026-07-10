@@ -1,5 +1,6 @@
 import { calculatePitcherScore } from "./pitchers";
 import { calculateRecentFormScore } from "./recentForm";
+import { calculateBullpenScore } from "./bullpen";
 export type Outcome = {
   name: string;
   price: number;
@@ -29,6 +30,8 @@ homeLast10Wins?: number;
 homeLast10Losses?: number;
 awayLast10Wins?: number;
 awayLast10Losses?: number;
+homeBullpenERA?: number;
+awayBullpenERA?: number;
   bookmakers?: Bookmaker[];
 };
 
@@ -68,12 +71,19 @@ export function getUnderdogPick(game: Game): ScoredPick | null {
 );
 
 score += pitcherResult.score;
+
 const recentFormResult = calculateRecentFormScore(
   isHome ? game.homeLast10Wins : game.awayLast10Wins,
   isHome ? game.awayLast10Wins : game.homeLast10Wins
 );
 
 score += recentFormResult.score;
+const bullpenResult = calculateBullpenScore(
+  isHome ? game.homeBullpenERA : game.awayBullpenERA,
+  isHome ? game.awayBullpenERA : game.homeBullpenERA
+);
+
+score += bullpenResult.score;
   const reasons: string[] = [];
 
   score += 20;
@@ -128,6 +138,7 @@ score += recentFormResult.score;
   score = Math.max(0, Math.min(100, score));
   reasons.push(pitcherResult.reason);
   reasons.push(recentFormResult.reason);
+  reasons.push(bullpenResult.reason);
 
   return {
     team: underdog.name,
