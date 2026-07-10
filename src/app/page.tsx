@@ -621,6 +621,27 @@ ${rankedText}
     {game.homeERA !== undefined ? ` | ERA: ${game.homeERA}` : ""}
   </p>
 </div>
+<div className="mt-3 rounded-xl border border-green-500/30 bg-green-950/20 p-3 text-xs text-green-200">
+  <p className="font-bold text-green-300">
+    Recent Form — Last 10
+  </p>
+
+  <p className="mt-1">
+    Away:{" "}
+    {game.awayLast10Wins !== undefined &&
+    game.awayLast10Losses !== undefined
+      ? `${game.awayLast10Wins}-${game.awayLast10Losses}`
+      : "Not available"}
+  </p>
+
+  <p>
+    Home:{" "}
+    {game.homeLast10Wins !== undefined &&
+    game.homeLast10Losses !== undefined
+      ? `${game.homeLast10Wins}-${game.homeLast10Losses}`
+      : "Not available"}
+  </p>
+</div>
 
                   <div className="mt-5 space-y-4 text-sm">
                     <div className="rounded-xl border border-zinc-800 bg-black p-4">
