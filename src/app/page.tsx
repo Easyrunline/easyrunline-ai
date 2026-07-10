@@ -30,7 +30,11 @@ type ProbablePitcher = {
   homeERA: number | null;
   awayERA: number | null;
 };
-
+type TeamForm = {
+  team: string;
+  winsLast10: number;
+  lossesLast10: number;
+};
 type Game = {
   id: string;
   home_team: string;
@@ -40,6 +44,10 @@ type Game = {
 awayPitcher?: string;
 homeERA?: number;
 awayERA?: number;
+homeLast10Wins?: number;
+homeLast10Losses?: number;
+awayLast10Wins?: number;
+awayLast10Losses?: number;
   bookmakers?: Bookmaker[];
 };
 
@@ -125,6 +133,12 @@ export default function Home() {
 
   return (data.probables || []) as ProbablePitcher[];
 }
+async function loadTeamForm() {
+  const response = await fetch("/api/mlb-form");
+  const data = await response.json();
+
+  return (data.teams || []) as TeamForm[];
+}
 
   async function loadMlbGames() {
     try {
@@ -141,13 +155,17 @@ export default function Home() {
       }
 
       const probables = await loadProbablePitchers();
+const teamForm = await loadTeamForm();
 
-const gamesWithPitchers = (data.games || []).map((game: Game) => {
+const gamesWithPitchersAndForm = (data.games || []).map((game: Game) => {
   const probable = probables.find(
     (p) =>
       p.homeTeam === game.home_team &&
       p.awayTeam === game.away_team
   );
+
+  const homeForm = teamForm.find((team) => team.team === game.home_team);
+  const awayForm = teamForm.find((team) => team.team === game.away_team);
 
   return {
     ...game,
@@ -155,10 +173,15 @@ const gamesWithPitchers = (data.games || []).map((game: Game) => {
     awayPitcher: probable?.awayPitcher,
     homeERA: probable?.homeERA ?? undefined,
     awayERA: probable?.awayERA ?? undefined,
+
+    homeLast10Wins: homeForm?.winsLast10,
+    homeLast10Losses: homeForm?.lossesLast10,
+    awayLast10Wins: awayForm?.winsLast10,
+    awayLast10Losses: awayForm?.lossesLast10,
   };
 });
 
-setGames(gamesWithPitchers);
+setGames(gamesWithPitchersAndForm);
     } catch {
       setGamesError("Could not load MLB games.");
       setGames([]);
