@@ -35,6 +35,15 @@ type TeamForm = {
   winsLast10: number;
   lossesLast10: number;
 };
+type BullpenTeam = {
+  team: string;
+  bullpenERA: number | null;
+  bullpenRank: number | null;
+  inningsPitched: number | null;
+  strikeouts: number | null;
+  walks: number | null;
+  homeRunsAllowed: number | null;
+};
 type Game = {
   id: string;
   home_team: string;
@@ -50,6 +59,8 @@ awayLast10Wins?: number;
 awayLast10Losses?: number;
 homeBullpenERA?: number;
 awayBullpenERA?: number;
+homeBullpenRank?: number;
+awayBullpenRank?: number;
   bookmakers?: Bookmaker[];
 };
 
@@ -141,6 +152,12 @@ async function loadTeamForm() {
 
   return (data.teams || []) as TeamForm[];
 }
+async function loadBullpenData() {
+  const response = await fetch("/api/mlb-bullpen");
+  const data = await response.json();
+
+  return (data.bullpens || []) as BullpenTeam[];
+}
 
   async function loadMlbGames() {
     try {
@@ -155,11 +172,11 @@ async function loadTeamForm() {
         setGames([]);
         return;
       }
-
       const probables = await loadProbablePitchers();
 const teamForm = await loadTeamForm();
+const bullpenData = await loadBullpenData();
 
-const gamesWithPitchersAndForm = (data.games || []).map((game: Game) => {
+const gamesWithLiveData = (data.games || []).map((game: Game) => {
   const probable = probables.find(
     (p) =>
       p.homeTeam === game.home_team &&
@@ -169,8 +186,17 @@ const gamesWithPitchersAndForm = (data.games || []).map((game: Game) => {
   const homeForm = teamForm.find((team) => team.team === game.home_team);
   const awayForm = teamForm.find((team) => team.team === game.away_team);
 
+  const homeBullpen = bullpenData.find(
+    (team) => team.team === game.home_team
+  );
+
+  const awayBullpen = bullpenData.find(
+    (team) => team.team === game.away_team
+  );
+
   return {
     ...game,
+
     homePitcher: probable?.homePitcher,
     awayPitcher: probable?.awayPitcher,
     homeERA: probable?.homeERA ?? undefined,
@@ -180,10 +206,17 @@ const gamesWithPitchersAndForm = (data.games || []).map((game: Game) => {
     homeLast10Losses: homeForm?.lossesLast10,
     awayLast10Wins: awayForm?.winsLast10,
     awayLast10Losses: awayForm?.lossesLast10,
+
+    homeBullpenERA: homeBullpen?.bullpenERA ?? undefined,
+    awayBullpenERA: awayBullpen?.bullpenERA ?? undefined,
+    homeBullpenRank: homeBullpen?.bullpenRank ?? undefined,
+    awayBullpenRank: awayBullpen?.bullpenRank ?? undefined,
   };
 });
 
-setGames(gamesWithPitchersAndForm);
+setGames(gamesWithLiveData);
+
+    
     } catch {
       setGamesError("Could not load MLB games.");
       setGames([]);
@@ -625,6 +658,31 @@ ${rankedText}
   <p className="font-bold text-green-300">
     Recent Form — Last 10
   </p>
+  <div className="mt-3 rounded-xl border border-purple-500/30 bg-purple-950/20 p-3 text-xs text-purple-200">
+  <p className="font-bold text-purple-300">Bullpen</p>
+
+  <p className="mt-1">
+    Away:{" "}
+    {game.awayBullpenERA !== undefined
+      ? `ERA ${game.awayBullpenERA}${
+          game.awayBullpenRank !== undefined
+            ? ` | Rank #${game.awayBullpenRank}`
+            : ""
+        }`
+      : "Not available"}
+  </p>
+
+  <p>
+    Home:{" "}
+    {game.homeBullpenERA !== undefined
+      ? `ERA ${game.homeBullpenERA}${
+          game.homeBullpenRank !== undefined
+            ? ` | Rank #${game.homeBullpenRank}`
+            : ""
+        }`
+      : "Not available"}
+  </p>
+</div>
 
   <p className="mt-1">
     Away:{" "}
