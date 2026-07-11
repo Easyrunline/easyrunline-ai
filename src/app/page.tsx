@@ -296,6 +296,8 @@ If the exact +4.5 line is unavailable, the recommendation is PASS.
 Do not force or invent a replacement selection.
 Do not invent a precise cover probability or unsupported percentage.
 Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
+Use the supplied Engine Confidence exactly as written.
+Do not upgrade, downgrade, or replace the engine confidence label.
 Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
 Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
 For the Missing Live Data section:
@@ -340,7 +342,10 @@ Only explain the selected underdog +4.5 EasyRunLine target.
 
 Safest single:
 ${topPick.team} +4.5 vs ${topPick.opponent}
-ERL Score: ${topPick.score}/100
+${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence}
+In the Recommended +4.5 Side section, reproduce the selected team's ERL Score and Engine Confidence exactly as supplied.
+Do not omit the Engine Rating details from the final report.
+Engine Confidence: ${topPick.confidence}
 Moneyline: ${topPick.moneyline}
 Standard Run Line Seen: ${topPick.standardRunLine}
 Bookmaker: ${topPick.bookmaker}
@@ -379,6 +384,7 @@ const topTwo = rankedPicks.filter((pick) => {
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
 ERL Score: ${pick.score}/100
+Engine Confidence: ${pick.confidence}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
@@ -390,11 +396,12 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
     .join("\n────────────────────\n");
 
   const selectedText = topTwo
-    .map(
-      (pick, index) =>
-        `${index + 1}. ${pick.team} +4.5 | ERL Score: ${pick.score}/100`
-    )
-    .join("\n");
+  .map(
+    (pick, index) =>
+      `${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}`
+  )
+  .join("\n\n");
 
   const parlayQuestion = `
 Create an EasyRunLine AI report for the best 2-leg +4.5 MLB parlay.
@@ -418,6 +425,8 @@ If only one suitable and available +4.5 target remains, recommend the single tar
 
 Do not invent precise cover probabilities or unsupported percentages.
 Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
+Use each supplied Engine Confidence exactly as written.
+Do not upgrade, downgrade, average, or replace the engine confidence labels.
 
 Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
 Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
@@ -427,6 +436,8 @@ Only explain the selected underdog +4.5 EasyRunLine targets.
 Selected 2-leg parlay:
 
 ${selectedText}
+In the Recommended +4.5 Side section, reproduce every selected team's ERL Score and Engine Confidence exactly as supplied.
+Do not omit the Engine Rating details from the final report.
 
 Full ranked underdog board:
 
@@ -440,7 +451,24 @@ function findGamesToAvoid() {
   if (games.length === 0) return;
 
   const rankedPicks = rankEasyRunLinePicks(games);
-  const avoidPicks = rankedPicks.slice(-5).reverse();
+
+const uniqueAvoidMatchups = new Set<string>();
+
+const avoidPicks = [...rankedPicks]
+  .reverse()
+  .filter((pick) => {
+    const matchupKey = [pick.team, pick.opponent]
+      .sort()
+      .join(" vs ");
+
+    if (uniqueAvoidMatchups.has(matchupKey)) {
+      return false;
+    }
+
+    uniqueAvoidMatchups.add(matchupKey);
+    return true;
+  })
+  .slice(0, 5);
 
   if (avoidPicks.length === 0) return;
 
@@ -448,7 +476,7 @@ function findGamesToAvoid() {
     .map(
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-ERL Score: ${pick.score}/100
+Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
@@ -468,8 +496,29 @@ Do not turn these into recommended plays.
 Do not recommend favorites.
 Explain why these +4.5 underdog spots are weaker or risky.
 
+Do not invent exact cover probabilities, probability thresholds, or unsupported percentages.
+Use qualitative labels such as Very Low, Low, Moderate, or High.
+Use each supplied Engine Confidence exactly as written.
+Do not upgrade, downgrade, average, or replace the engine confidence labels.
+
+Do not claim that a visible standard run line proves sportsbook confidence, sportsbook belief, or bookmaker opinion.
+Describe it only as a visible market signal.
+
+Starting pitcher, recent form, and bullpen data are live when they appear in the supplied reasons.
+Do not list those categories as missing when their data or comparisons are present.
+If recent bullpen workload or reliever availability is not supplied, describe that specifically as "Bullpen workload/availability: Not supplied."
+
+Weather and confirmed lineup data are not supplied unless explicitly included.
+Do not assume neutral weather, confirmed lineups, or no late scratches.
+
+Do not say a team failed a cover-probability threshold unless a calibrated probability model is explicitly supplied.
+Say instead that the team falls below the EasyRunLine scoring threshold for a recommended +4.5 target.
+
 Games to avoid:
 ${avoidText}
+In the Avoided +4.5 Underdog Spots section, reproduce every team's ERL Score and Engine Confidence exactly as supplied.
+Do not upgrade, downgrade, average, or replace the supplied Engine Confidence labels.
+Do not omit the Engine Rating details from the final report.
 `;
 
   setQuestion(avoidQuestion);
@@ -556,7 +605,7 @@ const topThree = uniqueGamePicks.slice(0, 3);
     .map(
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-ERL Score: ${pick.score}/100
+Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
@@ -567,11 +616,12 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
     .join("\n━━━━━━━━━━━━━━━━━━━━━━\n");
 
   const selectedText = topThree
-    .map(
-      (pick, index) =>
-        `${index + 1}. ${pick.team} +4.5 | ERL Score: ${pick.score}/100`
-    )
-    .join("\n");
+  .map(
+    (pick, index) =>
+      `${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}`
+  )
+  .join("\n\n");
 
   const parlayQuestion = `
 Create an EasyRunLine AI report for the best 3-leg +4.5 MLB parlay.
@@ -596,6 +646,8 @@ If an exact +4.5 line is unavailable, mark that selection as PASS and advise usi
 Do not invent exact cover probabilities or combined parlay probabilities.
 
 Use confidence labels such as Very High, High, Moderate, or Low instead of unsupported percentages.
+Use each supplied Engine Confidence exactly as written.
+Do not upgrade, downgrade, average, or replace the engine confidence labels.
 
 Starting pitcher, recent form, and bullpen data are live when they appear in the ranked-board reasons.
 
@@ -624,6 +676,8 @@ Do not invent numerical cover probabilities or imply a calculated probability ex
 
 Selected 3-leg parlay:
 ${selectedText}
+In the Recommended +4.5 Side section, reproduce every selected team’s ERL Score and Engine Confidence exactly as supplied.
+Do not omit the Engine Rating details from the final report.
 
 Full ranked underdog board:
 ${rankedText}

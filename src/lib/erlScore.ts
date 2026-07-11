@@ -43,7 +43,8 @@ export type ScoredPick = {
   standardRunLine?: string;
   bookmaker: string;
   score: number;
-  reasons: string[];
+confidence: "Very High" | "High" | "Moderate" | "Low" | "Very Low";
+reasons: string[];
 };
 
 export function getUnderdogPick(game: Game): ScoredPick | null {
@@ -154,16 +155,26 @@ if (underdogSpread?.point === 1.5) {
 }
 
 score = Math.max(0, Math.min(100, score));
+let confidence: ScoredPick["confidence"];
+
+if (score >= 85) {
+  confidence = "Very High";
+} else if (score >= 75) {
+  confidence = "High";
+} else if (score >= 60) {
+  confidence = "Moderate";
+} else if (score >= 40) {
+  confidence = "Low";
+} else {
+  confidence = "Very Low";
+}
 
 reasons.push(pitcherResult.reason);
 reasons.push(recentFormResult.reason);
 reasons.push(bullpenResult.reason);
 
 
-  score = Math.max(0, Math.min(100, score));
-  reasons.push(pitcherResult.reason);
-  reasons.push(recentFormResult.reason);
-  reasons.push(bullpenResult.reason);
+ 
 
   return {
     team: underdog.name,
@@ -176,7 +187,8 @@ reasons.push(bullpenResult.reason);
         : "Not available",
     bookmaker: bookmaker.title || "Not available",
     score,
-    reasons,
+confidence,
+reasons,
   };
 }
 
