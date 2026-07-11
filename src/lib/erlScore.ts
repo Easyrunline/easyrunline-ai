@@ -44,6 +44,7 @@ export type ScoredPick = {
   bookmaker: string;
   score: number;
 confidence: "Very High" | "High" | "Moderate" | "Low" | "Very Low";
+blowoutRisk: "Low" | "Moderate" | "High" | "Very High";
 reasons: string[];
 };
 
@@ -168,7 +169,51 @@ if (score >= 85) {
 } else {
   confidence = "Very Low";
 }
+let blowoutRiskPoints = 0;
 
+if (underdog.price >= 3.5) {
+  blowoutRiskPoints += 3;
+} else if (underdog.price >= 2.75) {
+  blowoutRiskPoints += 2;
+} else if (underdog.price >= 2.3) {
+  blowoutRiskPoints += 1;
+}
+
+if (pitcherResult.score <= -8) {
+  blowoutRiskPoints += 3;
+} else if (pitcherResult.score <= -4) {
+  blowoutRiskPoints += 2;
+} else if (pitcherResult.score < 0) {
+  blowoutRiskPoints += 1;
+}
+
+if (recentFormResult.score <= -6) {
+  blowoutRiskPoints += 2;
+} else if (recentFormResult.score < 0) {
+  blowoutRiskPoints += 1;
+}
+
+if (bullpenResult.score <= -6) {
+  blowoutRiskPoints += 2;
+} else if (bullpenResult.score < 0) {
+  blowoutRiskPoints += 1;
+}
+
+if (isHome) {
+  blowoutRiskPoints = Math.max(0, blowoutRiskPoints - 1);
+}
+
+let blowoutRisk: ScoredPick["blowoutRisk"];
+
+if (blowoutRiskPoints >= 7) {
+  blowoutRisk = "Very High";
+} else if (blowoutRiskPoints >= 5) {
+  blowoutRisk = "High";
+} else if (blowoutRiskPoints >= 3) {
+  blowoutRisk = "Moderate";
+} else {
+  blowoutRisk = "Low";
+}
 reasons.push(pitcherResult.reason);
 reasons.push(recentFormResult.reason);
 reasons.push(bullpenResult.reason);
@@ -188,6 +233,7 @@ reasons.push(bullpenResult.reason);
     bookmaker: bookmaker.title || "Not available",
     score,
 confidence,
+blowoutRisk,
 reasons,
   };
 }

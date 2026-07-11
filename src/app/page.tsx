@@ -298,6 +298,9 @@ Do not invent a precise cover probability or unsupported percentage.
 Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
 Use the supplied Engine Confidence exactly as written.
 Do not upgrade, downgrade, or replace the engine confidence label.
+Use the supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, or replace the engine blowout-risk label.
+In the Blowout Risk section, reproduce the supplied label exactly.
 Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
 Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
 For the Missing Live Data section:
@@ -342,7 +345,7 @@ Only explain the selected underdog +4.5 EasyRunLine target.
 
 Safest single:
 ${topPick.team} +4.5 vs ${topPick.opponent}
-${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence}
+${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence} — Blowout Risk: ${topPick.blowoutRisk}
 In the Recommended +4.5 Side section, reproduce the selected team's ERL Score and Engine Confidence exactly as supplied.
 Do not omit the Engine Rating details from the final report.
 Engine Confidence: ${topPick.confidence}
@@ -397,9 +400,10 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
 
   const selectedText = topTwo
   .map(
-    (pick, index) =>
-      `${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}`
+    (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
+`
   )
   .join("\n\n");
 
@@ -427,6 +431,9 @@ Do not invent precise cover probabilities or unsupported percentages.
 Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
 Use each supplied Engine Confidence exactly as written.
 Do not upgrade, downgrade, average, or replace the engine confidence labels.
+Use each supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, or replace the engine blowout-risk labels.
+In the Blowout Risk section, reproduce each selected team's supplied Blowout Risk label exactly.
 
 Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
 Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
@@ -436,7 +443,7 @@ Only explain the selected underdog +4.5 EasyRunLine targets.
 Selected 2-leg parlay:
 
 ${selectedText}
-In the Recommended +4.5 Side section, reproduce every selected team's ERL Score and Engine Confidence exactly as supplied.
+In the Recommended +4.5 Side section, reproduce every selected team's ERL Score, Engine Confidence, and Blowout Risk exactly as supplied.
 Do not omit the Engine Rating details from the final report.
 
 Full ranked underdog board:
@@ -476,7 +483,7 @@ const avoidPicks = [...rankedPicks]
     .map(
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}
+Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
@@ -516,8 +523,11 @@ Say instead that the team falls below the EasyRunLine scoring threshold for a re
 
 Games to avoid:
 ${avoidText}
-In the Avoided +4.5 Underdog Spots section, reproduce every team's ERL Score and Engine Confidence exactly as supplied.
+In the Avoided +4.5 Underdog Spots section, reproduce every team's ERL Score, Engine Confidence, and Blowout Risk exactly as supplied.
 Do not upgrade, downgrade, average, or replace the supplied Engine Confidence labels.
+Use each supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, or replace the engine blowout-risk labels.
+In the Blowout Risk section, reproduce each avoided team's supplied Blowout Risk label exactly.
 Do not omit the Engine Rating details from the final report.
 `;
 
@@ -617,9 +627,10 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
 
   const selectedText = topThree
   .map(
-    (pick, index) =>
-      `${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}`
+    (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
+`
   )
   .join("\n\n");
 
@@ -648,6 +659,9 @@ Do not invent exact cover probabilities or combined parlay probabilities.
 Use confidence labels such as Very High, High, Moderate, or Low instead of unsupported percentages.
 Use each supplied Engine Confidence exactly as written.
 Do not upgrade, downgrade, average, or replace the engine confidence labels.
+Use each supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, or replace the engine blowout-risk labels.
+In the Blowout Risk section, reproduce each selected team's supplied Blowout Risk label exactly.
 
 Starting pitcher, recent form, and bullpen data are live when they appear in the ranked-board reasons.
 
@@ -676,7 +690,7 @@ Do not invent numerical cover probabilities or imply a calculated probability ex
 
 Selected 3-leg parlay:
 ${selectedText}
-In the Recommended +4.5 Side section, reproduce every selected team’s ERL Score and Engine Confidence exactly as supplied.
+In the Recommended +4.5 Side section, reproduce every selected team's ERL Score, Engine Confidence, and Blowout Risk exactly as supplied.
 Do not omit the Engine Rating details from the final report.
 
 Full ranked underdog board:
