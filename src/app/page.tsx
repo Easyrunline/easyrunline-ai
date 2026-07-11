@@ -436,7 +436,25 @@ function findBestThreeLegParlay() {
     if (games.length === 0) return;
 
   const rankedPicks = rankEasyRunLinePicks(games);
-  const topThree = rankedPicks.slice(0, 3);
+  const uniqueGamePicks = rankedPicks.filter((pick, index, allPicks) => {
+  const matchupKey = [pick.team, pick.opponent].sort().join(" vs ");
+
+  return (
+    index ===
+    allPicks.findIndex((otherPick) => {
+      const otherMatchupKey = [
+        otherPick.team,
+        otherPick.opponent,
+      ]
+        .sort()
+        .join(" vs ");
+
+      return otherMatchupKey === matchupKey;
+    })
+  );
+});
+
+const topThree = uniqueGamePicks.slice(0, 3);
 
   const rankedText = rankedPicks
     .map(
