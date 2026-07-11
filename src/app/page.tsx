@@ -288,7 +288,55 @@ This pick was selected by the EasyRunLine fixed scoring engine.
 Do not change the team.
 Do not replace +4.5 with +1.5.
 Do not recommend favorites.
-Only explain the selected underdog +4.5 side.
+
+The +4.5 run line is an EasyRunLine target and is NOT confirmed as currently available at the listed bookmaker.
+The live odds feed may only show the standard run line.
+Tell the user to verify the exact +4.5 alternate run line in their betting app before placing the bet.
+If the exact +4.5 line is unavailable, the recommendation is PASS.
+Do not force or invent a replacement selection.
+Do not invent a precise cover probability or unsupported percentage.
+Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
+Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
+Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
+For the Missing Live Data section:
+Only list a data category as missing if it was NOT supplied in the report inputs or reasons.
+If bullpen data or bullpen comparisons appear in the supplied reasons, do NOT list Bullpen as missing.
+If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT list Starting Pitchers as missing.
+If recent form data or form comparisons appear in the supplied reasons, do NOT list Recent Form as missing.
+Do not use available live data inside the analysis and then describe the same data as missing.
+Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
+Do not claim that weather is clear, that there are no adverse conditions, that lineups are confirmed, or that there are no late scratches unless that live data was explicitly supplied.
+If no supplied data category is genuinely missing, write: "None from the supplied EasyRunLine intelligence."
+
+Do not describe the visible standard run line as proof of sportsbook belief, bookmaker opinion, or what the sportsbook thinks will happen.
+Describe the standard run line only as a visible market signal.
+Do not claim the +4.5 targets have strong value solely because the visible standard line is +1.5.
+Do not claim positive expected value, +EV, strong betting value, or profitable value unless the exact +4.5 alternate price is supplied.
+A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
+Without the exact +4.5 price, describe matchup suitability only.
+Do not infer alternate-line value from the standard +1.5 price.
+For the Missing Live Data section:
+Only list a data category as missing if it was NOT supplied in the report inputs or reasons.
+If bullpen data or bullpen comparisons appear in the supplied reasons, do NOT list Bullpen as missing.
+If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT list Starting Pitchers as missing.
+If recent form data or form comparisons appear in the supplied reasons, do NOT list Recent Form as missing.
+Do not use available live data inside the analysis and then describe the same data as missing.
+Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
+Do not claim that weather is clear, that there are no adverse conditions, that lineups are confirmed, or that there are no late scratches unless that live data was explicitly supplied.
+If no supplied data category is genuinely missing, write: "None from the supplied EasyRunLine intelligence."
+Do not describe the visible standard run line as proof of sportsbook belief, bookmaker opinion, or what the sportsbook thinks will happen.
+Describe the standard run line only as a visible market signal.
+Do not claim the +4.5 target has strong value solely because the visible standard line is +1.5.
+MANDATORY REPORT WORDING RULES:
+Use the heading "🛡 Cover Outlook". Never use "Estimated Cover Probability".
+Never describe an unconfirmed +4.5 line as undervalued, strong value, positive expected value, +EV, or profitable.
+Never say a standard +1.5 line reflects sportsbook confidence, sportsbook belief, or bookmaker opinion.
+Never assume neutral weather conditions.
+If weather data is not supplied, write "Weather: Not supplied."
+If confirmed lineup data is not supplied, write "Confirmed Lineups: Not supplied."
+Do not place available pitcher or bullpen data under Missing Live Data.
+For Missing Live Data, list only genuinely unsupplied categories.
+Only explain the selected underdog +4.5 EasyRunLine target.
 
 Safest single:
 ${topPick.team} +4.5 vs ${topPick.opponent}
@@ -308,7 +356,21 @@ function findBestTwoLegParlay() {
   if (games.length === 0) return;
 
   const rankedPicks = rankEasyRunLinePicks(games);
-  const topTwo = rankedPicks.slice(0, 2);
+
+const uniqueMatchups = new Set<string>();
+
+const topTwo = rankedPicks.filter((pick) => {
+  const matchupKey = [pick.team, pick.opponent]
+    .sort()
+    .join(" vs ");
+
+  if (uniqueMatchups.has(matchupKey)) {
+    return false;
+  }
+
+  uniqueMatchups.add(matchupKey);
+  return true;
+}).slice(0, 2);
 
   if (topTwo.length < 2) return;
 
@@ -342,12 +404,25 @@ IMPORTANT:
 The picks below were selected by the EasyRunLine fixed scoring engine.
 
 Do not change the teams.
-
 Do not replace +4.5 with +1.5.
-
 Do not recommend favorites.
 
-Only explain the selected underdog +4.5 sides.
+The +4.5 run line is an EasyRunLine target and is NOT confirmed as currently available at the listed bookmaker.
+The live odds feed may only show the standard run line.
+Tell the user to verify the exact +4.5 alternate run line for EACH selected team in their betting app before placing the parlay.
+
+If the exact +4.5 line is unavailable for a selected team, mark that leg as PASS.
+Do not force or invent a replacement selection.
+Use fewer legs instead of forcing a replacement.
+If only one suitable and available +4.5 target remains, recommend the single target instead of pretending a 2-leg parlay is available.
+
+Do not invent precise cover probabilities or unsupported percentages.
+Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
+
+Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
+Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
+
+Only explain the selected underdog +4.5 EasyRunLine targets.
 
 Selected 2-leg parlay:
 
@@ -415,8 +490,29 @@ IMPORTANT:
 This is for First 5 Innings only.
 Focus on early-game risk, starting pitching, early offense, and first-half cover potential.
 Do not present it as a full-game play.
-If starting pitcher data is missing, clearly say F5 confidence is limited.
 Do not call anything a lock.
+
+The F5 +2.5 or safer alternate line is an EasyRunLine target and is NOT confirmed as currently available at the listed bookmaker.
+Tell the user to verify the exact F5 alternate line in their betting app before placing the bet.
+If the exact F5 target line is unavailable, the recommendation is PASS.
+Do not force or invent a replacement market.
+Do not replace the F5 target with a full-game +4.5 play.
+
+Do not invent precise cover probabilities or unsupported percentages.
+Use confidence labels such as Very High, High, Moderate, or Low.
+
+Starting pitcher data is the most important live input for this F5 report.
+If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT describe starting pitcher data as missing.
+If starting pitcher data is genuinely absent, clearly state that F5 confidence is limited.
+
+Recent form may support the F5 analysis when included.
+Bullpen data is mainly a full-game factor and should not be presented as a primary reason for an F5 recommendation.
+Do not use bullpen strength as the main justification for an F5 play.
+
+Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
+Do not claim weather conditions, confirmed lineups, or late-scratch information unless that live data was explicitly supplied.
+
+Do not describe the visible standard full-game run line as confirmation of the F5 alternate market.
 
 Best F5 candidate:
 ${topPick.team} F5 +2.5 or safer F5 alternate line vs ${topPick.opponent}
@@ -504,6 +600,27 @@ Use confidence labels such as Very High, High, Moderate, or Low instead of unsup
 Starting pitcher, recent form, and bullpen data are live when they appear in the ranked-board reasons.
 
 Do not list those factors as missing when their reasons are present.
+For the Missing Live Data section:
+Only list a data category as missing if it was NOT supplied in the report inputs or reasons.
+If bullpen data or bullpen comparisons appear in the supplied reasons, do NOT list Bullpen as missing.
+If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT list Starting Pitchers as missing.
+If recent form data or form comparisons appear in the supplied reasons, do NOT list Recent Form as missing.
+Do not use available live data in the analysis and then describe the same data as missing.
+Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
+Do not claim that weather is clear, that there are no adverse conditions, that lineups are confirmed, or that there are no late scratches unless that live data was explicitly supplied.
+If no supplied data category is genuinely missing, write: "None from the supplied EasyRunLine intelligence."
+
+Do not describe the visible standard run line as proof of sportsbook belief, bookmaker opinion, or what the sportsbook thinks will happen.
+Describe the standard run line only as a visible market signal.
+Do not claim the +4.5 targets have strong value solely because the visible standard line is +1.5.
+Do not claim positive expected value, +EV, strong betting value, or profitable value unless the exact +4.5 alternate price is supplied.
+A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
+Without the exact +4.5 price, describe matchup suitability only.
+Do not infer alternate-line value from the standard +1.5 price.
+Say that a team appears suitable as an EasyRunLine +4.5 target, subject to confirming the exact alternate line and price.
+
+Use the section heading "Cover Outlook" instead of "Estimated Cover Probability".
+Do not invent numerical cover probabilities or imply a calculated probability exists.
 
 Selected 3-leg parlay:
 ${selectedText}

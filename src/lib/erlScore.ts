@@ -60,6 +60,26 @@ export function getUnderdogPick(game: Game): ScoredPick | null {
 
   const underdog = awayMl.price > homeMl.price ? awayMl : homeMl;
   const favorite = awayMl.price > homeMl.price ? homeMl : awayMl;
+  if (
+  !underdog ||
+  !favorite ||
+  underdog.price <= favorite.price ||
+  underdog.name === favorite.name
+) {
+  return null;
+}
+
+const validTeamNames = new Set([
+  game.home_team,
+  game.away_team,
+]);
+
+if (
+  !validTeamNames.has(underdog.name) ||
+  !validTeamNames.has(favorite.name)
+) {
+  return null;
+}
 
   const isHome = underdog.name === game.home_team;
   const opponent = favorite.name;
@@ -120,6 +140,12 @@ const underdogSpread = spread?.outcomes.find(
   (outcome) => outcome.name === underdog.name
 );
 
+if (
+  underdogSpread?.point !== undefined &&
+  underdogSpread.point < 0
+) {
+  return null;
+}
 if (underdogSpread?.point === 1.5) {
   score += 4;
   reasons.push(
