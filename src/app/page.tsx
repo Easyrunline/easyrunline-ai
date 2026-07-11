@@ -486,7 +486,24 @@ Do not change the teams.
 Do not replace +4.5 with +1.5.
 Do not recommend favorites.
 Only explain the selected underdog +4.5 sides.
-If you mention standard sportsbook run line, clearly say it is the visible standard +1.5 line, not the EasyRunLine +4.5 target.
+
+If you mention the standard sportsbook run line, clearly say it is the visible standard +1.5 line, not the EasyRunLine +4.5 target.
+
+The +4.5 line is the EasyRunLine target and is not confirmed as currently offered by the bookmaker.
+
+Never claim that the exact +4.5 market is available unless confirmed data explicitly provides it.
+
+Clearly tell the user to verify the alternate +4.5 line in their betting app before placing the ticket.
+
+If an exact +4.5 line is unavailable, mark that selection as PASS and advise using fewer legs rather than forcing a replacement.
+
+Do not invent exact cover probabilities or combined parlay probabilities.
+
+Use confidence labels such as Very High, High, Moderate, or Low instead of unsupported percentages.
+
+Starting pitcher, recent form, and bullpen data are live when they appear in the ranked-board reasons.
+
+Do not list those factors as missing when their reasons are present.
 
 Selected 3-leg parlay:
 ${selectedText}

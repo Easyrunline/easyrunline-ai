@@ -64,76 +64,75 @@ export function getUnderdogPick(game: Game): ScoredPick | null {
   const isHome = underdog.name === game.home_team;
   const opponent = favorite.name;
 
-  let score = 50;
-  const pitcherResult = calculatePitcherScore(
+  let score = 45;
+const reasons: string[] = [];
+
+const pitcherResult = calculatePitcherScore(
   isHome ? game.homeERA : game.awayERA,
   isHome ? game.awayERA : game.homeERA
 );
-
-score += pitcherResult.score;
 
 const recentFormResult = calculateRecentFormScore(
   isHome ? game.homeLast10Wins : game.awayLast10Wins,
   isHome ? game.awayLast10Wins : game.homeLast10Wins
 );
 
-score += recentFormResult.score;
 const bullpenResult = calculateBullpenScore(
   isHome ? game.homeBullpenERA : game.awayBullpenERA,
   isHome ? game.awayBullpenERA : game.homeBullpenERA
 );
 
+score += pitcherResult.score;
+score += recentFormResult.score;
 score += bullpenResult.score;
-  const reasons: string[] = [];
 
-  score += 20;
-  reasons.push("Valid EasyRunLine underdog +4.5 candidate");
+reasons.push("Valid EasyRunLine underdog +4.5 candidate");
 
-  if (isHome) {
-    score += 8;
-    reasons.push("Home underdog protection");
-  }
+if (isHome) {
+  score += 4;
+  reasons.push("Home underdog protection");
+}
 
-  const mlGap = underdog.price - favorite.price;
+const mlGap = underdog.price - favorite.price;
 
-  if (mlGap <= 0.45) {
-    score += 18;
-    reasons.push("Small moneyline gap suggests competitive matchup");
-  } else if (mlGap <= 0.9) {
-    score += 10;
-    reasons.push("Moderate moneyline gap");
-  } else {
-    score -= 8;
-    reasons.push("Wide moneyline gap increases blowout risk");
-  }
+if (mlGap <= 0.45) {
+  score += 8;
+  reasons.push("Small moneyline gap suggests a competitive matchup");
+} else if (mlGap <= 0.9) {
+  score += 3;
+  reasons.push("Moderate moneyline gap");
+} else {
+  score -= 8;
+  reasons.push("Wide moneyline gap increases blowout risk");
+}
 
-  if (underdog.price <= 2.25) {
-    score += 10;
-    reasons.push("Market does not price this team as a heavy underdog");
-  } else if (underdog.price <= 2.8) {
-    score += 4;
-    reasons.push("Playable underdog range");
-  } else {
-    score -= 6;
-    reasons.push("Heavy underdog profile");
-  }
+if (underdog.price <= 2.25) {
+  score += 4;
+  reasons.push("Market does not price this team as a heavy underdog");
+} else if (underdog.price <= 2.8) {
+  reasons.push("Playable underdog range");
+} else {
+  score -= 6;
+  reasons.push("Heavy underdog profile");
+}
 
-  const underdogSpread = spread?.outcomes.find((o) => o.name === underdog.name);
+const underdogSpread = spread?.outcomes.find(
+  (outcome) => outcome.name === underdog.name
+);
 
-  if (underdogSpread?.point === 1.5) {
-    score += 8;
-    reasons.push("Sportsbook standard run line supports this underdog at +1.5");
-  }
+if (underdogSpread?.point === 1.5) {
+  score += 4;
+  reasons.push(
+    "Sportsbook standard run line supports this underdog at +1.5"
+  );
+}
 
-  if (underdog.price >= 3.0) {
-    score = Math.min(score, 78);
-  } else if (underdog.price >= 2.6) {
-    score = Math.min(score, 84);
-  } else if (underdog.price >= 2.25) {
-    score = Math.min(score, 90);
-  } else {
-    score = Math.min(score, 94);
-  }
+score = Math.max(0, Math.min(100, score));
+
+reasons.push(pitcherResult.reason);
+reasons.push(recentFormResult.reason);
+reasons.push(bullpenResult.reason);
+
 
   score = Math.max(0, Math.min(100, score));
   reasons.push(pitcherResult.reason);
