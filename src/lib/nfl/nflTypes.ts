@@ -107,3 +107,41 @@ export type NFLTeamForm = {
   trendLast5: string;
   trendLast10: string;
 };
+export type NFLQuarterbackStats = {
+  playerId: string;
+  player: string;
+  team: string;
+  abbreviation: string;
+
+  gamesPlayed: number;
+  gamesStarted: number;
+
+  completions: number;
+  attempts: number;
+  completionPercentage: number;
+
+  passingYards: number;
+  passingYardsPerGame: number;
+
+  passingTouchdowns: number;
+  interceptions: number;
+
+  passerRating?: number;
+  sacksTaken?: number;
+
+  status?: string;
+};
+export type NFLQuarterbackCandidate = {
+  playerId: string;
+  player: string;
+  jersey: string;
+  experienceYears: number;
+  headshot: string | null;
+  status: string;
+};
+
+export type NFLTeamQuarterbacks = {
+  team: string;
+  abbreviation: string;
+  quarterbacks: NFLQuarterbackCandidate[];
+};

@@ -8,6 +8,7 @@ import type {
   NFLMarket,
   NFLOutcome,
   NFLTeamForm,
+  NFLTeamQuarterbacks,
 } from "@/lib/nfl/nflTypes";
 
 type NFLOddsResponse = {
@@ -19,6 +20,8 @@ type NFLOddsResponse = {
 export default function NFLPage() {
   const [games, setGames] = useState<NFLGame[]>([]);
   const [teamForm, setTeamForm] = useState<NFLTeamForm[]>([]);
+  const [teamQuarterbacks, setTeamQuarterbacks] =
+  useState<NFLTeamQuarterbacks[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -38,6 +41,21 @@ async function loadNFLTeamForm() {
 
   return (data.teams || []) as NFLTeamForm[];
 }
+async function loadNFLQuarterbacks() {
+  const response = await fetch("/api/nfl-quarterbacks", {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    return [] as NFLTeamQuarterbacks[];
+  }
+
+  const data = await response.json();
+
+  return (data.teams || []) as NFLTeamQuarterbacks[];
+}
+
+
   
   async function loadNFLGames() {
     try {
@@ -51,19 +69,23 @@ async function loadNFLTeamForm() {
       const data = (await response.json()) as NFLOddsResponse;
 
       if (!response.ok) {
-        const formData = await loadNFLTeamForm();
+  setGames([]);
+  setError(
+    data.error ||
+      data.details ||
+      "Could not load NFL games."
+  );
+  return;
+}
+
+const [formData, quarterbackData] = await Promise.all([
+  loadNFLTeamForm(),
+  loadNFLQuarterbacks(),
+]);
 
 setTeamForm(formData);
-        setGames([]);
-        setError(
-          data.error ||
-            data.details ||
-            "Could not load NFL games."
-        );
-        return;
-      }
-
-      setGames(data.games || []);
+setTeamQuarterbacks(quarterbackData);
+setGames(data.games || []);
     } catch {
       setGames([]);
       setError("Could not load NFL games.");
@@ -229,6 +251,24 @@ setTeamForm(formData);
 const homeForm = teamForm.find(
   (team) => team.team === game.home_team
 );
+const awayQuarterbacks = teamQuarterbacks.find(
+  (team) => team.team === game.away_team
+)?.quarterbacks ?? [];
+
+const homeQuarterbacks = teamQuarterbacks.find(
+  (team) => team.team === game.home_team
+)?.quarterbacks ?? [];
+const awayLikelyQuarterback = [...awayQuarterbacks]
+  .filter((quarterback) => quarterback.status === "Active")
+  .sort(
+    (a, b) => b.experienceYears - a.experienceYears
+  )[0];
+
+const homeLikelyQuarterback = [...homeQuarterbacks]
+  .filter((quarterback) => quarterback.status === "Active")
+  .sort(
+    (a, b) => b.experienceYears - a.experienceYears
+  )[0];
 
               return (
                 <article
@@ -350,6 +390,93 @@ const homeForm = teamForm.find(
                       </p>
                     </div>
                   </div>
+                  <div className="mt-5 rounded-xl border border-zinc-800 bg-black p-4">
+  <div className="flex items-center justify-between gap-3">
+    <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+      QB Roster Intelligence
+    </p>
+
+    <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+      Verify starter before kickoff
+    </p>
+  </div>
+
+  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+      <p className="text-xs font-semibold text-zinc-500">
+        {game.away_team}
+      </p>
+
+      {awayLikelyQuarterback ? (
+        <div className="mt-3 flex items-center gap-3">
+          {awayLikelyQuarterback.headshot && (
+            <img
+              src={awayLikelyQuarterback.headshot}
+              alt={`${awayLikelyQuarterback.player} headshot`}
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          )}
+
+          <div>
+            <p className="font-semibold text-white">
+              {awayLikelyQuarterback.player}
+            </p>
+
+            <p className="mt-1 text-xs text-zinc-400">
+              #{awayLikelyQuarterback.jersey} ·{" "}
+              {awayLikelyQuarterback.experienceYears} years experience
+            </p>
+
+            <p className="mt-1 text-xs text-zinc-500">
+              Most experienced active roster candidate
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-zinc-500">
+          No active quarterback candidate found.
+        </p>
+      )}
+    </div>
+
+    <div className="rounded-lg border border-zinc-800 bg-zinc-950 p-3">
+      <p className="text-xs font-semibold text-zinc-500">
+        {game.home_team}
+      </p>
+
+      {homeLikelyQuarterback ? (
+        <div className="mt-3 flex items-center gap-3">
+          {homeLikelyQuarterback.headshot && (
+            <img
+              src={homeLikelyQuarterback.headshot}
+              alt={`${homeLikelyQuarterback.player} headshot`}
+              className="h-14 w-14 rounded-full object-cover"
+            />
+          )}
+
+          <div>
+            <p className="font-semibold text-white">
+              {homeLikelyQuarterback.player}
+            </p>
+
+            <p className="mt-1 text-xs text-zinc-400">
+              #{homeLikelyQuarterback.jersey} ·{" "}
+              {homeLikelyQuarterback.experienceYears} years experience
+            </p>
+
+            <p className="mt-1 text-xs text-zinc-500">
+              Most experienced active roster candidate
+            </p>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm text-zinc-500">
+          No active quarterback candidate found.
+        </p>
+      )}
+    </div>
+  </div>
+</div>
                   <div className="mt-5 rounded-xl border border-zinc-800 bg-black p-4">
   <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
     Recent Form
