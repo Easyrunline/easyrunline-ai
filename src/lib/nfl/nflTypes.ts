@@ -82,3 +82,28 @@ export type NFLScoredPick = {
 
   reasons: string[];
 };
+export type NFLTeamForm = {
+  team: string;
+  abbreviation: string;
+
+  winsLast5: number;
+  lossesLast5: number;
+  tiesLast5: number;
+
+  winsLast10: number;
+  lossesLast10: number;
+  tiesLast10: number;
+
+  homeWinsLast10: number;
+  homeLossesLast10: number;
+
+  awayWinsLast10: number;
+  awayLossesLast10: number;
+
+  averagePointsForLast10: number;
+  averagePointsAgainstLast10: number;
+
+  gamesCounted: number;
+  trendLast5: string;
+  trendLast10: string;
+};

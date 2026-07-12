@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getNFLLogoUrl } from "@/lib/nfl/nflLogos";
 import SportSelector from "@/components/SportSelector";
 import type {
   NFLGame,
   NFLMarket,
   NFLOutcome,
+  NFLTeamForm,
 } from "@/lib/nfl/nflTypes";
 
 type NFLOddsResponse = {
@@ -16,13 +18,27 @@ type NFLOddsResponse = {
 
 export default function NFLPage() {
   const [games, setGames] = useState<NFLGame[]>([]);
+  const [teamForm, setTeamForm] = useState<NFLTeamForm[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     loadNFLGames();
   }, []);
+async function loadNFLTeamForm() {
+  const response = await fetch("/api/nfl-form", {
+    cache: "no-store",
+  });
 
+  if (!response.ok) {
+    return [] as NFLTeamForm[];
+  }
+
+  const data = await response.json();
+
+  return (data.teams || []) as NFLTeamForm[];
+}
+  
   async function loadNFLGames() {
     try {
       setLoading(true);
@@ -35,6 +51,9 @@ export default function NFLPage() {
       const data = (await response.json()) as NFLOddsResponse;
 
       if (!response.ok) {
+        const formData = await loadNFLTeamForm();
+
+setTeamForm(formData);
         setGames([]);
         setError(
           data.error ||
@@ -203,6 +222,13 @@ export default function NFLPage() {
 
               const bookmaker =
                 game.bookmakers?.[0]?.title || "Not available";
+                const awayForm = teamForm.find(
+  (team) => team.team === game.away_team
+);
+
+const homeForm = teamForm.find(
+  (team) => team.team === game.home_team
+);
 
               return (
                 <article
@@ -211,22 +237,42 @@ export default function NFLPage() {
                 >
                   <div className="flex items-start justify-between gap-4">
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-yellow-400">
-                        NFL Matchup
-                      </p>
+  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-yellow-400">
+    NFL Matchup
+  </p>
 
-                      <h2 className="mt-2 text-xl font-bold">
-                        {game.away_team}
-                      </h2>
+  <div className="mt-3 flex items-center gap-3">
+    {getNFLLogoUrl(game.away_team) && (
+      <img
+        src={getNFLLogoUrl(game.away_team) ?? ""}
+        alt={`${game.away_team} logo`}
+        className="h-10 w-10 object-contain"
+      />
+    )}
 
-                      <p className="my-1 text-sm text-zinc-500">
-                        at
-                      </p>
+    <h2 className="text-xl font-bold">
+      {game.away_team}
+    </h2>
+  </div>
 
-                      <h2 className="text-xl font-bold">
-                        {game.home_team}
-                      </h2>
-                    </div>
+  <p className="my-2 text-sm text-zinc-500">
+    at
+  </p>
+
+  <div className="flex items-center gap-3">
+    {getNFLLogoUrl(game.home_team) && (
+      <img
+        src={getNFLLogoUrl(game.home_team) ?? ""}
+        alt={`${game.home_team} logo`}
+        className="h-10 w-10 object-contain"
+      />
+    )}
+
+    <h2 className="text-xl font-bold">
+      {game.home_team}
+    </h2>
+  </div>
+</div>
 
                     <p className="max-w-36 text-right text-xs text-zinc-500">
                       {new Date(
@@ -304,6 +350,105 @@ export default function NFLPage() {
                       </p>
                     </div>
                   </div>
+                  <div className="mt-5 rounded-xl border border-zinc-800 bg-black p-4">
+  <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+    Recent Form
+  </p>
+
+  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+    <div>
+      <p className="font-semibold text-white">
+        {game.away_team}
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-400">
+        Last 5:{" "}
+        <span className="font-semibold text-white">
+          {awayForm
+            ? `${awayForm.winsLast5}-${awayForm.lossesLast5}${
+                awayForm.tiesLast5 > 0
+                  ? `-${awayForm.tiesLast5}`
+                  : ""
+              }`
+            : "N/A"}
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Last 10:{" "}
+        <span className="font-semibold text-white">
+          {awayForm
+            ? `${awayForm.winsLast10}-${awayForm.lossesLast10}${
+                awayForm.tiesLast10 > 0
+                  ? `-${awayForm.tiesLast10}`
+                  : ""
+              }`
+            : "N/A"}
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Points For:{" "}
+        <span className="font-semibold text-white">
+          {awayForm?.averagePointsForLast10 ?? "N/A"}
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Points Against:{" "}
+        <span className="font-semibold text-white">
+          {awayForm?.averagePointsAgainstLast10 ?? "N/A"}
+        </span>
+      </p>
+    </div>
+
+    <div>
+      <p className="font-semibold text-white">
+        {game.home_team}
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-400">
+        Last 5:{" "}
+        <span className="font-semibold text-white">
+          {homeForm
+            ? `${homeForm.winsLast5}-${homeForm.lossesLast5}${
+                homeForm.tiesLast5 > 0
+                  ? `-${homeForm.tiesLast5}`
+                  : ""
+              }`
+            : "N/A"}
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Last 10:{" "}
+        <span className="font-semibold text-white">
+          {homeForm
+            ? `${homeForm.winsLast10}-${homeForm.lossesLast10}${
+                homeForm.tiesLast10 > 0
+                  ? `-${homeForm.tiesLast10}`
+                  : ""
+              }`
+            : "N/A"}
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Points For:{" "}
+        <span className="font-semibold text-white">
+          {homeForm?.averagePointsForLast10 ?? "N/A"}
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Points Against:{" "}
+        <span className="font-semibold text-white">
+          {homeForm?.averagePointsAgainstLast10 ?? "N/A"}
+        </span>
+      </p>
+    </div>
+  </div>
+</div>
 
                   <div className="mt-5 flex items-center justify-between border-t border-zinc-800 pt-4 text-xs text-zinc-500">
                     <span>Bookmaker</span>
