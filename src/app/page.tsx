@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SportSelector from "@/components/SportSelector";
 import {
   rankEasyRunLinePicks,
   getUnderdogPick,
@@ -703,6 +704,23 @@ ${rankedText}
 
     return (
     <main className="min-h-screen bg-black text-white">
+
+      <header className="border-b border-zinc-900 bg-black/95">
+  <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+    <div>
+      <p className="text-sm font-bold tracking-[0.25em] text-yellow-400">
+        EASYRUNLINE AI
+      </p>
+
+      <p className="mt-1 text-xs text-zinc-500">
+        Multi-Sport Intelligence
+      </p>
+    </div>
+
+    <SportSelector />
+  </div>
+</header>
+      
       <section className="mx-auto flex max-w-6xl flex-col items-center px-6 py-14 text-center">
 
 <p className="mb-4 text-sm font-semibold uppercase tracking-[0.35em] text-yellow-400">
