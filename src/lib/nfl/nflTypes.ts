@@ -135,6 +135,7 @@ export type NFLQuarterbackCandidate = {
   playerId: string;
   player: string;
   jersey: string;
+  depth: number | null;
   experienceYears: number;
   headshot: string | null;
   status: string;

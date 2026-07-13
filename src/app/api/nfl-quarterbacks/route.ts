@@ -3,6 +3,7 @@ type ESPNAthlete = {
   fullName?: string;
   displayName?: string;
   jersey?: string;
+  depth?: number;
 
   headshot?: {
     href?: string;
@@ -110,6 +111,7 @@ async function loadTeamQuarterbacks(team: NFLTeamReference) {
     "Unknown quarterback",
 
   jersey: athlete.jersey ?? "N/A",
+  depth: athlete.depth ?? null,
 
   experienceYears:
     athlete.experience?.years ?? 0,

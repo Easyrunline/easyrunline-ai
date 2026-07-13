@@ -258,15 +258,27 @@ const awayQuarterbacks = teamQuarterbacks.find(
 const homeQuarterbacks = teamQuarterbacks.find(
   (team) => team.team === game.home_team
 )?.quarterbacks ?? [];
-const awayLikelyQuarterback = [...awayQuarterbacks]
-  .filter((quarterback) => quarterback.status === "Active")
-  .sort(
+const awayActiveQuarterbacks = awayQuarterbacks.filter(
+  (quarterback) => quarterback.status === "Active"
+);
+
+const homeActiveQuarterbacks = homeQuarterbacks.filter(
+  (quarterback) => quarterback.status === "Active"
+);
+
+const awayLikelyQuarterback =
+  awayActiveQuarterbacks.find(
+    (quarterback) => quarterback.depth === 1
+  ) ??
+  [...awayActiveQuarterbacks].sort(
     (a, b) => b.experienceYears - a.experienceYears
   )[0];
 
-const homeLikelyQuarterback = [...homeQuarterbacks]
-  .filter((quarterback) => quarterback.status === "Active")
-  .sort(
+const homeLikelyQuarterback =
+  homeActiveQuarterbacks.find(
+    (quarterback) => quarterback.depth === 1
+  ) ??
+  [...homeActiveQuarterbacks].sort(
     (a, b) => b.experienceYears - a.experienceYears
   )[0];
 
