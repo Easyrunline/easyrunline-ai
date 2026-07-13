@@ -5,10 +5,10 @@ import type { ChangeEvent } from "react";
 
 const sports = [
   {
-    name: "MLB",
-    icon: "⚾",
-    path: "/mlb",
-  },
+  name: "MLB",
+  icon: "⚾",
+  path: "/",
+},
   {
     name: "NFL",
     icon: "🏈",
