@@ -4,6 +4,12 @@ import { useEffect, useState } from "react";
 import { getNFLLogoUrl } from "@/lib/nfl/nflLogos";
 import SportSelector from "@/components/SportSelector";
 import { scoreNFLTeam } from "@/lib/nfl/nflScore";
+import {
+  findSafestAvailableSpread,
+  formatNFLSpread,
+  type NFLAlternateSpreadBookmaker,
+  type NFLAlternateSpreadSelection,
+} from "@/lib/nfl/nflAlternateSpread";
 import type {
   NFLGame,
   NFLMarket,
@@ -25,6 +31,13 @@ export default function NFLPage() {
   useState<NFLTeamQuarterbacks[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [safestAltSpread, setSafestAltSpread] =
+  useState<NFLAlternateSpreadSelection | null>(null);
+
+const [safestAltMessage, setSafestAltMessage] = useState("");
+
+const [safestAltLoading, setSafestAltLoading] =
+  useState(false);
 
   useEffect(() => {
     loadNFLGames();
@@ -121,7 +134,158 @@ setGames(data.games || []);
       setLoading(false);
     }
   }
+async function findSafestAltSpread() {
+  try {
+    setSafestAltLoading(true);
+    setSafestAltSpread(null);
+    setSafestAltMessage("");
 
+    if (games.length === 0) {
+      setSafestAltMessage(
+        "No NFL games are currently available."
+      );
+      return;
+    }
+
+    const rankedGames = games
+      .map((game) => {
+        const awayForm = teamForm.find(
+          (team) => team.team === game.away_team
+        );
+
+        const homeForm = teamForm.find(
+          (team) => team.team === game.home_team
+        );
+
+        const awayScore = scoreNFLTeam(
+          awayForm,
+          game.away_team,
+          false
+        );
+
+        const homeScore = scoreNFLTeam(
+          homeForm,
+          game.home_team,
+          true
+        );
+
+        const preferredTeam =
+          homeScore.score >= awayScore.score
+            ? game.home_team
+            : game.away_team;
+
+        const preferredScore = Math.max(
+          homeScore.score,
+          awayScore.score
+        );
+
+        const scoreGap = Math.abs(
+          homeScore.score - awayScore.score
+        );
+
+        return {
+          game,
+          preferredTeam,
+          preferredScore,
+          scoreGap,
+        };
+      })
+      .sort((a, b) => {
+        if (b.preferredScore !== a.preferredScore) {
+          return b.preferredScore - a.preferredScore;
+        }
+
+        return b.scoreGap - a.scoreGap;
+      })
+      .slice(0, 3);
+
+    for (const candidate of rankedGames) {
+      const response = await fetch(
+        `/api/nfl-alternate-spreads?eventId=${encodeURIComponent(
+          candidate.game.id
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        available?: boolean;
+        bookmakers?: NFLAlternateSpreadBookmaker[];
+        message?: string;
+      };
+
+      if (!data.available) {
+        continue;
+      }
+
+      const selection = findSafestAvailableSpread(
+        candidate.preferredTeam,
+        data.bookmakers || []
+      );
+
+      if (selection) {
+        setSafestAltSpread(selection);
+
+        setSafestAltMessage(
+          `EasyRunLine preferred team: ${
+            candidate.preferredTeam
+          }. ERL Score: ${
+            candidate.preferredScore
+          }/100. Score advantage: ${
+            candidate.scoreGap
+          } points.`
+        );
+
+        return;
+      }
+    }
+
+    const strongestCandidate = rankedGames[0];
+
+    if (!strongestCandidate) {
+      setSafestAltMessage(
+        "No suitable NFL matchup was found."
+      );
+      return;
+    }
+
+    const mainSpreadMarket = getMarket(
+      strongestCandidate.game,
+      "spreads"
+    );
+
+    const mainSpreadOutcome =
+      mainSpreadMarket?.outcomes.find(
+        (outcome) =>
+          outcome.name === strongestCandidate.preferredTeam
+      );
+
+    const currentMainSpread =
+      mainSpreadOutcome?.point !== undefined
+        ? formatNFLSpread(mainSpreadOutcome.point)
+        : "unavailable";
+
+    setSafestAltMessage(
+      `Alternate spreads are not available yet for this matchup. Current main spread: ${strongestCandidate.preferredTeam} ${currentMainSpread}.`
+    );
+  } catch (error) {
+    console.error(
+      "Safest alternate spread error:",
+      error
+    );
+
+    setSafestAltMessage(
+      "Could not analyze NFL alternate spreads."
+    );
+  } finally {
+    setSafestAltLoading(false);
+  }
+}
   function getMarket(
     game: NFLGame,
     marketKey: string
@@ -209,6 +373,16 @@ setGames(data.games || []);
           >
             {loading ? "Loading..." : "Refresh NFL Games"}
           </button>
+          <button
+  type="button"
+  onClick={findSafestAltSpread}
+  disabled={safestAltLoading || games.length === 0}
+  className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {safestAltLoading
+    ? "Checking Alt Spreads..."
+    : "Safest Alt Spread"}
+</button>
         </div>
 
         {loading && (
@@ -239,6 +413,51 @@ setGames(data.games || []);
             </p>
           </div>
         )}
+        {safestAltSpread && (
+  <div className="mb-6 rounded-xl border border-emerald-500 bg-zinc-950 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
+      🟢 EasyRunLine Safest Alt Spread
+    </p>
+
+    <div className="mt-4 space-y-2 text-sm text-white">
+      <p>
+        <span className="font-semibold">
+          {safestAltSpread.team}
+        </span>
+      </p>
+
+      <p>
+        Line:
+        <span className="ml-2 font-bold text-emerald-400">
+          {safestAltSpread.point > 0 ? "+" : ""}
+          {safestAltSpread.point}
+        </span>
+      </p>
+
+      <p>
+        Price:
+        <span className="ml-2 text-yellow-400">
+          {safestAltSpread.price}
+        </span>
+      </p>
+
+      <p>
+        Bookmaker:
+        <span className="ml-2">
+          {safestAltSpread.bookmaker}
+        </span>
+      </p>
+
+      
+    </div>
+  </div>
+)}
+
+{safestAltMessage && (
+  <div className="mb-6 rounded-xl border border-yellow-600 bg-yellow-950/40 p-4 text-yellow-300">
+    {safestAltMessage}
+  </div>
+)}
 
         {!loading && !error && games.length > 0 && (
           <div className="mt-10 grid gap-6 lg:grid-cols-2">
