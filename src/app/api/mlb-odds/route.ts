@@ -14,8 +14,10 @@ export async function GET() {
       `?regions=us&markets=h2h,spreads,totals&oddsFormat=decimal&apiKey=${apiKey}`;
 
     const res = await fetch(url, {
-      cache: "no-store",
-    });
+  next: {
+    revalidate: 600,
+  },
+});
 
     if (!res.ok) {
       const text = await res.text();
@@ -28,7 +30,19 @@ export async function GET() {
 
     const games = await res.json();
 
-    return Response.json({ games });
+    return Response.json(
+  {
+    games,
+    cacheMinutes: 10,
+    fetchedAt: new Date().toISOString(),
+  },
+  {
+    headers: {
+      "Cache-Control":
+        "public, s-maxage=600, stale-while-revalidate=1800",
+    },
+  }
+);
   } catch (error) {
     console.error(error);
 
