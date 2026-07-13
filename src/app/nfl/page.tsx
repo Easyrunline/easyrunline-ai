@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { getNFLLogoUrl } from "@/lib/nfl/nflLogos";
 import SportSelector from "@/components/SportSelector";
 import { scoreNFLTeam } from "@/lib/nfl/nflScore";
+import { buildNFLIntelligence } from "@/lib/nfl/nflIntelligence";
 import {
   findSafestAvailableSpread,
   formatNFLSpread,
@@ -146,63 +147,20 @@ async function findSafestAltSpread() {
       );
       return;
     }
+    const rankedGames = buildNFLIntelligence(
+  games,
+  teamForm
+).slice(0, 3);
+    
 
-    const rankedGames = games
-      .map((game) => {
-        const awayForm = teamForm.find(
-          (team) => team.team === game.away_team
-        );
+    
+      
 
-        const homeForm = teamForm.find(
-          (team) => team.team === game.home_team
-        );
 
-        const awayScore = scoreNFLTeam(
-          awayForm,
-          game.away_team,
-          false
-        );
-
-        const homeScore = scoreNFLTeam(
-          homeForm,
-          game.home_team,
-          true
-        );
-
-        const preferredTeam =
-          homeScore.score >= awayScore.score
-            ? game.home_team
-            : game.away_team;
-
-        const preferredScore = Math.max(
-          homeScore.score,
-          awayScore.score
-        );
-
-        const scoreGap = Math.abs(
-          homeScore.score - awayScore.score
-        );
-
-        return {
-          game,
-          preferredTeam,
-          preferredScore,
-          scoreGap,
-        };
-      })
-      .sort((a, b) => {
-        if (b.preferredScore !== a.preferredScore) {
-          return b.preferredScore - a.preferredScore;
-        }
-
-        return b.scoreGap - a.scoreGap;
-      })
-      .slice(0, 3);
-
-    for (const candidate of rankedGames) {
+   for (const candidate of rankedGames) {
       const response = await fetch(
         `/api/nfl-alternate-spreads?eventId=${encodeURIComponent(
-          candidate.game.id
+          candidate.eventId
         )}`,
         {
           cache: "no-store",
@@ -254,10 +212,13 @@ async function findSafestAltSpread() {
       return;
     }
 
-    const mainSpreadMarket = getMarket(
-      strongestCandidate.game,
-      "spreads"
-    );
+    const strongestGame = games.find(
+  (game) => game.id === strongestCandidate.eventId
+);
+
+const mainSpreadMarket = strongestGame
+  ? getMarket(strongestGame, "spreads")
+  : undefined;
 
     const mainSpreadOutcome =
       mainSpreadMarket?.outcomes.find(
