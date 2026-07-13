@@ -28,6 +28,33 @@ export default function NFLPage() {
   useEffect(() => {
     loadNFLGames();
   }, []);
+  function getOffenseRank(teamName: string) {
+  const ranked = [...teamForm].sort(
+    (a, b) =>
+      (b.averagePointsForLast10 ?? 0) -
+      (a.averagePointsForLast10 ?? 0)
+  );
+
+  const index = ranked.findIndex(
+    (team) => team.team === teamName
+  );
+
+  return index >= 0 ? index + 1 : "N/A";
+}
+
+function getDefenseRank(teamName: string) {
+  const ranked = [...teamForm].sort(
+    (a, b) =>
+      (a.averagePointsAgainstLast10 ?? 999) -
+      (b.averagePointsAgainstLast10 ?? 999)
+  );
+
+  const index = ranked.findIndex(
+    (team) => team.team === teamName
+  );
+
+  return index >= 0 ? index + 1 : "N/A";
+}
 async function loadNFLTeamForm() {
   const response = await fetch("/api/nfl-form", {
     cache: "no-store",
@@ -586,6 +613,85 @@ const homeLikelyQuarterback =
         </span>
       </p>
     </div>
+  </div>
+</div>
+<div className="mt-5 rounded-xl border border-zinc-800 bg-black p-4">
+  <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+    Team Intelligence
+  </p>
+
+  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+
+    <div>
+      <p className="font-semibold text-white">
+        {game.away_team}
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-400">
+        Offense Rank:
+        <span className="ml-2 font-semibold text-white">
+          #{getOffenseRank(game.away_team)}
+        </span>
+      </p>
+
+      <p className="text-sm text-zinc-400">
+        Defense Rank:
+        <span className="ml-2 font-semibold text-white">
+          #{getDefenseRank(game.away_team)}
+        </span>
+      </p>
+
+      <p className="text-sm text-zinc-400">
+        Points/Game:
+        <span className="ml-2 font-semibold text-white">
+          {awayForm?.averagePointsForLast10 ?? "N/A"}
+        </span>
+      </p>
+
+      <p className="text-sm text-zinc-400">
+        Allowed/Game:
+        <span className="ml-2 font-semibold text-white">
+          {awayForm?.averagePointsAgainstLast10 ?? "N/A"}
+        </span>
+      </p>
+
+    </div>
+
+    <div>
+      <p className="font-semibold text-white">
+        {game.home_team}
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-400">
+        Offense Rank:
+        <span className="ml-2 font-semibold text-white">
+          #{getOffenseRank(game.home_team)}
+        </span>
+      </p>
+
+      <p className="text-sm text-zinc-400">
+        Defense Rank:
+        <span className="ml-2 font-semibold text-white">
+          #{getDefenseRank(game.home_team)}
+        </span>
+      </p>
+
+      <p className="text-sm text-zinc-400">
+        Points/Game:
+        <span className="ml-2 font-semibold text-white">
+          {homeForm?.averagePointsForLast10 ?? "N/A"}
+        </span>
+      </p>
+
+      <p className="text-sm text-zinc-400">
+        Allowed/Game:
+        <span className="ml-2 font-semibold text-white">
+          {homeForm?.averagePointsAgainstLast10 ?? "N/A"}
+        </span>
+      </p>
+
+    </div>
+
   </div>
 </div>
 
