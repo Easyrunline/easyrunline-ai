@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { getNFLLogoUrl } from "@/lib/nfl/nflLogos";
 import SportSelector from "@/components/SportSelector";
+import { scoreNFLTeam } from "@/lib/nfl/nflScore";
 import type {
   NFLGame,
   NFLMarket,
@@ -309,7 +310,19 @@ const homeLikelyQuarterback =
     (a, b) => b.experienceYears - a.experienceYears
   )[0];
 
-              return (
+const awayTeamScore = scoreNFLTeam(
+  awayForm,
+  game.away_team,
+  false
+);
+
+const homeTeamScore = scoreNFLTeam(
+  homeForm,
+  game.home_team,
+  true
+);
+return (
+
                 <article
                   key={game.id}
                   className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 shadow-lg shadow-black/30"
@@ -694,6 +707,54 @@ const homeLikelyQuarterback =
 
   </div>
 </div>
+<div className="mt-5 rounded-xl border border-yellow-500/30 bg-yellow-500/5 p-4">
+  <p className="text-xs font-semibold uppercase tracking-wide text-yellow-400">
+    EasyRunLine Score
+  </p>
+
+  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+    <div className="rounded-lg border border-zinc-800 bg-black p-3">
+      <p className="font-semibold text-white">
+        {game.away_team}
+      </p>
+
+      <p className="mt-2 text-2xl font-bold text-yellow-400">
+        {awayTeamScore.score}/100
+      </p>
+
+      <p className="mt-1 text-xs text-zinc-400">
+        Confidence: {awayTeamScore.confidence}
+      </p>
+
+      <ul className="mt-3 space-y-1 text-xs text-zinc-500">
+        {awayTeamScore.reasons.slice(0, 3).map((reason) => (
+          <li key={reason}>• {reason}</li>
+        ))}
+      </ul>
+    </div>
+
+    <div className="rounded-lg border border-zinc-800 bg-black p-3">
+      <p className="font-semibold text-white">
+        {game.home_team}
+      </p>
+
+      <p className="mt-2 text-2xl font-bold text-yellow-400">
+        {homeTeamScore.score}/100
+      </p>
+
+      <p className="mt-1 text-xs text-zinc-400">
+        Confidence: {homeTeamScore.confidence}
+      </p>
+
+      <ul className="mt-3 space-y-1 text-xs text-zinc-500">
+        {homeTeamScore.reasons.slice(0, 3).map((reason) => (
+          <li key={reason}>• {reason}</li>
+        ))}
+      </ul>
+    </div>
+  </div>
+</div>
+
 
                   <div className="mt-5 flex items-center justify-between border-t border-zinc-800 pt-4 text-xs text-zinc-500">
                     <span>Bookmaker</span>
