@@ -5,6 +5,7 @@ import { getNFLLogoUrl } from "@/lib/nfl/nflLogos";
 import SportSelector from "@/components/SportSelector";
 import { scoreNFLTeam } from "@/lib/nfl/nflScore";
 import { buildNFLIntelligence } from "@/lib/nfl/nflIntelligence";
+import { buildERLRating } from "@/lib/erl/erlRating";
 import {
   findSafestAvailableSpread,
   formatNFLSpread,
@@ -187,20 +188,34 @@ async function findSafestAltSpread() {
       );
 
       if (selection) {
-        setSafestAltSpread(selection);
+  const opponentScore =
+    candidate.preferredScore - candidate.scoreGap;
 
-        setSafestAltMessage(
-          `EasyRunLine preferred team: ${
-            candidate.preferredTeam
-          }. ERL Score: ${
-            candidate.preferredScore
-          }/100. Score advantage: ${
-            candidate.scoreGap
-          } points.`
-        );
+  const rating = buildERLRating(
+    candidate.preferredScore,
+    opponentScore
+  );
 
-        return;
-      }
+  setSafestAltSpread(selection);
+
+  setSafestAltMessage(
+    `EasyRunLine preferred team: ${
+      candidate.preferredTeam
+    }. ERL Score: ${
+      rating.score
+    }/100. EasyRunLine Edge: ${
+      rating.edge > 0 ? "+" : ""
+    }${rating.edge}. ${
+      rating.edgeGrade
+    }. Confidence: ${
+      rating.confidence
+    }. ${rating.starDisplay}. ${
+      rating.summary
+    }`
+  );
+
+  return;
+}
     }
 
     const strongestCandidate = rankedGames[0];
