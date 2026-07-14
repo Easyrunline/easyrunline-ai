@@ -1,3 +1,4 @@
+import { runERLSoccerBrain } from "./ERLSoccerBrain";
 export type SoccerIntelligenceOutcome = {
   name: string;
   price: number;
@@ -207,9 +208,23 @@ export function buildSoccerIntelligence(
     const probabilityEdge =
       (preferredProbability - opponentProbability) * 100;
 
-    const erlScore = Math.round(
-      preferredProbability * 100
-    );
+    const brainResult = runERLSoccerBrain({
+  eventId: game.id,
+
+  homeTeam: game.home_team,
+  awayTeam: game.away_team,
+
+  homeMarketProbability: probabilities.home,
+  drawMarketProbability: probabilities.draw,
+  awayMarketProbability: probabilities.away,
+
+  homeForm: null,
+  awayForm: null,
+});
+
+const erlScore = Math.round(
+  brainResult.erlRating
+);
 
     rankedGames.push({
       eventId: game.id,
@@ -241,8 +256,8 @@ export function buildSoccerIntelligence(
 
       erlScore,
 
-      confidence: buildConfidence(probabilityEdge),
-      grade: buildGrade(probabilityEdge),
+      confidence: brainResult.confidence,
+grade: brainResult.matchRating.grade,
 
       bookmaker: bookmaker.title,
     });
