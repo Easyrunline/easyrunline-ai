@@ -6,11 +6,19 @@ import SportSelector from "@/components/SportSelector";
 import { scoreNFLTeam } from "@/lib/nfl/nflScore";
 import { buildNFLIntelligence } from "@/lib/nfl/nflIntelligence";
 import { buildERLRating } from "@/lib/erl/erlRating";
+import { buildNFLAlternateSpreadParlay } from "@/lib/nfl/nflParlay";
+import {
+  buildNFLGamesToAvoid,
+  type NFLAvoidGame,
+} from "@/lib/nfl/nflAvoid";
 import {
   findSafestAvailableSpread,
   formatNFLSpread,
   type NFLAlternateSpreadBookmaker,
   type NFLAlternateSpreadSelection,
+  type NFLAlternateSpreadLeg,
+type NFLAlternateSpreadParlay,
+
 } from "@/lib/nfl/nflAlternateSpread";
 import type {
   NFLGame,
@@ -40,10 +48,33 @@ const [safestAltMessage, setSafestAltMessage] = useState("");
 
 const [safestAltLoading, setSafestAltLoading] =
   useState(false);
+  const [bestTwoLegLoading, setBestTwoLegLoading] =
+  useState(false);
+
+const [bestTwoLegParlay, setBestTwoLegParlay] =
+  useState<NFLAlternateSpreadParlay | null>(null);
+
+const [bestTwoLegMessage, setBestTwoLegMessage] =
+  useState("");
+  const [avoidGames, setAvoidGames] =
+  useState<NFLAvoidGame[]>([]);
+
+const [avoidMessage, setAvoidMessage] =
+  useState("");
 
   useEffect(() => {
     loadNFLGames();
   }, []);
+  function clearNFLAnalysisResults() {
+  setSafestAltSpread(null);
+  setSafestAltMessage("");
+
+  setBestTwoLegParlay(null);
+  setBestTwoLegMessage("");
+
+  setAvoidGames([]);
+  setAvoidMessage("");
+}
   function getOffenseRank(teamName: string) {
   const ranked = [...teamForm].sort(
     (a, b) =>
@@ -137,6 +168,8 @@ setGames(data.games || []);
     }
   }
 async function findSafestAltSpread() {
+  clearNFLAnalysisResults();
+
   try {
     setSafestAltLoading(true);
     setSafestAltSpread(null);
@@ -262,6 +295,130 @@ const mainSpreadMarket = strongestGame
     setSafestAltLoading(false);
   }
 }
+async function findBestTwoLegAltSpread() {
+  clearNFLAnalysisResults();
+  try {
+    setBestTwoLegLoading(true);
+    setBestTwoLegParlay(null);
+    setBestTwoLegMessage("");
+
+    if (games.length < 2) {
+      setBestTwoLegMessage(
+        "At least two NFL games are required for a 2-leg parlay."
+      );
+      return;
+    }
+
+    const rankedGames = buildNFLIntelligence(games, teamForm);
+    const availableLegs: NFLAlternateSpreadLeg[] = [];
+
+    for (const candidate of rankedGames) {
+      const response = await fetch(
+        `/api/nfl-alternate-spreads?eventId=${encodeURIComponent(
+          candidate.eventId
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        available?: boolean;
+        bookmakers?: NFLAlternateSpreadBookmaker[];
+      };
+
+      if (!data.available) {
+        continue;
+      }
+
+      const selection = findSafestAvailableSpread(
+        candidate.preferredTeam,
+        data.bookmakers || []
+      );
+
+      if (!selection) {
+        continue;
+      }
+
+      availableLegs.push({
+        ...selection,
+        eventId: candidate.eventId,
+        homeTeam: candidate.homeTeam,
+        awayTeam: candidate.awayTeam,
+        erlScore: candidate.preferredScore,
+        scoreGap: candidate.scoreGap,
+      });
+
+      if (availableLegs.length === 2) {
+        break;
+      }
+    }
+
+    const parlay = buildNFLAlternateSpreadParlay(
+      availableLegs,
+      2
+    );
+
+    if (!parlay) {
+      setBestTwoLegMessage(
+        "Two suitable alternate-spread selections are not available yet."
+      );
+      return;
+    }
+
+    setBestTwoLegParlay(parlay);
+    setBestTwoLegMessage(
+      "Two highest-ranked available alternate spreads from different NFL games."
+    );
+  } catch (error) {
+    console.error("Best 2-leg alternate spread error:", error);
+
+    setBestTwoLegMessage(
+      "Could not build the NFL 2-leg alternate-spread parlay."
+    );
+  } finally {
+    setBestTwoLegLoading(false);
+  }
+  }
+  function findGamesToAvoid() {
+    clearNFLAnalysisResults();
+  setAvoidGames([]);
+  setAvoidMessage("");
+
+  if (games.length === 0) {
+    setAvoidMessage(
+      "No NFL games are currently available for analysis."
+    );
+    return;
+  }
+
+  const rankedGames = buildNFLIntelligence(
+    games,
+    teamForm
+  );
+
+  const results = buildNFLGamesToAvoid(
+    rankedGames,
+    3
+  );
+
+  if (results.length === 0) {
+    setAvoidMessage(
+      "No clear avoid games were identified."
+    );
+    return;
+  }
+
+  setAvoidGames(results);
+  setAvoidMessage(
+    "These matchups currently offer the weakest EasyRunLine betting edges."
+  );
+}
+
   function getMarket(
     game: NFLGame,
     marketKey: string
@@ -335,15 +492,15 @@ const mainSpreadMarket = strongestGame
               Live NFL Games
             </h1>
 
-            <p className="mt-3 max-w-2xl text-zinc-400">
-              Live NFL moneyline, spread and total markets.
-              Scoring intelligence is under development.
-            </p>
+            
           </div>
 
           <button
             type="button"
-            onClick={loadNFLGames}
+           onClick={() => {
+  clearNFLAnalysisResults();
+  loadNFLGames();
+}}
             disabled={loading}
             className="rounded-lg bg-yellow-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-60"
           >
@@ -358,6 +515,24 @@ const mainSpreadMarket = strongestGame
   {safestAltLoading
     ? "Checking Alt Spreads..."
     : "Safest Alt Spread"}
+</button>
+<button
+  type="button"
+  onClick={findBestTwoLegAltSpread}
+  disabled={bestTwoLegLoading || games.length < 2}
+  className="rounded-lg bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {bestTwoLegLoading
+    ? "Building 2-Leg..."
+    : "Best 2-Leg Alt Spread"}
+</button>
+<button
+  type="button"
+  onClick={findGamesToAvoid}
+  disabled={games.length === 0}
+  className="rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  Games To Avoid
 </button>
         </div>
 
@@ -432,6 +607,161 @@ const mainSpreadMarket = strongestGame
 {safestAltMessage && (
   <div className="mb-6 rounded-xl border border-yellow-600 bg-yellow-950/40 p-4 text-yellow-300">
     {safestAltMessage}
+  </div>
+)}
+{bestTwoLegParlay && (
+  <div className="mb-6 rounded-xl border border-violet-500 bg-zinc-950 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-violet-400">
+      EASYRUNLINE AI — BEST 2-LEG ALT SPREAD
+    </p>
+
+    <div className="mt-4 grid gap-4 md:grid-cols-2">
+      {bestTwoLegParlay.legs.map((leg, index) => (
+        <div
+          key={leg.eventId}
+          className="rounded-lg border border-zinc-800 bg-black p-4"
+        >
+          <p className="text-xs font-bold uppercase text-zinc-500">
+            Leg {index + 1}
+          </p>
+
+          <p className="mt-2 font-semibold text-white">
+            {leg.team}
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-300">
+            {leg.awayTeam} at {leg.homeTeam}
+          </p>
+
+          <p className="mt-3 text-sm text-zinc-300">
+            Line:
+            <span className="ml-2 font-bold text-violet-400">
+              {formatNFLSpread(leg.point)}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-300">
+            Price:
+            <span className="ml-2 text-yellow-400">
+              {leg.price}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-300">
+            Bookmaker:
+            <span className="ml-2 text-white">
+              {leg.bookmaker}
+            </span>
+          </p>
+
+          <p className="mt-3 text-sm text-zinc-400">
+            ERL Score:
+            <span className="ml-2 font-semibold text-white">
+              {leg.erlScore}/100
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            EasyRunLine Edge:
+            <span className="ml-2 font-semibold text-violet-400">
+              +{leg.scoreGap}
+            </span>
+          </p>
+        </div>
+      ))}
+    </div>
+
+    <div className="mt-5 rounded-lg border border-violet-700 bg-violet-950/30 p-4">
+      <p className="text-sm text-zinc-300">
+        Combined odds:
+        <span className="ml-2 text-lg font-bold text-yellow-400">
+          {bestTwoLegParlay.combinedPrice}
+        </span>
+      </p>
+    </div>
+  </div>
+)}
+
+{bestTwoLegMessage && (
+  <div className="mb-6 rounded-xl border border-violet-700 bg-violet-950/30 p-4 text-violet-200">
+    {bestTwoLegMessage}
+  </div>
+)}
+{avoidGames.length > 0 && (
+  <div className="mb-6 rounded-xl border border-red-700 bg-red-950/20 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-red-400">
+      EASYRUNLINE AI — GAMES TO AVOID
+    </p>
+
+    <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      {avoidGames.map((game) => (
+        <div
+          key={game.eventId}
+          className="rounded-lg border border-red-900 bg-black p-4"
+        >
+          <p className="font-semibold text-white">
+            {game.awayTeam} at {game.homeTeam}
+          </p>
+
+          <p className="mt-3 text-sm text-zinc-400">
+            Preferred team:
+            <span className="ml-2 text-white">
+              {game.preferredTeam}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            ERL Score:
+            <span className="ml-2 font-semibold text-white">
+              {game.preferredScore}/100
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            EasyRunLine Edge:
+            <span className="ml-2 font-semibold text-red-400">
+              +{game.rating.edge}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Confidence:
+            <span className="ml-2 font-semibold text-red-300">
+              {game.rating.confidence}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Grade:
+            <span className="ml-2 text-white">
+              {game.rating.edgeGrade}
+            </span>
+          </p>
+
+          <div className="mt-4 border-t border-red-950 pt-3">
+            <p className="text-xs font-bold uppercase text-red-400">
+              Reasons
+            </p>
+
+            <ul className="mt-2 space-y-1 text-sm text-zinc-400">
+              {game.reasons.map((reason) => (
+                <li key={reason}>• {reason}</li>
+              ))}
+            </ul>
+          </div>
+
+          <p className="mt-4 text-sm font-bold uppercase text-red-400">
+            No Play
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+)}
+
+{avoidMessage && (
+  <div className="mb-6 rounded-xl border border-red-800 bg-red-950/30 p-4 text-red-200">
+    {avoidMessage}
   </div>
 )}
 

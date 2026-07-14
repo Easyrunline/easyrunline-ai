@@ -17,6 +17,19 @@ export type NFLAlternateSpreadSelection = {
   price: number;
   bookmaker: string;
 };
+export type NFLAlternateSpreadLeg =
+  NFLAlternateSpreadSelection & {
+    eventId: string;
+    homeTeam: string;
+    awayTeam: string;
+    erlScore: number;
+    scoreGap: number;
+  };
+
+export type NFLAlternateSpreadParlay = {
+  legs: NFLAlternateSpreadLeg[];
+  combinedPrice: number;
+};
 
 export function formatNFLSpread(point: number) {
   return point > 0 ? `+${point}` : `${point}`;
