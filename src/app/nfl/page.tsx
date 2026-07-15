@@ -641,6 +641,22 @@ async function findBestTwoLegAltSpread() {
           {safestAltSpread.bookmaker}
         </span>
       </p>
+      <p className="mt-2 text-sm text-emerald-400">
+  Safety Score:{" "}
+  {safestAltSpread.safetyScore.toFixed(1)}/100
+</p>
+
+<p className="mt-1 text-sm text-zinc-300">
+  Projected Team Margin:{" "}
+  {safestAltSpread.projectedTeamMargin > 0 ? "+" : ""}
+  {safestAltSpread.projectedTeamMargin.toFixed(1)}
+</p>
+
+<p className="mt-1 text-sm text-zinc-300">
+  Model Cushion:{" "}
+  {safestAltSpread.modelCushion > 0 ? "+" : ""}
+  {safestAltSpread.modelCushion.toFixed(1)}
+</p>
 
       
     </div>
@@ -710,6 +726,21 @@ async function findBestTwoLegAltSpread() {
               +{leg.scoreGap}
             </span>
           </p>
+          <p className="mt-1 text-sm text-emerald-400">
+  Safety Score: {leg.safetyScore.toFixed(1)}/100
+</p>
+
+<p className="mt-1 text-sm text-zinc-300">
+  Projected Team Margin:{" "}
+  {leg.projectedTeamMargin > 0 ? "+" : ""}
+  {leg.projectedTeamMargin.toFixed(1)}
+</p>
+
+<p className="mt-1 text-sm text-zinc-300">
+  Model Cushion:{" "}
+  {leg.modelCushion > 0 ? "+" : ""}
+  {leg.modelCushion.toFixed(1)}
+</p>
         </div>
       ))}
     </div>
