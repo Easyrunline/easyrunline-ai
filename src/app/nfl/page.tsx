@@ -183,8 +183,10 @@ async function findSafestAltSpread() {
     }
     const rankedGames = buildNFLIntelligence(
   games,
-  teamForm
-).slice(0, 3);
+  teamForm,
+  teamQuarterbacks
+)
+
     
 
     
@@ -216,9 +218,27 @@ async function findSafestAltSpread() {
       }
 
       const selection = findSafestAvailableSpread(
-        candidate.preferredTeam,
-        data.bookmakers || []
-      );
+  data.bookmakers || [],
+  {
+    homeTeam: candidate.homeTeam,
+    awayTeam: candidate.awayTeam,
+
+    preferredTeam:
+      candidate.preferredTeam,
+
+    projectedMargin:
+      candidate.projectedMargin,
+
+    erlRating:
+      candidate.preferredScore,
+
+    uncertainty:
+      candidate.uncertainty,
+
+    dataCompleteness:
+      candidate.dataCompleteness,
+  }
+);
 
       if (selection) {
   const opponentScore =
@@ -309,7 +329,11 @@ async function findBestTwoLegAltSpread() {
       return;
     }
 
-    const rankedGames = buildNFLIntelligence(games, teamForm);
+    const rankedGames = buildNFLIntelligence(
+  games,
+  teamForm,
+  teamQuarterbacks
+)
     const availableLegs: NFLAlternateSpreadLeg[] = [];
 
     for (const candidate of rankedGames) {
@@ -336,9 +360,27 @@ async function findBestTwoLegAltSpread() {
       }
 
       const selection = findSafestAvailableSpread(
-        candidate.preferredTeam,
-        data.bookmakers || []
-      );
+  data.bookmakers || [],
+  {
+    homeTeam: candidate.homeTeam,
+    awayTeam: candidate.awayTeam,
+
+    preferredTeam:
+      candidate.preferredTeam,
+
+    projectedMargin:
+      candidate.projectedMargin,
+
+    erlRating:
+      candidate.preferredScore,
+
+    uncertainty:
+      candidate.uncertainty,
+
+    dataCompleteness:
+      candidate.dataCompleteness,
+  }
+);
 
       if (!selection) {
         continue;
@@ -397,9 +439,10 @@ async function findBestTwoLegAltSpread() {
   }
 
   const rankedGames = buildNFLIntelligence(
-    games,
-    teamForm
-  );
+  games,
+  teamForm,
+  teamQuarterbacks
+)
 
   const results = buildNFLGamesToAvoid(
     rankedGames,
