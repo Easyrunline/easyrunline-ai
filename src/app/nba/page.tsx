@@ -35,6 +35,13 @@ import {
   buildNBAGamesToAvoid,
   type NBAAvoidGame,
 } from "@/lib/nba/nbaAvoid";
+import {
+  findSafestNBAPremiumMarket,
+  getNBAPremiumMarketLabel,
+  type NBAPremiumMarketKey,
+  type NBAPremiumMarketResponse,
+  type NBAPremiumSelection,
+} from "@/lib/nba/nbaPremiumMarkets";
 
 type NBAOddsResponse = {
   games?: NBAGame[];
@@ -148,6 +155,26 @@ const [avoidGames, setAvoidGames] =
 
 const [avoidMessage, setAvoidMessage] =
   useState("");
+  const [
+  premiumSelection,
+  setPremiumSelection,
+] =
+  useState<NBAPremiumSelection | null>(
+    null
+  );
+
+const [
+  premiumMessage,
+  setPremiumMessage,
+] = useState("");
+
+const [
+  premiumLoadingMarket,
+  setPremiumLoadingMarket,
+] =
+  useState<NBAPremiumMarketKey | null>(
+    null
+  );
   
 
   useEffect(() => {
@@ -207,7 +234,12 @@ function clearNBAAnalysisResults() {
 
   setAvoidGames([]);
   setAvoidMessage("");
+  setPremiumSelection(null);
+  setPremiumMessage("");
+
+
 }
+
 async function findSafestAltSpread() {
   clearNBAAnalysisResults();
 
@@ -298,6 +330,285 @@ async function findSafestAltSpread() {
     setSafestAltLoading(false);
   }
 }
+async function findBestTwoLegParlay() {
+  clearNBAAnalysisResults();
+
+  try {
+    setBestTwoLegLoading(true);
+
+    if (games.length < 2) {
+      setBestTwoLegMessage(
+        "At least two NBA games are required for a 2-leg parlay."
+      );
+      return;
+    }
+
+    const availableLegs: NBAAlternateSpreadLeg[] = [];
+
+    for (const candidate of rankedGames) {
+      if (candidate.avoid) {
+        continue;
+      }
+
+      const response = await fetch(
+        `/api/nba-alternate-spreads?eventId=${encodeURIComponent(
+          candidate.eventId
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        available?: boolean;
+        bookmakers?: NBAAlternateSpreadBookmaker[];
+      };
+
+      if (!data.available) {
+        continue;
+      }
+
+      const selection =
+        findSafestNBAAvailableSpread(
+          data.bookmakers || [],
+          {
+            homeTeam: candidate.homeTeam,
+            awayTeam: candidate.awayTeam,
+            preferredTeam:
+              candidate.preferredTeam,
+            projectedMargin:
+              candidate.projectedMargin,
+            erlRating:
+              candidate.preferredScore,
+            uncertainty:
+              candidate.uncertainty,
+            dataCompleteness:
+              candidate.dataCompleteness,
+          }
+        );
+
+      if (!selection) {
+        continue;
+      }
+
+      availableLegs.push({
+        ...selection,
+        eventId: candidate.eventId,
+        homeTeam: candidate.homeTeam,
+        awayTeam: candidate.awayTeam,
+        erlScore: candidate.preferredScore,
+        scoreGap: candidate.scoreGap,
+      });
+    }
+
+    const parlay =
+      buildNBAAlternateSpreadParlay(
+        availableLegs,
+        2
+      );
+
+    if (!parlay) {
+      setBestTwoLegMessage(
+        "No dependable NBA 2-leg alternate-spread parlay was identified."
+      );
+      return;
+    }
+
+    setBestTwoLegParlay(parlay);
+
+    setBestTwoLegMessage(
+      "Two highest-rated available NBA alternate spreads from different games."
+    );
+  } catch {
+    setBestTwoLegMessage(
+      "Could not complete NBA 2-leg analysis."
+    );
+  } finally {
+    setBestTwoLegLoading(false);
+  }
+}
+function findGamesToAvoid() {
+  clearNBAAnalysisResults();
+
+  if (games.length === 0) {
+    setAvoidMessage(
+      "No NBA games are currently available for analysis."
+    );
+    return;
+  }
+
+  const results = buildNBAGamesToAvoid(
+    rankedGames,
+    3
+  );
+
+  if (results.length === 0) {
+    setAvoidMessage(
+      "No clear NBA avoid games were identified."
+    );
+    return;
+  }
+
+  setAvoidGames(results);
+
+  setAvoidMessage(
+    "These matchups carry the highest combination of uncertainty, incomplete data and limited ERL separation."
+  );
+}
+async function findBestPremiumMarket(
+  marketKey: NBAPremiumMarketKey
+) {
+  clearNBAAnalysisResults();
+
+  try {
+    setPremiumLoadingMarket(marketKey);
+
+    if (games.length === 0) {
+      setPremiumMessage(
+        "No NBA games are currently available."
+      );
+      return;
+    }
+
+    let bestSelection:
+      | NBAPremiumSelection
+      | null = null;
+
+    for (const candidate of rankedGames) {
+      if (candidate.avoid) {
+        continue;
+      }
+
+      /*
+       * Total markets require a real projected total.
+       * Do not generate a recommendation when the
+       * total projection is unavailable.
+       */
+      const isTotalMarket =
+        marketKey === "alternate_totals" ||
+        marketKey ===
+          "alternate_totals_h1";
+
+      if (
+        isTotalMarket &&
+        candidate.projectedTotal === null
+      ) {
+        continue;
+      }
+
+      const response = await fetch(
+        `/api/nba-markets?eventId=${encodeURIComponent(
+          candidate.eventId
+        )}&markets=${encodeURIComponent(
+          marketKey
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      const data =
+        (await response.json()) as
+          NBAPremiumMarketResponse;
+
+      if (
+        !response.ok ||
+        !data.available
+      ) {
+        continue;
+      }
+
+      /*
+       * First-half total starts from approximately
+       * half of the full-game projected total.
+       */
+      const projectedTotal =
+        candidate.projectedTotal === null
+          ? undefined
+          : marketKey ===
+              "alternate_totals_h1"
+            ? candidate.projectedTotal *
+              0.5
+            : candidate.projectedTotal;
+
+      const selection =
+        findSafestNBAPremiumMarket(
+          data.bookmakers || [],
+          marketKey,
+          {
+            eventId:
+              candidate.eventId,
+
+            homeTeam:
+              candidate.homeTeam,
+
+            awayTeam:
+              candidate.awayTeam,
+
+            preferredTeam:
+              candidate.preferredTeam,
+
+            erlRating:
+              candidate.preferredScore,
+
+            projectedMargin:
+              candidate.projectedMargin,
+
+            projectedTotal,
+
+            uncertainty:
+              candidate.uncertainty,
+
+            dataCompleteness:
+              candidate.dataCompleteness,
+          }
+        );
+
+      if (!selection) {
+        continue;
+      }
+
+      if (
+        !bestSelection ||
+        selection.safetyScore >
+          bestSelection.safetyScore ||
+        (selection.safetyScore ===
+          bestSelection.safetyScore &&
+          selection.modelCushion >
+            bestSelection.modelCushion)
+      ) {
+        bestSelection = selection;
+      }
+    }
+
+    if (!bestSelection) {
+      setPremiumMessage(
+        `No dependable ${getNBAPremiumMarketLabel(
+          marketKey
+        ).toLowerCase()} was identified.`
+      );
+      return;
+    }
+
+    setPremiumSelection(bestSelection);
+
+    setPremiumMessage(
+      `${bestSelection.selection} is the highest-rated available ${bestSelection.marketLabel.toLowerCase()}.`
+    );
+  } catch {
+    setPremiumMessage(
+      `Could not complete ${getNBAPremiumMarketLabel(
+        marketKey
+      ).toLowerCase()} analysis.`
+    );
+  } finally {
+    setPremiumLoadingMarket(null);
+  }
+}
   return (
     <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
@@ -309,6 +620,248 @@ async function findSafestAltSpread() {
             subtitle="NBA Spread and Game Intelligence"
           />
         </div>
+        <div className="mb-8 flex flex-wrap gap-3">
+  <button
+    type="button"
+    onClick={findSafestAltSpread}
+    disabled={
+      loading ||
+      games.length === 0 ||
+      safestAltLoading
+    }
+    className="rounded-lg bg-emerald-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {safestAltLoading
+      ? "Analyzing..."
+      : "Safest Alternate Spread"}
+  </button>
+
+  <button
+    type="button"
+    onClick={findBestTwoLegParlay}
+    disabled={
+      loading ||
+      games.length < 2 ||
+      bestTwoLegLoading
+    }
+    className="rounded-lg bg-violet-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-violet-400 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {bestTwoLegLoading
+      ? "Building Parlay..."
+      : "Best 2-Leg Alt Spread"}
+  </button>
+
+  <button
+    type="button"
+    onClick={findGamesToAvoid}
+    disabled={loading || games.length === 0}
+    className="rounded-lg bg-red-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    Games to Avoid
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      findBestPremiumMarket(
+        "alternate_spreads_q1"
+      )
+    }
+    disabled={
+      loading ||
+      games.length === 0 ||
+      premiumLoadingMarket !== null
+    }
+    className="rounded-lg bg-blue-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {premiumLoadingMarket ===
+    "alternate_spreads_q1"
+      ? "Analyzing Q1..."
+      : "Best Q1 Spread"}
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      findBestPremiumMarket(
+        "alternate_spreads_h1"
+      )
+    }
+    disabled={
+      loading ||
+      games.length === 0 ||
+      premiumLoadingMarket !== null
+    }
+    className="rounded-lg bg-cyan-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-cyan-500 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {premiumLoadingMarket ===
+    "alternate_spreads_h1"
+      ? "Analyzing H1..."
+      : "Best First-Half Spread"}
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      findBestPremiumMarket(
+        "alternate_totals"
+      )
+    }
+    disabled={
+      loading ||
+      games.length === 0 ||
+      premiumLoadingMarket !== null
+    }
+    className="rounded-lg bg-orange-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-orange-400 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {premiumLoadingMarket ===
+    "alternate_totals"
+      ? "Analyzing Total..."
+      : "Best Alternate Total"}
+  </button>
+
+  <button
+    type="button"
+    onClick={() =>
+      findBestPremiumMarket(
+        "alternate_totals_h1"
+      )
+    }
+    disabled={
+      loading ||
+      games.length === 0 ||
+      premiumLoadingMarket !== null
+    }
+    className="rounded-lg bg-amber-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-amber-400 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {premiumLoadingMarket ===
+    "alternate_totals_h1"
+      ? "Analyzing H1 Total..."
+      : "Best First-Half Total"}
+  </button>
+</div>
+{premiumSelection && (
+  <div className="mb-6 rounded-2xl border border-blue-800 bg-blue-950/20 p-6">
+    <p className="text-xs font-bold uppercase tracking-wide text-blue-400">
+      EasyRunLine — {premiumSelection.marketLabel}
+    </p>
+
+    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
+
+        <p className="mt-1 text-lg font-bold text-white">
+          {premiumSelection.selection}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {formatPrice(
+            premiumSelection.price
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Safety Score
+        </p>
+
+        <p className="mt-1 font-bold text-emerald-400">
+          {premiumSelection.safetyScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Bookmaker
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {premiumSelection.bookmaker}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-blue-900 pt-4 sm:grid-cols-3">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Model Cushion
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {premiumSelection.modelCushion > 0
+            ? "+"
+            : ""}
+          {premiumSelection.modelCushion.toFixed(
+            1
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Projected Margin
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {premiumSelection.projectedMargin ===
+          null
+            ? "N/A"
+            : `${
+                premiumSelection.projectedMargin >
+                0
+                  ? "+"
+                  : ""
+              }${premiumSelection.projectedMargin.toFixed(
+                1
+              )}`}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Projected Total
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {premiumSelection.projectedTotal ===
+          null
+            ? "N/A"
+            : premiumSelection.projectedTotal.toFixed(
+                1
+              )}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 space-y-2 border-t border-blue-900 pt-4 text-sm text-zinc-300">
+      {premiumSelection.reasons.map(
+        (reason) => (
+          <p key={reason}>
+            • {reason}
+          </p>
+        )
+      )}
+    </div>
+  </div>
+)}
+
+{premiumMessage && (
+  <div className="mb-6 rounded-xl border border-blue-900 bg-blue-950/10 p-4 text-sm text-blue-300">
+    {premiumMessage}
+  </div>
+)}
 
         {loading && (
           <div className="rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-zinc-300">
@@ -535,6 +1088,12 @@ async function findSafestAltSpread() {
                           projectedMargin={
                             intelligence.projectedMargin
                           }
+                          projectedTotal={
+  intelligence.projectedTotal
+}
+totalProjectionSource={
+  intelligence.totalProjectionSource
+}
                           confidence={
                             intelligence.confidence
                           }

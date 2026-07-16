@@ -21,8 +21,13 @@ export type RankedNBAGame = {
   scoreGap: number;
 
   projectedMargin: number;
+  projectedTotal: number | null;
 
-  confidence:
+totalProjectionSource:
+  ERLNBABrainResult["totalProjectionSource"];
+  
+
+ confidence:
     ERLNBABrainResult["confidence"];
 
   blowoutRisk:
@@ -156,6 +161,43 @@ function getMarketProbabilities(
     ),
   };
 }
+function getAverageMarketTotal(
+  game: NBAGame
+) {
+  const totals: number[] = [];
+
+  for (const bookmaker of game.bookmakers ?? []) {
+    const totalsMarket =
+      bookmaker.markets.find(
+        (market) => market.key === "totals"
+      );
+
+    if (!totalsMarket) {
+      continue;
+    }
+
+    for (const outcome of totalsMarket.outcomes) {
+      if (
+        Number.isFinite(outcome.point) &&
+        (outcome.point as number) >= 150 &&
+        (outcome.point as number) <= 300
+      ) {
+        totals.push(outcome.point as number);
+      }
+    }
+  }
+
+  if (totals.length === 0) {
+    return null;
+  }
+
+  return (
+    totals.reduce(
+      (sum, total) => sum + total,
+      0
+    ) / totals.length
+  );
+}
 
 export function buildNBAIntelligence(
   games: NBAGame[],
@@ -175,6 +217,8 @@ export function buildNBAIntelligence(
 
       const marketProbabilities =
         getMarketProbabilities(game);
+        const marketTotal =
+  getAverageMarketTotal(game);
 
       const brainResult =
         runERLNBABrain({
@@ -188,6 +232,7 @@ export function buildNBAIntelligence(
 
           awayMarketProbability:
             marketProbabilities.away,
+            marketTotal,
         });
 
       return {
@@ -211,6 +256,11 @@ export function buildNBAIntelligence(
 
         projectedMargin:
           brainResult.projectedMargin,
+          projectedTotal:
+  brainResult.projectedTotal,
+
+totalProjectionSource:
+  brainResult.totalProjectionSource,
 
         confidence:
           brainResult.confidence,

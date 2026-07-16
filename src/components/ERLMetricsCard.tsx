@@ -2,6 +2,8 @@ type ERLMetricsCardProps = {
   erlRating: number;
   erlEdge: number;
   projectedMargin: number;
+  projectedTotal: number | null;
+totalProjectionSource: string;
   confidence: string;
   blowoutRisk: string;
   dataCompleteness: number;
@@ -16,6 +18,10 @@ export default function ERLMetricsCard({
   erlRating,
   erlEdge,
   projectedMargin,
+
+  projectedTotal,
+  totalProjectionSource,
+
   confidence,
   blowoutRisk,
   dataCompleteness,
@@ -34,6 +40,17 @@ export default function ERLMetricsCard({
       label: "Projected Margin",
       value: formatSigned(projectedMargin),
     },
+    {
+  label: "Projected Total",
+  value:
+    projectedTotal === null
+      ? "Unavailable"
+      : projectedTotal.toFixed(1),
+},
+{
+  label: "Total Source",
+  value: totalProjectionSource,
+},
     {
       label: "Confidence",
       value: confidence,

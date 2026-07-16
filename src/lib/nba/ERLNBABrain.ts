@@ -16,7 +16,10 @@ export type ERLNBABrainInput = {
 
   homeMarketProbability: number;
   awayMarketProbability: number;
+
+marketTotal?: number | null;
 };
+
 
 export type ERLNBATeamRating = {
   team: string;
@@ -45,6 +48,13 @@ export type ERLNBABrainResult = {
   erlEdge: number;
 
   projectedMargin: number;
+  projectedTotal: number | null;
+
+totalProjectionSource:
+  | "Blended"
+  | "Form Only"
+  | "Market Only"
+  | "Unavailable";
 
   confidence:
     | "Very High"
@@ -85,6 +95,123 @@ function normalizeProbability(
   }
 
   return clamp(probability, 0, 1);
+}
+function buildProjectedTotal(params: {
+  homeForm?: NBATeamForm;
+  awayForm?: NBATeamForm;
+  marketTotal?: number | null;
+}) {
+  const validMarketTotal =
+    Number.isFinite(params.marketTotal) &&
+    (params.marketTotal ?? 0) >= 150 &&
+    (params.marketTotal ?? 0) <= 300
+      ? (params.marketTotal as number)
+      : null;
+
+  const hasHomeScoringData =
+    Number.isFinite(
+      params.homeForm?.averagePointsForLast10
+    ) &&
+    Number.isFinite(
+      params.homeForm?.averagePointsAgainstLast10
+    );
+
+  const hasAwayScoringData =
+    Number.isFinite(
+      params.awayForm?.averagePointsForLast10
+    ) &&
+    Number.isFinite(
+      params.awayForm?.averagePointsAgainstLast10
+    );
+
+  let formProjectedTotal: number | null = null;
+
+  if (
+    params.homeForm &&
+    params.awayForm &&
+    hasHomeScoringData &&
+    hasAwayScoringData
+  ) {
+    /*
+     * Estimate each team's scoring expectation by
+     * blending its offense with the opponent's
+     * recent defensive allowance.
+     */
+    const projectedHomePoints =
+      (params.homeForm.averagePointsForLast10 +
+        params.awayForm
+          .averagePointsAgainstLast10) /
+      2;
+
+    const projectedAwayPoints =
+      (params.awayForm.averagePointsForLast10 +
+        params.homeForm
+          .averagePointsAgainstLast10) /
+      2;
+
+    formProjectedTotal =
+      projectedHomePoints +
+      projectedAwayPoints;
+
+    /*
+     * Back-to-back fatigue can slightly reduce
+     * offensive efficiency.
+     */
+    if (params.homeForm.backToBack) {
+      formProjectedTotal -= 1.5;
+    }
+
+    if (params.awayForm.backToBack) {
+      formProjectedTotal -= 1.5;
+    }
+  }
+
+  if (
+    formProjectedTotal !== null &&
+    validMarketTotal !== null
+  ) {
+    /*
+     * Blended projection:
+     * ERL team-form model: 55%
+     * Bookmaker consensus: 45%
+     */
+    const projectedTotal =
+      formProjectedTotal * 0.55 +
+      validMarketTotal * 0.45;
+
+    return {
+      projectedTotal: Number(
+        projectedTotal.toFixed(1)
+      ),
+
+      source: "Blended" as const,
+    };
+  }
+
+  if (formProjectedTotal !== null) {
+    return {
+      projectedTotal: Number(
+        formProjectedTotal.toFixed(1)
+      ),
+
+      source: "Form Only" as const,
+    };
+  }
+
+  if (validMarketTotal !== null) {
+    return {
+      projectedTotal: Number(
+        validMarketTotal.toFixed(1)
+      ),
+
+      source: "Market Only" as const,
+    };
+  }
+
+  return {
+    projectedTotal: null,
+    source: "Unavailable" as const,
+  };
 }
 
 function buildTeamRating(params: {
@@ -207,7 +334,9 @@ export function runERLNBABrain(
     form: input.awayForm,
     marketProbability:
       input.awayMarketProbability,
+     
   });
+  
 
   const homeIsPreferred =
     homeTeam.powerRating >=
@@ -236,6 +365,12 @@ export function runERLNBABrain(
     0,
     25
   );
+  const totalProjection =
+  buildProjectedTotal({
+    homeForm: input.homeForm,
+    awayForm: input.awayForm,
+    marketTotal: input.marketTotal,
+  });
 
   const dataCompleteness =
     (homeTeam.dataCompleteness +
@@ -271,6 +406,19 @@ export function runERLNBABrain(
       1
     )} points.`,
   ];
+  if (
+  totalProjection.projectedTotal !== null
+) {
+  reasons.push(
+    `Projected game total: ${totalProjection.projectedTotal.toFixed(
+      1
+    )} points (${totalProjection.source.toLowerCase()}).`
+  );
+} else {
+  reasons.push(
+    "A dependable projected game total is not currently available."
+  );
+}
 
   if (uncertainty >= 50) {
     reasons.push(
@@ -304,6 +452,11 @@ export function runERLNBABrain(
     projectedMargin: Number(
       projectedMargin.toFixed(1)
     ),
+    projectedTotal:
+  totalProjection.projectedTotal,
+
+totalProjectionSource:
+  totalProjection.source,
 
     confidence,
 
