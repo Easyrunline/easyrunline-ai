@@ -173,6 +173,7 @@ async function loadBullpenData() {
         setGames([]);
         return;
       }
+      
       const probables = await loadProbablePitchers();
 const teamForm = await loadTeamForm();
 const bullpenData = await loadBullpenData();
@@ -225,6 +226,13 @@ setGames(gamesWithLiveData);
       setGamesLoading(false);
     }
   }
+  async function refreshMlbGames() {
+  setQuestion("");
+  setAnswer("");
+  setLoading(false);
+
+  await loadMlbGames();
+}
 
   function getMarket(game: Game, key: string) {
     return game.bookmakers?.[0]?.markets.find((market) => market.key === key);
@@ -770,7 +778,7 @@ ${rankedText}
 
     <div className="flex flex-col gap-3 sm:flex-row">
       <button
-        onClick={loadMlbGames}
+        onClick={refreshMlbGames}
         disabled={gamesLoading}
         className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-50"
       >
@@ -778,14 +786,22 @@ ${rankedText}
       </button>
 <button
   onClick={findSafestSingle}
-  disabled={loading || games.length === 0}
+  disabled={
+  loading ||
+  gamesLoading ||
+  games.length === 0
+}
   className="rounded-xl bg-blue-500 px-5 py-3 font-bold text-white transition hover:bg-blue-400 disabled:opacity-50"
 >
   Safest Single +4.5
 </button>
 <button
   onClick={findBestTwoLegParlay}
-  disabled={loading || games.length === 0}
+  disabled={
+  loading ||
+  gamesLoading ||
+  games.length === 0
+}
   className="rounded-xl bg-purple-500 px-5 py-3 font-bold text-white transition hover:bg-purple-400 disabled:opacity-50"
 >
   Best 2-Leg +4.5 Parlay
@@ -793,21 +809,33 @@ ${rankedText}
 
 <button
   onClick={findGamesToAvoid}
-  disabled={loading || games.length === 0}
+  disabled={
+  loading ||
+  gamesLoading ||
+  games.length === 0
+}
   className="rounded-xl bg-red-600 px-5 py-3 font-bold text-white transition hover:bg-red-500 disabled:opacity-50"
 >
   Games To Avoid
 </button>
 <button
   onClick={findBestF5}
-  disabled={loading || games.length === 0}
+  disabled={
+  loading ||
+  gamesLoading ||
+  games.length === 0
+}
   className="rounded-xl bg-cyan-500 px-5 py-3 font-bold text-black transition hover:bg-cyan-400 disabled:opacity-50"
 >
   Best F5
 </button>
       <button
         onClick={findBestThreeLegParlay}
-        disabled={loading || games.length === 0}
+        disabled={
+  loading ||
+  gamesLoading ||
+  games.length === 0
+}
         className="rounded-xl bg-green-500 px-5 py-3 font-bold text-black transition hover:bg-green-400 disabled:opacity-50"
       >
   
@@ -882,25 +910,40 @@ ${rankedText}
   Bookmaker: {game.bookmakers?.[0]?.title || "Not available"}
 </p>
 <div className="mt-3 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-3 text-xs text-cyan-200">
-  <p className="font-bold text-cyan-300">Starting Pitchers</p>
-  <p className="mt-1">
-    Away: {game.awayPitcher || "TBD"}
-    {game.awayERA !== undefined ? ` | ERA: ${game.awayERA}` : ""}
+  <p className="font-bold text-cyan-300">
+    Starting Pitchers
   </p>
-  <p>
-    Home: {game.homePitcher || "TBD"}
-    {game.homeERA !== undefined ? ` | ERA: ${game.homeERA}` : ""}
+
+  <p className="mt-2">
+    <span className="font-semibold text-white">
+      {game.away_team}:
+    </span>{" "}
+    {game.awayPitcher || "TBD"}
+    {game.awayERA !== undefined
+      ? ` | ERA: ${game.awayERA}`
+      : ""}
   </p>
-</div>
-<div className="mt-3 rounded-xl border border-green-500/30 bg-green-950/20 p-3 text-xs text-green-200">
-  <p className="font-bold text-green-300">
-    Recent Form — Last 10
-  </p>
-  <div className="mt-3 rounded-xl border border-purple-500/30 bg-purple-950/20 p-3 text-xs text-purple-200">
-  <p className="font-bold text-purple-300">Bullpen</p>
 
   <p className="mt-1">
-    Away:{" "}
+    <span className="font-semibold text-white">
+      {game.home_team}:
+    </span>{" "}
+    {game.homePitcher || "TBD"}
+    {game.homeERA !== undefined
+      ? ` | ERA: ${game.homeERA}`
+      : ""}
+  </p>
+</div>
+
+<div className="mt-3 rounded-xl border border-purple-500/30 bg-purple-950/20 p-3 text-xs text-purple-200">
+  <p className="font-bold text-purple-300">
+    Bullpen
+  </p>
+
+  <p className="mt-2">
+    <span className="font-semibold text-white">
+      {game.away_team}:
+    </span>{" "}
     {game.awayBullpenERA !== undefined
       ? `ERA ${game.awayBullpenERA}${
           game.awayBullpenRank !== undefined
@@ -910,8 +953,10 @@ ${rankedText}
       : "Not available"}
   </p>
 
-  <p>
-    Home:{" "}
+  <p className="mt-1">
+    <span className="font-semibold text-white">
+      {game.home_team}:
+    </span>{" "}
     {game.homeBullpenERA !== undefined
       ? `ERA ${game.homeBullpenERA}${
           game.homeBullpenRank !== undefined
@@ -922,16 +967,25 @@ ${rankedText}
   </p>
 </div>
 
-  <p className="mt-1">
-    Away:{" "}
+<div className="mt-3 rounded-xl border border-green-500/30 bg-green-950/20 p-3 text-xs text-green-200">
+  <p className="font-bold text-green-300">
+    Recent Form — Last 10
+  </p>
+
+  <p className="mt-2">
+    <span className="font-semibold text-white">
+      {game.away_team}:
+    </span>{" "}
     {game.awayLast10Wins !== undefined &&
     game.awayLast10Losses !== undefined
       ? `${game.awayLast10Wins}-${game.awayLast10Losses}`
       : "Not available"}
   </p>
 
-  <p>
-    Home:{" "}
+  <p className="mt-1">
+    <span className="font-semibold text-white">
+      {game.home_team}:
+    </span>{" "}
     {game.homeLast10Wins !== undefined &&
     game.homeLast10Losses !== undefined
       ? `${game.homeLast10Wins}-${game.homeLast10Losses}`
