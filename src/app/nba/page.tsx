@@ -21,6 +21,20 @@ import type {
   NBAOutcome,
   NBATeamForm,
 } from "@/lib/nba/nbaTypes";
+import {
+  findSafestNBAAvailableSpread,
+  type NBAAlternateSpreadBookmaker,
+  type NBAAlternateSpreadSelection,
+  type NBAAlternateSpreadLeg,
+  type NBAAlternateSpreadParlay,
+} from "@/lib/nba/nbaAlternateSpread";
+
+import { buildNBAAlternateSpreadParlay } from "@/lib/nba/nbaParlay";
+
+import {
+  buildNBAGamesToAvoid,
+  type NBAAvoidGame,
+} from "@/lib/nba/nbaAvoid";
 
 type NBAOddsResponse = {
   games?: NBAGame[];
@@ -93,6 +107,48 @@ export default function NBAPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [
+  safestAltSpread,
+  setSafestAltSpread,
+] =
+  useState<NBAAlternateSpreadSelection | null>(
+    null
+  );
+
+const [
+  safestAltMessage,
+  setSafestAltMessage,
+] = useState("");
+
+const [
+  safestAltLoading,
+  setSafestAltLoading,
+] = useState(false);
+
+const [
+  bestTwoLegParlay,
+  setBestTwoLegParlay,
+] =
+  useState<NBAAlternateSpreadParlay | null>(
+    null
+  );
+
+const [
+  bestTwoLegMessage,
+  setBestTwoLegMessage,
+] = useState("");
+
+const [
+  bestTwoLegLoading,
+  setBestTwoLegLoading,
+] = useState(false);
+
+const [avoidGames, setAvoidGames] =
+  useState<NBAAvoidGame[]>([]);
+
+const [avoidMessage, setAvoidMessage] =
+  useState("");
+  
 
   useEffect(() => {
     async function loadGames() {
@@ -142,7 +198,106 @@ export default function NBAPage() {
       ),
     [games, teamForm]
   );
+function clearNBAAnalysisResults() {
+  setSafestAltSpread(null);
+  setSafestAltMessage("");
 
+  setBestTwoLegParlay(null);
+  setBestTwoLegMessage("");
+
+  setAvoidGames([]);
+  setAvoidMessage("");
+}
+async function findSafestAltSpread() {
+  clearNBAAnalysisResults();
+
+  try {
+    setSafestAltLoading(true);
+
+    if (games.length === 0) {
+      setSafestAltMessage(
+        "No NBA games are currently available."
+      );
+      return;
+    }
+
+    for (const candidate of rankedGames) {
+      if (candidate.avoid) {
+        continue;
+      }
+
+      const response = await fetch(
+        `/api/nba-alternate-spreads?eventId=${encodeURIComponent(
+          candidate.eventId
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data = (await response.json()) as {
+        available?: boolean;
+        bookmakers?: NBAAlternateSpreadBookmaker[];
+      };
+
+      if (!data.available) {
+        continue;
+      }
+
+      const selection =
+        findSafestNBAAvailableSpread(
+          data.bookmakers || [],
+          {
+            homeTeam: candidate.homeTeam,
+            awayTeam: candidate.awayTeam,
+
+            preferredTeam:
+              candidate.preferredTeam,
+
+            projectedMargin:
+              candidate.projectedMargin,
+
+            erlRating:
+              candidate.preferredScore,
+
+            uncertainty:
+              candidate.uncertainty,
+
+            dataCompleteness:
+              candidate.dataCompleteness,
+          }
+        );
+
+      if (!selection) {
+        continue;
+      }
+
+      setSafestAltSpread(selection);
+
+      setSafestAltMessage(
+        `${selection.team} ${formatPoint(
+          selection.point
+        )} is the highest-rated available NBA alternate spread.`
+      );
+
+      return;
+    }
+
+    setSafestAltMessage(
+      "No dependable NBA alternate spread was identified."
+    );
+  } catch {
+    setSafestAltMessage(
+      "Could not complete NBA alternate-spread analysis."
+    );
+  } finally {
+    setSafestAltLoading(false);
+  }
+}
   return (
     <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
