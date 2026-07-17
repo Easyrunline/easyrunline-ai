@@ -468,14 +468,46 @@ function findGamesToAvoid() {
 
   const rankedPicks = rankEasyRunLinePicks(games);
 
+const matchupKeyFor = (team: string, opponent: string) =>
+  [team, opponent].sort().join(" vs ");
+
+const uniqueRecommendedMatchups = new Set<string>();
+
+const recommendedMatchups = new Set(
+  rankedPicks
+    .filter((pick) => {
+      const matchupKey = matchupKeyFor(pick.team, pick.opponent);
+
+      if (uniqueRecommendedMatchups.has(matchupKey)) {
+        return false;
+      }
+
+      uniqueRecommendedMatchups.add(matchupKey);
+      return true;
+    })
+    .slice(0, 3)
+    .map((pick) => matchupKeyFor(pick.team, pick.opponent))
+);
+
 const uniqueAvoidMatchups = new Set<string>();
 
 const avoidPicks = [...rankedPicks]
   .reverse()
   .filter((pick) => {
-    const matchupKey = [pick.team, pick.opponent]
-      .sort()
-      .join(" vs ");
+    const matchupKey = matchupKeyFor(pick.team, pick.opponent);
+
+    // Never flag a matchup selected by the safest single,
+    // best 2-leg, best 3-leg, or F5 recommendation.
+    if (recommendedMatchups.has(matchupKey)) {
+      return false;
+    }
+
+    // Only include genuinely weak engine-confidence spots.
+    // This prevents the feature from forcing moderate or strong plays
+    // into the avoid report on smaller MLB slates.
+    if (!["Very Low", "Low"].includes(pick.confidence)) {
+      return false;
+    }
 
     if (uniqueAvoidMatchups.has(matchupKey)) {
       return false;
