@@ -268,68 +268,8 @@ setGames(gamesWithLiveData);
     return pickMatchupKey === matchupKey;
   });
 
-  if (!enginePick) {
-  const noPickQuestion = `
-Create an EasyRunLine AI report explaining why this MLB matchup did not produce a qualifying +4.5 target.
+  if (!enginePick) return;
 
-IMPORTANT:
-This matchup was evaluated by the EasyRunLine fixed scoring engine.
-The engine did not return a valid EasyRunLine +4.5 candidate for this matchup.
-
-Do not invent an ERL Score.
-Do not invent an Engine Confidence rating.
-Do not invent a Blowout Risk rating.
-Do not select or recommend either team.
-Do not recommend the favorite.
-Do not perform a separate evaluation.
-Do not invent an estimated cover probability or unsupported percentage.
-Do not claim positive expected value, good value, strong value, or profitable value.
-
-The final EasyRunLine Verdict must be PASS.
-
-Explain clearly that no qualifying underdog +4.5 candidate was produced under the current engine rules.
-
-Use the heading "🛡 Cover Outlook".
-Never use the heading "Estimated Cover Probability".
-
-Weather and confirmed lineup data are not supplied unless explicitly included below.
-Write:
-Weather: Not supplied.
-Confirmed Lineups: Not supplied.
-
-Matchup:
-${game.away_team} vs ${game.home_team}
-
-Start Time:
-${new Date(game.commence_time).toLocaleString()}
-
-Live Moneyline:
-${moneyline?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
-
-Visible Standard Run Line:
-${spread?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
-
-Total:
-${total?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
-
-Bookmaker:
-${game.bookmakers?.[0]?.title || "Not available"}
-
-MANDATORY REPORT REQUIREMENTS:
-State that ERL Score is not available.
-State that Engine Confidence is not available.
-State that Blowout Risk is not available.
-Do not invent substitute ratings.
-End with:
-
-🏆 EasyRunLine Verdict
-PASS
-`;
-
-  setQuestion(noPickQuestion);
-  analyzeQuestion(noPickQuestion);
-  return;
-}
 
   const gameQuestion = `
 Create an EasyRunLine AI report explaining the engine decision for this MLB matchup.
@@ -346,9 +286,8 @@ Use the supplied Engine Confidence exactly as written.
 Use the supplied Blowout Risk exactly as written.
 Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
 
-Do not invent an estimated cover probability or any unsupported percentage.
+Do not invent a numerical cover probability or unsupported percentage.
 Use the heading "🛡 Cover Outlook".
-Never use the heading "Estimated Cover Probability".
 
 Do not describe the exact +4.5 line as available unless confirmed alternate-line data was supplied.
 The visible sportsbook feed may only show the standard run line.
@@ -362,33 +301,53 @@ Starting pitcher, recent form, and bullpen information are live intelligence whe
 Do not list starting pitchers, bullpen, or recent form as missing when those factors appear in the supplied reasons.
 
 Weather and confirmed lineup data are not supplied unless explicitly included below.
-Do not assume neutral weather, confirmed lineups, or no late scratches.
 If weather is not supplied, write: "Weather: Not supplied."
 If confirmed lineup data is not supplied, write: "Confirmed Lineups: Not supplied."
 
-Clearly explain whether the matchup is:
-- a strong recommended EasyRunLine target,
-- a moderate or borderline target, or
-- a weak target that should be avoided,
+Use this exact report structure:
 
-based only on the supplied ERL Score, Engine Confidence, Blowout Risk, and engine reasons.
+══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
 
-Matchup:
-${game.away_team} vs ${game.home_team}
+🎯 Recommended +4.5 Side
 
-EasyRunLine +4.5 target:
 ${enginePick.team} +4.5 vs ${enginePick.opponent}
 
-Engine Rating:
 ${enginePick.team} — ERL Score: ${enginePick.score}/100 — Engine Confidence: ${enginePick.confidence} — Blowout Risk: ${enginePick.blowoutRisk}
 
-Engine Reasons:
-${enginePick.reasons.map((reason) => `- ${reason}`).join("\n")}
+━━━━━━━━━━━━━━━━━━━━━━
 
-Start Time:
-${new Date(game.commence_time).toLocaleString()}
+📊 Confidence
 
-Live Moneyline:
+Use the supplied Engine Confidence exactly as written and explain it briefly.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 Cover Outlook
+
+Give a qualitative cover outlook only.
+Do not provide a numerical percentage.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💥 Blowout Risk
+
+Use the supplied Blowout Risk exactly as written and explain it briefly.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Value
+
+Explain whether the visible market supports the recommendation.
+Do not claim value without the exact +4.5 price.
+Remind the user to verify the alternate +4.5 line and price.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Live Market
+
+Moneyline:
 ${moneyline?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 
 Visible Standard Run Line:
@@ -400,12 +359,50 @@ ${total?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 Bookmaker:
 ${game.bookmakers?.[0]?.title || "Not available"}
 
-MANDATORY REPORT REQUIREMENTS:
-In the Recommended +4.5 Side or EasyRunLine Decision section, reproduce the supplied team, ERL Score, Engine Confidence, and Blowout Risk exactly.
-Do not omit the Engine Rating.
-Do not invent a different confidence label.
-Do not invent a numerical cover probability.
-Do not contradict the EasyRunLine engine decision.
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Why this Play
+
+Use clear bullet points based only on these engine reasons:
+${enginePick.reasons.map((reason) => `• ${reason}`).join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Only list genuinely missing information.
+Do not list starting pitchers, bullpen, or recent form as missing when included in the engine reasons.
+Weather: Not supplied.
+Confirmed Lineups: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict only:
+PLAY, LEAN, or PASS.
+
+Base the verdict only on:
+- ERL Score: ${enginePick.score}/100
+- Engine Confidence: ${enginePick.confidence}
+- Blowout Risk: ${enginePick.blowoutRisk}
+- the supplied engine reasons
+- whether the exact +4.5 market can be verified
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Always explain uncertainty.
+
+Matchup:
+${game.away_team} vs ${game.home_team}
+
+Start Time:
+${new Date(game.commence_time).toLocaleString()}
 `;
 
   setQuestion(gameQuestion);
@@ -423,78 +420,130 @@ const topPick = rankedPicks[0];
 Create an EasyRunLine AI report for the safest single +4.5 MLB play.
 
 IMPORTANT:
-This pick was selected by the EasyRunLine fixed scoring engine.
-Do not change the team.
-Do not replace +4.5 with +1.5.
-Do not recommend favorites.
+This selection was produced by the EasyRunLine fixed scoring engine.
+Do not perform a separate evaluation.
+Do not change the selected team.
+Do not recommend the favorite.
+Do not replace the EasyRunLine +4.5 target with the visible standard +1.5 line.
 
-The +4.5 run line is an EasyRunLine target and is NOT confirmed as currently available at the listed bookmaker.
-The live odds feed may only show the standard run line.
-Tell the user to verify the exact +4.5 alternate run line in their betting app before placing the bet.
-If the exact +4.5 line is unavailable, the recommendation is PASS.
-Do not force or invent a replacement selection.
-Do not invent a precise cover probability or unsupported percentage.
-Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
+Use the supplied ERL Score exactly as written.
 Use the supplied Engine Confidence exactly as written.
-Do not upgrade, downgrade, or replace the engine confidence label.
 Use the supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, or replace the engine blowout-risk label.
-In the Blowout Risk section, reproduce the supplied label exactly.
-Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
-Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
-For the Missing Live Data section:
-Only list a data category as missing if it was NOT supplied in the report inputs or reasons.
-If bullpen data or bullpen comparisons appear in the supplied reasons, do NOT list Bullpen as missing.
-If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT list Starting Pitchers as missing.
-If recent form data or form comparisons appear in the supplied reasons, do NOT list Recent Form as missing.
-Do not use available live data inside the analysis and then describe the same data as missing.
-Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
-Do not claim that weather is clear, that there are no adverse conditions, that lineups are confirmed, or that there are no late scratches unless that live data was explicitly supplied.
-If no supplied data category is genuinely missing, write: "None from the supplied EasyRunLine intelligence."
+Do not upgrade, downgrade, average, reinterpret, or replace these ratings.
 
-Do not describe the visible standard run line as proof of sportsbook belief, bookmaker opinion, or what the sportsbook thinks will happen.
-Describe the standard run line only as a visible market signal.
-Do not claim the +4.5 targets have strong value solely because the visible standard line is +1.5.
-Do not claim positive expected value, +EV, strong betting value, or profitable value unless the exact +4.5 alternate price is supplied.
+Do not invent a numerical cover probability or unsupported percentage.
+Use the heading "🛡 Cover Outlook".
+
+The exact +4.5 alternate line and price have not been confirmed.
+The visible sportsbook feed may show only the standard run line.
+Tell the user to verify the exact +4.5 alternate run line and price in their betting app.
+If the exact +4.5 market is unavailable, the final verdict must be PASS.
+
+Do not claim positive expected value, +EV, profitable value, good value, strong value, or undervalued status without the exact +4.5 price.
 A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
-Without the exact +4.5 price, describe matchup suitability only.
-Do not infer alternate-line value from the standard +1.5 price.
-For the Missing Live Data section:
-Only list a data category as missing if it was NOT supplied in the report inputs or reasons.
-If bullpen data or bullpen comparisons appear in the supplied reasons, do NOT list Bullpen as missing.
-If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT list Starting Pitchers as missing.
-If recent form data or form comparisons appear in the supplied reasons, do NOT list Recent Form as missing.
-Do not use available live data inside the analysis and then describe the same data as missing.
-Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
-Do not claim that weather is clear, that there are no adverse conditions, that lineups are confirmed, or that there are no late scratches unless that live data was explicitly supplied.
-If no supplied data category is genuinely missing, write: "None from the supplied EasyRunLine intelligence."
-Do not describe the visible standard run line as proof of sportsbook belief, bookmaker opinion, or what the sportsbook thinks will happen.
-Describe the standard run line only as a visible market signal.
-Do not claim the +4.5 target has strong value solely because the visible standard line is +1.5.
-MANDATORY REPORT WORDING RULES:
-Use the heading "🛡 Cover Outlook". Never use "Estimated Cover Probability".
-Never describe an unconfirmed +4.5 line as undervalued, strong value, positive expected value, +EV, or profitable.
-Never say a standard +1.5 line reflects sportsbook confidence, sportsbook belief, or bookmaker opinion.
-Never assume neutral weather conditions.
-If weather data is not supplied, write "Weather: Not supplied."
-If confirmed lineup data is not supplied, write "Confirmed Lineups: Not supplied."
-Do not place available pitcher or bullpen data under Missing Live Data.
-For Missing Live Data, list only genuinely unsupplied categories.
-Only explain the selected underdog +4.5 EasyRunLine target.
 
-Safest single:
+Starting pitcher, recent form, and bullpen information are live intelligence when included in the supplied engine reasons.
+Do not list starting pitchers, recent form, or bullpen as missing when those factors appear in the supplied reasons.
+
+Weather and confirmed lineup data were not supplied.
+Write:
+"Weather: Not supplied."
+"Confirmed Lineups: Not supplied."
+
+Use this exact report structure:
+
+══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🎯 Recommended +4.5 Side
+
 ${topPick.team} +4.5 vs ${topPick.opponent}
-${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence} — Blowout Risk: ${topPick.blowoutRisk}
-In the Recommended +4.5 Side section, reproduce the selected team's ERL Score and Engine Confidence exactly as supplied.
-Do not omit the Engine Rating details from the final report.
-Engine Confidence: ${topPick.confidence}
-Moneyline: ${topPick.moneyline}
-Standard Run Line Seen: ${topPick.standardRunLine}
-Bookmaker: ${topPick.bookmaker}
 
-Reasons:
-${topPick.reasons.map((reason) => `- ${reason}`).join("\n")}
+${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence} — Blowout Risk: ${topPick.blowoutRisk}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Confidence
+
+Use the supplied Engine Confidence exactly as written and explain it briefly.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 Cover Outlook
+
+Give a qualitative cover outlook only.
+Do not provide a numerical percentage.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💥 Blowout Risk
+
+Use the supplied Blowout Risk exactly as written and explain it briefly.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Value
+
+Explain what the visible market shows without claiming sportsbook belief or guaranteed value.
+Do not claim betting value without the exact +4.5 price.
+Remind the user to verify the alternate +4.5 line and price.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Live Market
+
+Moneyline:
+${topPick.team}: ${topPick.moneyline}
+
+Visible Standard Run Line:
+${topPick.standardRunLine}
+
+Bookmaker:
+${topPick.bookmaker}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Why this Play
+
+Use clear bullet points based only on these engine reasons:
+${topPick.reasons.map((reason) => `• ${reason}`).join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Only list genuinely missing information.
+Do not list starting pitchers, recent form, or bullpen as missing when they appear in the supplied engine reasons.
+
+Weather: Not supplied.
+Confirmed Lineups: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict only:
+PLAY, LEAN, or PASS.
+
+Base the verdict only on:
+- ERL Score: ${topPick.score}/100
+- Engine Confidence: ${topPick.confidence}
+- Blowout Risk: ${topPick.blowoutRisk}
+- the supplied engine reasons
+- whether the exact +4.5 alternate market can be verified
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Always explain uncertainty.
 `;
+
+
 
   setQuestion(singleQuestion);
   analyzeQuestion(singleQuestion);
@@ -550,45 +599,159 @@ ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.conf
 Create an EasyRunLine AI report for the best 2-leg +4.5 MLB parlay.
 
 IMPORTANT:
-
-The picks below were selected by the EasyRunLine fixed scoring engine.
-
-Do not change the teams.
-Do not replace +4.5 with +1.5.
+These two selections were produced by the EasyRunLine fixed scoring engine.
+Do not perform a separate evaluation.
+Do not change either selected team.
 Do not recommend favorites.
+Do not add a third selection.
+Do not replace either EasyRunLine +4.5 target with the visible standard +1.5 line.
 
-The +4.5 run line is an EasyRunLine target and is NOT confirmed as currently available at the listed bookmaker.
-The live odds feed may only show the standard run line.
-Tell the user to verify the exact +4.5 alternate run line for EACH selected team in their betting app before placing the parlay.
+Use every supplied ERL Score exactly as written.
+Use every supplied Engine Confidence exactly as written.
+Use every supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
 
-If the exact +4.5 line is unavailable for a selected team, mark that leg as PASS.
-Do not force or invent a replacement selection.
-Use fewer legs instead of forcing a replacement.
-If only one suitable and available +4.5 target remains, recommend the single target instead of pretending a 2-leg parlay is available.
+Do not invent a combined ERL Score.
+Do not invent a combined confidence label.
+Do not invent a numerical cover probability or unsupported percentage.
+Use the heading "🛡 Cover Outlook".
 
-Do not invent precise cover probabilities or unsupported percentages.
-Use confidence labels such as Very High, High, Moderate, or Low instead of fabricated percentages.
-Use each supplied Engine Confidence exactly as written.
-Do not upgrade, downgrade, average, or replace the engine confidence labels.
-Use each supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, or replace the engine blowout-risk labels.
-In the Blowout Risk section, reproduce each selected team's supplied Blowout Risk label exactly.
+The exact +4.5 alternate lines and prices have not been confirmed.
+The visible sportsbook feed may show only the standard run line.
+Tell the user to verify the exact +4.5 alternate run line and price for BOTH selections in their betting app.
 
-Starting pitcher, recent form, and bullpen data are live intelligence when included in the supplied reasons.
-Do not incorrectly describe supplied live pitcher, recent form, or bullpen data as missing.
+If the exact +4.5 market is unavailable for either selected team, mark that leg as PASS.
+Do not force or invent a replacement team.
+Use fewer legs rather than substituting a selection outside the engine choices.
+If only one selected +4.5 market is available, recommend using the available selection as a single instead of presenting an incomplete 2-leg parlay.
 
-Only explain the selected underdog +4.5 EasyRunLine targets.
+Do not claim positive expected value, +EV, profitable value, good value, strong value, or undervalued status without the exact +4.5 prices.
+A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
 
-Selected 2-leg parlay:
+Starting pitcher, recent form, and bullpen information are live intelligence when included in the supplied engine reasons.
+Do not list starting pitchers, recent form, or bullpen as missing when those factors appear in the supplied reasons.
+
+Weather and confirmed lineup data were not supplied.
+Write:
+"Weather: Not supplied."
+"Confirmed Lineups: Not supplied."
+
+Use this exact report structure:
+
+══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🎯 Recommended 2-Leg +4.5 Parlay
 
 ${selectedText}
-In the Recommended +4.5 Side section, reproduce every selected team's ERL Score, Engine Confidence, and Blowout Risk exactly as supplied.
-Do not omit the Engine Rating details from the final report.
 
-Full ranked underdog board:
+━━━━━━━━━━━━━━━━━━━━━━
 
-${rankedText}
+📊 Confidence
+
+Discuss the two supplied Engine Confidence ratings separately.
+Do not create or invent a combined confidence rating.
+Explain briefly how the two individual confidence levels affect the overall strength of the parlay.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 Cover Outlook
+
+Give a qualitative cover outlook for each selected team.
+Do not provide numerical percentages.
+Do not guarantee that either team will cover.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💥 Blowout Risk Summary
+
+Reproduce each selected team's supplied Blowout Risk exactly as written.
+Explain briefly how each risk level affects the 2-leg parlay.
+Do not average or replace the supplied risk labels.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Value
+
+Explain what the visible markets show without claiming sportsbook belief or guaranteed value.
+Do not claim betting value without the exact +4.5 alternate prices.
+Remind the user to verify the exact +4.5 line and price for both selections.
+If either alternate market is unavailable, do not force the 2-leg parlay.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Selected Market Details
+
+Use only the following engine-supplied information for the two selected plays:
+
+${topTwo
+  .map(
+    (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+Moneyline: ${pick.moneyline}
+Visible Standard Run Line: ${pick.standardRunLine}
+Bookmaker: ${pick.bookmaker}
+`
+  )
+  .join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Why These Plays
+
+Explain each selected play separately using clear bullet points based only on its supplied engine reasons.
+
+${topTwo
+  .map(
+    (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+
+${pick.reasons.map((reason) => `• ${reason}`).join("\n")}
+`
+  )
+  .join("\n")}
+
+Do not discuss or recommend teams outside these two selections.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Only list genuinely missing information.
+Do not list starting pitchers, recent form, or bullpen as missing when those factors appear in the supplied engine reasons.
+
+Weather: Not supplied.
+Confirmed Lineups: Not supplied.
+Exact +4.5 alternate prices: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one clear verdict for the proposed 2-leg parlay:
+PLAY, LEAN, or PASS.
+
+Base the verdict only on:
+- the two supplied ERL Scores
+- each supplied Engine Confidence
+- each supplied Blowout Risk
+- the supplied engine reasons
+- whether both exact +4.5 alternate markets can be verified
+
+Do not invent a combined score or probability.
+If either exact +4.5 alternate market cannot be verified, state that the affected leg is PASS and that the user should not force the full 2-leg parlay.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Always explain uncertainty.
 `;
+
 
   setQuestion(parlayQuestion);
   analyzeQuestion(parlayQuestion);
@@ -666,40 +829,111 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
     .join("\n────────────────────\n");
 
   const avoidQuestion = `
-Create an EasyRunLine AI report for MLB games to avoid.
+Create an EasyRunLine AI report for MLB games the EasyRunLine engine recommends avoiding.
 
 IMPORTANT:
-These teams were flagged by the EasyRunLine fixed scoring engine.
-Do not turn these into recommended plays.
-Do not recommend favorites.
-Explain why these +4.5 underdog spots are weaker or risky.
 
-Do not invent exact cover probabilities, probability thresholds, or unsupported percentages.
-Use qualitative labels such as Very Low, Low, Moderate, or High.
-Use each supplied Engine Confidence exactly as written.
-Do not upgrade, downgrade, average, or replace the engine confidence labels.
+These matchups were rejected by the EasyRunLine fixed scoring engine.
 
-Do not claim that a visible standard run line proves sportsbook confidence, sportsbook belief, or bookmaker opinion.
-Describe it only as a visible market signal.
+Do not recommend these plays.
 
-Starting pitcher, recent form, and bullpen data are live when they appear in the supplied reasons.
-Do not list those categories as missing when their data or comparisons are present.
-If recent bullpen workload or reliever availability is not supplied, describe that specifically as "Bullpen workload/availability: Not supplied."
+Do not suggest betting these teams simply because they receive +4.5 runs.
 
-Weather and confirmed lineup data are not supplied unless explicitly included.
-Do not assume neutral weather, confirmed lineups, or no late scratches.
+Do not recommend favorites instead.
 
-Do not say a team failed a cover-probability threshold unless a calibrated probability model is explicitly supplied.
-Say instead that the team falls below the EasyRunLine scoring threshold for a recommended +4.5 target.
+Use every supplied ERL Score exactly as written.
 
-Games to avoid:
+Use every supplied Engine Confidence exactly as written.
+
+Use every supplied Blowout Risk exactly as written.
+
+Do not upgrade, downgrade, average or reinterpret any engine ratings.
+
+Do not invent cover probabilities.
+
+Do not invent expected value.
+
+Do not claim sportsbook opinion.
+
+Starting pitcher, recent form and bullpen information are live intelligence whenever they appear in the supplied reasons.
+
+Do not list those categories as missing if they already appear.
+
+Weather and confirmed lineups were not supplied.
+
+══════════════════════════════
+⚠ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🚫 Games To Avoid
+
 ${avoidText}
-In the Avoided +4.5 Underdog Spots section, reproduce every team's ERL Score, Engine Confidence, and Blowout Risk exactly as supplied.
-Do not upgrade, downgrade, average, or replace the supplied Engine Confidence labels.
-Use each supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, or replace the engine blowout-risk labels.
-In the Blowout Risk section, reproduce each avoided team's supplied Blowout Risk label exactly.
-Do not omit the Engine Rating details from the final report.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Why These Games Failed
+
+Explain why these matchups fall below the EasyRunLine recommendation threshold.
+
+Discuss:
+
+• lower ERL Scores
+
+• weaker Engine Confidence
+
+• elevated Blowout Risk
+
+Do not invent new statistics.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💥 Blowout Risk Summary
+
+Reproduce every supplied Blowout Risk exactly as written.
+
+Briefly explain why elevated blowout risk reduces confidence in these +4.5 plays.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📉 Risk Factors
+
+Using only the supplied engine reasons, explain the biggest concerns for each avoided matchup.
+
+Do not recommend betting any of these games.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Only list genuinely missing information.
+
+Weather: Not supplied.
+
+Confirmed Lineups: Not supplied.
+
+Exact +4.5 alternate prices: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+State clearly that these matchups currently fall below the EasyRunLine recommendation threshold.
+
+Do not suggest replacing them with different teams.
+
+Do not recommend any wager from this list.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+Passing on weak opportunities is part of long-term bankroll management.
+
+One Unit Only.
+
+Never chase losses.
+
+Never force action when the engine says no.
 `;
 
   setQuestion(avoidQuestion);
@@ -714,45 +948,208 @@ function findBestF5() {
   if (!topPick) return;
 
   const f5Question = `
-Create an EasyRunLine AI report for the best F5 MLB angle.
+Create an EasyRunLine AI report for the best First 5 Innings MLB angle.
 
 IMPORTANT:
-This is for First 5 Innings only.
-Focus on early-game risk, starting pitching, early offense, and first-half cover potential.
-Do not present it as a full-game play.
-Do not call anything a lock.
+This selection was produced by the EasyRunLine fixed scoring engine.
+Do not perform a separate selection process.
+Do not change the selected team.
+Do not recommend the opponent.
+Do not convert this into a full-game +4.5 recommendation.
+Do not replace the EasyRunLine F5 target with the visible full-game standard run line.
 
-The F5 +2.5 or safer alternate line is an EasyRunLine target and is NOT confirmed as currently available at the listed bookmaker.
-Tell the user to verify the exact F5 alternate line in their betting app before placing the bet.
-If the exact F5 target line is unavailable, the recommendation is PASS.
-Do not force or invent a replacement market.
+This report is for the First 5 Innings only.
+
+The EasyRunLine target is:
+${topPick.team} F5 +2.5 or a safer F5 alternate line vs ${topPick.opponent}
+
+Use the supplied ERL Score exactly as written.
+Use the supplied Engine Confidence exactly as written.
+Use the supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
+
+Do not invent a separate F5 score.
+Do not invent a separate F5 confidence label.
+Do not invent numerical cover probabilities or unsupported percentages.
+Do not call the play a lock.
+
+The exact F5 +2.5 or safer alternate line and price have not been confirmed.
+Tell the user to verify the exact F5 alternate line and price in their betting app.
+
+If the exact F5 target market is unavailable, the recommendation is PASS.
+Do not invent or force a replacement market.
 Do not replace the F5 target with a full-game +4.5 play.
 
-Do not invent precise cover probabilities or unsupported percentages.
-Use confidence labels such as Very High, High, Moderate, or Low.
+Starting-pitcher information is the most important live factor for this report.
+If starting-pitcher data or pitcher comparisons appear in the supplied engine reasons, do not describe starting-pitcher data as missing.
 
-Starting pitcher data is the most important live input for this F5 report.
-If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT describe starting pitcher data as missing.
-If starting pitcher data is genuinely absent, clearly state that F5 confidence is limited.
+Recent form may support the early-game outlook when it appears in the supplied reasons.
 
-Recent form may support the F5 analysis when included.
-Bullpen data is mainly a full-game factor and should not be presented as a primary reason for an F5 recommendation.
-Do not use bullpen strength as the main justification for an F5 play.
+Bullpen data is mainly a full-game factor.
+Do not use bullpen strength as the primary reason for this F5 recommendation.
+If bullpen information appears in the supplied reasons, acknowledge that it has less importance before the sixth inning.
 
-Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
-Do not claim weather conditions, confirmed lineups, or late-scratch information unless that live data was explicitly supplied.
+Weather and confirmed lineup information were not supplied.
 
-Do not describe the visible standard full-game run line as confirmation of the F5 alternate market.
+Use this exact report structure:
 
-Best F5 candidate:
+══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🔥 Best F5 Angle
+
 ${topPick.team} F5 +2.5 or safer F5 alternate line vs ${topPick.opponent}
+
+${topPick.team} —
 ERL Score: ${topPick.score}/100
+Engine Confidence: ${topPick.confidence}
+Blowout Risk: ${topPick.blowoutRisk}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Confidence
+
+Reproduce the supplied Engine Confidence exactly as written.
+
+Explain briefly what that confidence level means for the First 5 Innings target.
+
+Do not create a different F5 confidence label.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 F5 Cover Outlook
+
+Give a qualitative outlook for the selected team's ability to remain within the F5 target through five innings.
+
+Focus on:
+- starting pitching
+- early offense
+- recent first-half suitability where supported
+- risk of falling behind early
+
+Do not provide percentages.
+Do not guarantee the cover.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚾ Starting Pitching Edge
+
+Explain the starting-pitching information using only the supplied engine reasons.
+
+If pitcher information is present, use it directly.
+
+If pitcher information is genuinely absent, state:
+"Starting Pitchers: Not supplied. F5 confidence is limited."
+
+Do not invent pitcher names, ERAs, handedness, form, or matchup history.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🚀 Early-Offense Outlook
+
+Explain whether the supplied reasons support the selected team's ability to stay competitive during the first five innings.
+
+Do not invent inning splits, first-five records, batting statistics, or scoring trends that were not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💥 Early Blowout Risk
+
+Reproduce the supplied Blowout Risk exactly as written.
+
+Explain how that risk applies specifically to the possibility of the selected team falling outside the F5 cushion before the end of the fifth inning.
+
+Do not replace or reinterpret the engine label.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Value
+
+The exact F5 alternate price was not supplied.
+
+Do not claim positive expected value, +EV, strong value, profitable value, or sportsbook confidence.
+
+State that the matchup may be suitable for the EasyRunLine F5 target, subject to confirming the exact alternate line and price.
+
+If the exact target is unavailable, mark the recommendation as PASS.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Visible Market Details
+
 Moneyline: ${topPick.moneyline}
-Standard Run Line Seen: ${topPick.standardRunLine}
+
+Visible Full-Game Standard Run Line: ${topPick.standardRunLine}
+
 Bookmaker: ${topPick.bookmaker}
 
-Reasons:
-${topPick.reasons.map((reason) => `- ${reason}`).join("\n")}
+Clearly state that this visible full-game market does not confirm the availability or price of the F5 alternate target.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Why This F5 Play
+
+Explain the recommendation using only these supplied engine reasons:
+
+${topPick.reasons.map((reason) => `• ${reason}`).join("\n")}
+
+Prioritize starting-pitching and early-game factors.
+
+Do not use bullpen strength as the main justification.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Only list genuinely missing information.
+
+Do not list starting pitchers or recent form as missing when those factors appear in the supplied engine reasons.
+
+Weather: Not supplied.
+
+Confirmed Lineups: Not supplied.
+
+Exact F5 alternate line and price: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one clear verdict:
+
+PLAY
+
+LEAN
+
+or
+
+PASS.
+
+Base the verdict only on:
+- the supplied ERL Score
+- the supplied Engine Confidence
+- the supplied Blowout Risk
+- the supplied engine reasons
+- whether the exact F5 target market can be verified
+
+Do not invent a new score, confidence label, or probability.
+
+If the exact F5 target market cannot be verified, state PASS.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+
+Never chase losses.
+
+Never call anything a lock.
+
+F5 bets cover only the First 5 Innings.
+
+Always verify the exact F5 alternate line and price.
 `;
 
   setQuestion(f5Question);
@@ -809,64 +1206,177 @@ ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.conf
 Create an EasyRunLine AI report for the best 3-leg +4.5 MLB parlay.
 
 IMPORTANT:
-The picks below were selected by the EasyRunLine fixed scoring engine.
-Do not change the teams.
-Do not replace +4.5 with +1.5.
+These three selections were produced by the EasyRunLine fixed scoring engine.
+Do not perform a separate evaluation.
+Do not change the selected teams.
 Do not recommend favorites.
-Only explain the selected underdog +4.5 sides.
+Do not add or remove teams.
+Do not replace the EasyRunLine +4.5 targets with the visible standard +1.5 lines.
 
-If you mention the standard sportsbook run line, clearly say it is the visible standard +1.5 line, not the EasyRunLine +4.5 target.
+Use every supplied ERL Score exactly as written.
+Use every supplied Engine Confidence exactly as written.
+Use every supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, reinterpret, or replace any engine ratings.
 
-The +4.5 line is the EasyRunLine target and is not confirmed as currently offered by the bookmaker.
+Do not invent a combined ERL Score.
+Do not invent a combined confidence label.
+Do not invent numerical cover probabilities or unsupported percentages.
 
-Never claim that the exact +4.5 market is available unless confirmed data explicitly provides it.
+Use the heading "🛡 Cover Outlook".
 
-Clearly tell the user to verify the alternate +4.5 line in their betting app before placing the ticket.
+The exact +4.5 alternate run lines and prices have not been confirmed.
+The visible sportsbook feed may only show the standard run line.
 
-If an exact +4.5 line is unavailable, mark that selection as PASS and advise using fewer legs rather than forcing a replacement.
+Tell the user to verify the exact +4.5 alternate run line and price for ALL THREE selections before placing the parlay.
 
-Do not invent exact cover probabilities or combined parlay probabilities.
+If any exact +4.5 alternate market is unavailable:
 
-Use confidence labels such as Very High, High, Moderate, or Low instead of unsupported percentages.
-Use each supplied Engine Confidence exactly as written.
-Do not upgrade, downgrade, average, or replace the engine confidence labels.
-Use each supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, or replace the engine blowout-risk labels.
-In the Blowout Risk section, reproduce each selected team's supplied Blowout Risk label exactly.
+- mark that leg as PASS
+- never invent a replacement team
+- recommend using fewer legs instead of forcing the ticket
 
-Starting pitcher, recent form, and bullpen data are live when they appear in the ranked-board reasons.
+Starting pitcher, recent form and bullpen information are live intelligence whenever they appear in the supplied engine reasons.
 
-Do not list those factors as missing when their reasons are present.
-For the Missing Live Data section:
-Only list a data category as missing if it was NOT supplied in the report inputs or reasons.
-If bullpen data or bullpen comparisons appear in the supplied reasons, do NOT list Bullpen as missing.
-If starting pitcher data or pitcher comparisons appear in the supplied reasons, do NOT list Starting Pitchers as missing.
-If recent form data or form comparisons appear in the supplied reasons, do NOT list Recent Form as missing.
-Do not use available live data in the analysis and then describe the same data as missing.
-Weather and confirmed lineup data are not supplied unless explicitly included in the prompt.
-Do not claim that weather is clear, that there are no adverse conditions, that lineups are confirmed, or that there are no late scratches unless that live data was explicitly supplied.
-If no supplied data category is genuinely missing, write: "None from the supplied EasyRunLine intelligence."
+Do not list those categories as missing if they appear in the supplied reasons.
 
-Do not describe the visible standard run line as proof of sportsbook belief, bookmaker opinion, or what the sportsbook thinks will happen.
-Describe the standard run line only as a visible market signal.
-Do not claim the +4.5 targets have strong value solely because the visible standard line is +1.5.
-Do not claim positive expected value, +EV, strong betting value, or profitable value unless the exact +4.5 alternate price is supplied.
-A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
-Without the exact +4.5 price, describe matchup suitability only.
-Do not infer alternate-line value from the standard +1.5 price.
-Say that a team appears suitable as an EasyRunLine +4.5 target, subject to confirming the exact alternate line and price.
+Weather and confirmed lineup data were not supplied.
 
-Use the section heading "Cover Outlook" instead of "Estimated Cover Probability".
-Do not invent numerical cover probabilities or imply a calculated probability exists.
+Use this exact report format:
 
-Selected 3-leg parlay:
+══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🎯 Recommended 3-Leg +4.5 Parlay
+
 ${selectedText}
-In the Recommended +4.5 Side section, reproduce every selected team's ERL Score, Engine Confidence, and Blowout Risk exactly as supplied.
-Do not omit the Engine Rating details from the final report.
 
-Full ranked underdog board:
-${rankedText}
-`;
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Confidence
+
+Discuss each team's supplied Engine Confidence individually.
+
+Do not invent a combined confidence rating.
+
+Explain how the three confidence levels affect the strength of the parlay.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 Cover Outlook
+
+Give a qualitative cover outlook for each selected team.
+
+Do not provide percentages.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💥 Blowout Risk Summary
+
+Reproduce every supplied Blowout Risk exactly as written.
+
+Explain briefly how each team's risk affects the parlay.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Value
+
+Explain what the visible markets show.
+
+Do not claim betting value without the exact +4.5 alternate prices.
+
+Remind the user to verify every +4.5 alternate run line before placing the parlay.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Selected Market Details
+
+${topThree
+  .map(
+    (pick, index) => `
+${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+
+Moneyline: ${pick.moneyline}
+
+Visible Standard Run Line:
+${pick.standardRunLine}
+
+Bookmaker:
+${pick.bookmaker}
+`
+  )
+  .join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Why These Plays
+
+Explain each selected play separately using only the supplied engine reasons.
+
+${topThree
+  .map(
+    (pick, index) => `
+${index + 1}. ${pick.team}
+
+${pick.reasons.map((reason) => `• ${reason}`).join("\n")}
+`
+  )
+  .join("\n")}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Only list genuinely missing information.
+
+Do not list starting pitchers, recent form or bullpen as missing if those appear in the supplied engine reasons.
+
+Weather: Not supplied.
+
+Confirmed Lineups: Not supplied.
+
+Exact +4.5 alternate prices: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict only:
+
+PLAY
+
+LEAN
+
+or
+
+PASS.
+
+Base the verdict only on:
+
+• the supplied ERL Scores
+
+• the supplied Engine Confidence labels
+
+• the supplied Blowout Risk labels
+
+• the supplied engine reasons
+
+• whether the three +4.5 alternate markets can be verified
+
+Do not invent combined scores or probabilities.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+
+Never chase losses.
+
+Never call anything a lock.
+
+Always explain uncertainty.
+`; 
 
   setQuestion(parlayQuestion);
   analyzeQuestion(parlayQuestion);
