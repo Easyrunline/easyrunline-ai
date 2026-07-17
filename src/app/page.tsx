@@ -246,22 +246,86 @@ setGames(gamesWithLiveData);
 
   function analyzeGame(game: Game) {
   const moneyline = getMarket(game, "h2h");
-const spread = getMarket(game, "spreads");
-const total = getMarket(game, "totals");
+  const spread = getMarket(game, "spreads");
+  const total = getMarket(game, "totals");
 
-const gameQuestion = `
-Analyze this MLB game for EasyRunLine AI.
+  const rankedPicks = rankEasyRunLinePicks(games);
 
-Game:
+  const matchupKey = [game.away_team, game.home_team]
+    .sort()
+    .join(" vs ");
+
+  const enginePick = rankedPicks.find((pick) => {
+    const pickMatchupKey = [pick.team, pick.opponent]
+      .sort()
+      .join(" vs ");
+
+    return pickMatchupKey === matchupKey;
+  });
+
+  if (!enginePick) return;
+
+  const gameQuestion = `
+Create an EasyRunLine AI report explaining the engine decision for this MLB matchup.
+
+IMPORTANT:
+This matchup has already been evaluated by the EasyRunLine fixed scoring engine.
+Do not perform a separate evaluation.
+Do not change the selected underdog.
+Do not recommend the favorite +4.5.
+Do not replace the EasyRunLine +4.5 target with the standard +1.5 line.
+
+Use the supplied ERL Score exactly as written.
+Use the supplied Engine Confidence exactly as written.
+Use the supplied Blowout Risk exactly as written.
+Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
+
+Do not invent an estimated cover probability or any unsupported percentage.
+Use the heading "🛡 Cover Outlook".
+Never use the heading "Estimated Cover Probability".
+
+Do not describe the exact +4.5 line as available unless confirmed alternate-line data was supplied.
+The visible sportsbook feed may only show the standard run line.
+Tell the user to verify the exact +4.5 alternate run line and price in their betting app.
+If the exact +4.5 market is unavailable, the decision is PASS.
+
+Do not claim positive expected value, +EV, profitable value, good value, strong value, or undervalued status without the exact +4.5 price.
+A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
+
+Starting pitcher, recent form, and bullpen information are live intelligence when included in the supplied engine reasons.
+Do not list starting pitchers, bullpen, or recent form as missing when those factors appear in the supplied reasons.
+
+Weather and confirmed lineup data are not supplied unless explicitly included below.
+Do not assume neutral weather, confirmed lineups, or no late scratches.
+If weather is not supplied, write: "Weather: Not supplied."
+If confirmed lineup data is not supplied, write: "Confirmed Lineups: Not supplied."
+
+Clearly explain whether the matchup is:
+- a strong recommended EasyRunLine target,
+- a moderate or borderline target, or
+- a weak target that should be avoided,
+
+based only on the supplied ERL Score, Engine Confidence, Blowout Risk, and engine reasons.
+
+Matchup:
 ${game.away_team} vs ${game.home_team}
+
+EasyRunLine +4.5 target:
+${enginePick.team} +4.5 vs ${enginePick.opponent}
+
+Engine Rating:
+${enginePick.team} — ERL Score: ${enginePick.score}/100 — Engine Confidence: ${enginePick.confidence} — Blowout Risk: ${enginePick.blowoutRisk}
+
+Engine Reasons:
+${enginePick.reasons.map((reason) => `- ${reason}`).join("\n")}
 
 Start Time:
 ${new Date(game.commence_time).toLocaleString()}
 
-Moneyline:
+Live Moneyline:
 ${moneyline?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 
-Run Line:
+Visible Standard Run Line:
 ${spread?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 
 Total:
@@ -270,17 +334,17 @@ ${total?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
 Bookmaker:
 ${game.bookmakers?.[0]?.title || "Not available"}
 
-Focus specifically on the safest +4.5 alternate run line angle.
-
-Only recommend the underdog +4.5 side.
-
-Never recommend favorite +4.5.
+MANDATORY REPORT REQUIREMENTS:
+In the Recommended +4.5 Side or EasyRunLine Decision section, reproduce the supplied team, ERL Score, Engine Confidence, and Blowout Risk exactly.
+Do not omit the Engine Rating.
+Do not invent a different confidence label.
+Do not invent a numerical cover probability.
+Do not contradict the EasyRunLine engine decision.
 `;
 
-setQuestion(gameQuestion);
-analyzeQuestion(gameQuestion);   
-  
-  }
+  setQuestion(gameQuestion);
+  analyzeQuestion(gameQuestion);
+}
   function findSafestSingle() {
   if (games.length === 0) return;
 
@@ -1056,7 +1120,7 @@ ${rankedText}
                     disabled={loading}
                     className="mt-5 w-full rounded-xl bg-yellow-400 px-5 py-3 font-bold text-black transition hover:bg-yellow-300 disabled:opacity-50"
                   >
-                    Analyze +4.5 Angle
+                    Explain EasyRunLine Decision
                   </button>
                 </div>
               );
