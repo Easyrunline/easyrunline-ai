@@ -263,7 +263,68 @@ setGames(gamesWithLiveData);
     return pickMatchupKey === matchupKey;
   });
 
-  if (!enginePick) return;
+  if (!enginePick) {
+  const noPickQuestion = `
+Create an EasyRunLine AI report explaining why this MLB matchup did not produce a qualifying +4.5 target.
+
+IMPORTANT:
+This matchup was evaluated by the EasyRunLine fixed scoring engine.
+The engine did not return a valid EasyRunLine +4.5 candidate for this matchup.
+
+Do not invent an ERL Score.
+Do not invent an Engine Confidence rating.
+Do not invent a Blowout Risk rating.
+Do not select or recommend either team.
+Do not recommend the favorite.
+Do not perform a separate evaluation.
+Do not invent an estimated cover probability or unsupported percentage.
+Do not claim positive expected value, good value, strong value, or profitable value.
+
+The final EasyRunLine Verdict must be PASS.
+
+Explain clearly that no qualifying underdog +4.5 candidate was produced under the current engine rules.
+
+Use the heading "🛡 Cover Outlook".
+Never use the heading "Estimated Cover Probability".
+
+Weather and confirmed lineup data are not supplied unless explicitly included below.
+Write:
+Weather: Not supplied.
+Confirmed Lineups: Not supplied.
+
+Matchup:
+${game.away_team} vs ${game.home_team}
+
+Start Time:
+${new Date(game.commence_time).toLocaleString()}
+
+Live Moneyline:
+${moneyline?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
+
+Visible Standard Run Line:
+${spread?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
+
+Total:
+${total?.outcomes.map((o) => formatOdds(o)).join(" | ") || "Not available"}
+
+Bookmaker:
+${game.bookmakers?.[0]?.title || "Not available"}
+
+MANDATORY REPORT REQUIREMENTS:
+State that ERL Score is not available.
+State that Engine Confidence is not available.
+State that Blowout Risk is not available.
+Do not invent substitute ratings.
+End with:
+
+🏆 EasyRunLine Verdict
+PASS
+`;
+
+  setQuestion(noPickQuestion);
+  analyzeQuestion(noPickQuestion);
+  return;
+}
 
   const gameQuestion = `
 Create an EasyRunLine AI report explaining the engine decision for this MLB matchup.
@@ -965,12 +1026,14 @@ const enginePick = rankEasyRunLinePicks(games).find((pick) => {
 
 const engineVerdict =
   !enginePick
-    ? "Not available"
+    ? "PASS"
     : enginePick.score >= 70
       ? "PLAY"
       : enginePick.score >= 50
         ? "BORDERLINE"
         : "AVOID";
+
+const isQualifiedCandidate = Boolean(enginePick);
 
               return (
                 <div
@@ -1113,28 +1176,65 @@ const engineVerdict =
     🧠 EasyRunLine Decision
   </p>
 
-  <div className="mt-3 space-y-2">
-    <p>
-      <span className="font-semibold text-white">
-        ERL Score:
-      </span>{" "}
-      {enginePick ? `${enginePick.score}/100` : "Not available"}
-    </p>
+  {isQualifiedCandidate ? (
+    <div className="mt-3 space-y-2">
+      <p>
+        <span className="font-semibold text-white">
+          ERL Score:
+        </span>{" "}
+        {enginePick!.score}/100
+      </p>
 
-    <p>
-      <span className="font-semibold text-white">
-        Engine Confidence:
-      </span>{" "}
-      {enginePick?.confidence ?? "Not available"}
-    </p>
+      <p>
+        <span className="font-semibold text-white">
+          Engine Confidence:
+        </span>{" "}
+        {enginePick!.confidence}
+      </p>
 
-    <p>
-      <span className="font-semibold text-white">
-        Blowout Risk:
-      </span>{" "}
-      {enginePick?.blowoutRisk ?? "Not available"}
-    </p>
-  </div>
+      <p>
+        <span className="font-semibold text-white">
+          Blowout Risk:
+        </span>{" "}
+        {enginePick!.blowoutRisk}
+      </p>
+    </div>
+  ) : (
+    <div className="mt-3 space-y-2">
+      <p>
+        <span className="font-semibold text-white">
+          Status:
+        </span>{" "}
+        Not a qualified EasyRunLine candidate
+      </p>
+
+      <p className="text-zinc-300">
+        This matchup did not satisfy the engine&apos;s underdog qualification
+        rules. No score or rating was created.
+      </p>
+
+      <p>
+        <span className="font-semibold text-white">
+          ERL Score:
+        </span>{" "}
+        —
+      </p>
+
+      <p>
+        <span className="font-semibold text-white">
+          Engine Confidence:
+        </span>{" "}
+        —
+      </p>
+
+      <p>
+        <span className="font-semibold text-white">
+          Blowout Risk:
+        </span>{" "}
+        —
+      </p>
+    </div>
+  )}
 
   <div className="mt-4 border-t border-yellow-500/20 pt-3">
     <p className="font-bold text-yellow-300">
@@ -1149,7 +1249,7 @@ const engineVerdict =
             ? "text-yellow-300"
             : engineVerdict === "AVOID"
               ? "text-red-400"
-              : "text-zinc-400"
+              : "text-zinc-300"
       }`}
     >
       {engineVerdict === "PLAY"
@@ -1158,7 +1258,7 @@ const engineVerdict =
           ? "🟡 BORDERLINE"
           : engineVerdict === "AVOID"
             ? "🔴 AVOID"
-            : engineVerdict}
+            : "⚪ PASS"}
     </p>
   </div>
 </div>
