@@ -951,6 +951,26 @@ ${rankedText}
               const moneyline = getMarket(game, "h2h");
               const spread = getMarket(game, "spreads");
               const total = getMarket(game, "totals");
+              const matchupKey = [game.away_team, game.home_team]
+  .sort()
+  .join(" vs ");
+
+const enginePick = rankEasyRunLinePicks(games).find((pick) => {
+  const pickMatchupKey = [pick.team, pick.opponent]
+    .sort()
+    .join(" vs ");
+
+  return pickMatchupKey === matchupKey;
+});
+
+const engineVerdict =
+  !enginePick
+    ? "Not available"
+    : enginePick.score >= 70
+      ? "PLAY"
+      : enginePick.score >= 50
+        ? "BORDERLINE"
+        : "AVOID";
 
               return (
                 <div
@@ -1088,7 +1108,60 @@ ${rankedText}
       : "Not available"}
   </p>
 </div>
+<div className="mt-3 rounded-xl border border-yellow-500/30 bg-yellow-950/20 p-4 text-sm">
+  <p className="font-bold text-yellow-300">
+    🧠 EasyRunLine Decision
+  </p>
 
+  <div className="mt-3 space-y-2">
+    <p>
+      <span className="font-semibold text-white">
+        ERL Score:
+      </span>{" "}
+      {enginePick ? `${enginePick.score}/100` : "Not available"}
+    </p>
+
+    <p>
+      <span className="font-semibold text-white">
+        Engine Confidence:
+      </span>{" "}
+      {enginePick?.confidence ?? "Not available"}
+    </p>
+
+    <p>
+      <span className="font-semibold text-white">
+        Blowout Risk:
+      </span>{" "}
+      {enginePick?.blowoutRisk ?? "Not available"}
+    </p>
+  </div>
+
+  <div className="mt-4 border-t border-yellow-500/20 pt-3">
+    <p className="font-bold text-yellow-300">
+      🏆 EasyRunLine Verdict
+    </p>
+
+    <p
+      className={`mt-2 text-lg font-black ${
+        engineVerdict === "PLAY"
+          ? "text-green-400"
+          : engineVerdict === "BORDERLINE"
+            ? "text-yellow-300"
+            : engineVerdict === "AVOID"
+              ? "text-red-400"
+              : "text-zinc-400"
+      }`}
+    >
+      {engineVerdict === "PLAY"
+        ? "🟢 PLAY"
+        : engineVerdict === "BORDERLINE"
+          ? "🟡 BORDERLINE"
+          : engineVerdict === "AVOID"
+            ? "🔴 AVOID"
+            : engineVerdict}
+    </p>
+  </div>
+</div>
                   <div className="mt-5 space-y-4 text-sm">
                     <div className="rounded-xl border border-zinc-800 bg-black p-4">
                       <p className="font-bold text-yellow-400">Moneyline</p>
