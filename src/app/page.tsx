@@ -65,6 +65,8 @@ awayBullpenRank?: number;
   bookmakers?: Bookmaker[];
 };
 
+
+
 const teamCodes: Record<string, string> = {
   "Arizona Diamondbacks": "ARI",
   "Atlanta Braves": "ATL",
@@ -116,9 +118,13 @@ export default function Home() {
   const [gamesLoading, setGamesLoading] = useState(false);
   const [gamesError, setGamesError] = useState("");
 
+
   useEffect(() => {
-    loadMlbGames();
-  }, []);
+  loadMlbGames();
+}, []);
+  
+
+
 
   async function analyzeQuestion(customQuestion?: string) {
     const finalQuestion = customQuestion || question;
@@ -218,7 +224,6 @@ const gamesWithLiveData = (data.games || []).map((game: Game) => {
 
 setGames(gamesWithLiveData);
 
-    
     } catch {
       setGamesError("Could not load MLB games.");
       setGames([]);
@@ -410,7 +415,7 @@ Do not contradict the EasyRunLine engine decision.
   if (games.length === 0) return;
 
   const rankedPicks = rankEasyRunLinePicks(games);
-  const topPick = rankedPicks[0];
+const topPick = rankedPicks[0];
 
   if (!topPick) return;
 
@@ -934,10 +939,12 @@ ${rankedText}
     </div>
 
     <div className="flex flex-col gap-3 sm:flex-row">
+      
       <button
         onClick={refreshMlbGames}
         disabled={gamesLoading}
         className="rounded-xl border border-yellow-500 px-5 py-3 font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:opacity-50"
+      
       >
         {gamesLoading ? "Loading..." : "Refresh Games"}
       </button>
