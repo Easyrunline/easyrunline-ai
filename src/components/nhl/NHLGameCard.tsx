@@ -1,3 +1,4 @@
+import NHLTeamLogo from "@/components/nhl/NHLTeamLogo";
 type NHLGameCardProps = {
   awayTeam: string;
   homeTeam: string;
@@ -9,65 +10,104 @@ export default function NHLGameCard({
 }: NHLGameCardProps) {
   return (
     <article className="rounded-2xl border border-zinc-700 bg-zinc-900 p-6 shadow-lg">
-      <div className="text-center">
-        <p className="text-sm font-semibold uppercase tracking-widest text-yellow-400">
-          NHL Matchup
-        </p>
 
-        <h2 className="mt-4 text-2xl font-bold text-white">
-          {awayTeam}
-        </h2>
+      {/* Teams */}
 
-        <p className="my-2 text-sm font-semibold uppercase text-zinc-500">
-          vs
-        </p>
+<div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+  <div className="flex flex-col items-center text-center">
+    <NHLTeamLogo team={awayTeam} size={80} />
 
-        <h2 className="text-2xl font-bold text-white">
-          {homeTeam}
-        </h2>
-      </div>
+    <h2 className="mt-3 text-xl font-bold text-white sm:text-2xl">
+      {awayTeam}
+    </h2>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
-        <div className="rounded-xl bg-black/40 p-4">
-          <p className="text-sm text-zinc-400">Goalie Edge</p>
-          <p className="mt-1 text-lg font-semibold text-white">--</p>
+    <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-500">
+      Away
+    </p>
+  </div>
+
+  <p className="text-sm font-semibold uppercase tracking-widest text-zinc-500">
+    VS
+  </p>
+
+  <div className="flex flex-col items-center text-center">
+    <NHLTeamLogo team={homeTeam} size={80} />
+
+    <h2 className="mt-3 text-xl font-bold text-white sm:text-2xl">
+      {homeTeam}
+    </h2>
+
+    <p className="mt-1 text-xs font-semibold uppercase tracking-widest text-zinc-500">
+      Home
+    </p>
+  </div>
+</div>
+
+      {/* Goalies */}
+
+      <section className="mt-8">
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-widest text-yellow-400">
+          🏒 Goalies
+        </h3>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Metric title="Starting Goalie" />
+          <Metric title="Backup Goalie" />
         </div>
+      </section>
 
-        <div className="rounded-xl bg-black/40 p-4">
-          <p className="text-sm text-zinc-400">Recent Form</p>
-          <p className="mt-1 text-lg font-semibold text-white">--</p>
+      {/* Team Analysis */}
+
+      <section className="mt-8">
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-widest text-yellow-400">
+          📈 Team Analysis
+        </h3>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Metric title="Recent Form" />
+          <Metric title="Home Ice" />
+          <Metric title="Rest Days" />
         </div>
+      </section>
 
-        <div className="rounded-xl bg-black/40 p-4">
-          <p className="text-sm text-zinc-400">Home Ice</p>
-          <p className="mt-1 text-lg font-semibold text-white">--</p>
+      {/* ERL */}
+
+      <section className="mt-8">
+        <h3 className="mb-3 text-sm font-bold uppercase tracking-widest text-yellow-400">
+          ⚡ EasyRunLine Metrics
+        </h3>
+
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Metric title="ERL Score" />
+          <Metric title="Confidence" />
+          <Metric title="Blowout Risk" />
         </div>
+      </section>
 
-        <div className="rounded-xl bg-black/40 p-4">
-          <p className="text-sm text-zinc-400">ERL Score</p>
-          <p className="mt-1 text-lg font-semibold text-white">--</p>
-        </div>
+      {/* Recommendation */}
 
-        <div className="rounded-xl bg-black/40 p-4">
-          <p className="text-sm text-zinc-400">Confidence</p>
-          <p className="mt-1 text-lg font-semibold text-white">--</p>
-        </div>
-
-        <div className="rounded-xl bg-black/40 p-4">
-          <p className="text-sm text-zinc-400">Blowout Risk</p>
-          <p className="mt-1 text-lg font-semibold text-white">--</p>
-        </div>
-      </div>
-
-      <div className="mt-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-center">
-        <p className="text-sm uppercase tracking-wide text-yellow-300">
+      <section className="mt-8 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-center">
+        <p className="text-xs uppercase tracking-[0.25em] text-yellow-300">
           Recommendation
         </p>
 
-        <p className="mt-2 text-xl font-bold text-yellow-400">
+        <p className="mt-3 text-2xl font-bold text-yellow-400">
           Coming Soon
         </p>
-      </div>
+      </section>
+
     </article>
+  );
+}
+
+function Metric({ title }: { title: string }) {
+  return (
+    <div className="rounded-xl bg-black/40 p-4">
+      <p className="text-sm text-zinc-400">{title}</p>
+
+      <p className="mt-2 text-lg font-semibold text-white">
+        --
+      </p>
+    </div>
   );
 }
