@@ -2,6 +2,7 @@
    EASYRUNLINE AI
    NHL Shared Types
    =========================================================== */
+import type { ComparisonResult } from "./comparison";
 
 export interface ScoreBreakdown {
   title: string;
@@ -73,12 +74,13 @@ export interface NHLGameAnalysis {
   away: NHLTeamAnalysis;
 
 }
-
 export interface EasyRunLineBreakdown {
 
   goalie: ScoreBreakdown;
 
   recentForm: ScoreBreakdown;
+
+  goalDifferential: ScoreBreakdown;
 
   offense: ScoreBreakdown;
 
@@ -113,5 +115,19 @@ export interface NHLRecommendation {
     | "Best Bet";
 
   breakdown: EasyRunLineBreakdown;
+
+}
+
+
+
+export interface NHLGameRecommendation {
+
+  home: NHLRecommendation;
+
+  away: NHLRecommendation;
+
+  comparison: ComparisonResult;
+
+  recommendedTeam: NHLRecommendation;
 
 }
