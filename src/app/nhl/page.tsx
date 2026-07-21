@@ -1675,6 +1675,223 @@ Always confirm the starting goalies and exact alternate-line price.
 
     window.location.reload();
   }
+    async function analyzeSelectedGame(
+    game: AnalyzedNHLGame
+  ) {
+    if (
+      !game.analysis ||
+      !game.recommendation
+    ) {
+      setAnswer(
+        "This NHL game has not finished engine analysis."
+      );
+
+      return;
+    }
+
+    const analysis =
+      game.analysis;
+
+    const result =
+      game.recommendation;
+
+    const target =
+      result.recommendedTeam;
+
+    const targetAnalysis =
+      target.team ===
+      analysis.home.team
+        ? analysis.home
+        : analysis.away;
+
+    const opponentAnalysis =
+      target.team ===
+      analysis.home.team
+        ? analysis.away
+        : analysis.home;
+
+    const opponentRecommendation =
+      target.team ===
+      result.home.team
+        ? result.away
+        : result.home;
+
+    const edgeOwner =
+      result.comparison.winner ===
+      target.team
+        ? "Selected +2.5 target"
+        : "Opponent";
+
+    const reasons =
+      Object.values(
+        target.breakdown
+      )
+        .map(
+          (item) =>
+            `• ${item.title}: ${item.reason} (${item.score})`
+        )
+        .join("\n");
+
+    const reportRequest = `
+Create an EasyRunLine AI report for this specific NHL matchup.
+
+IMPORTANT:
+
+This matchup was already evaluated by the fixed EasyRunLine NHL scoring engine.
+
+Do not perform a separate prediction.
+Do not change the selected underdog target.
+Do not recommend the favourite +2.5.
+Do not upgrade or downgrade the supplied engine ratings.
+
+Use every supplied score, confidence, recommendation, edge and reason exactly.
+
+Do not invent:
+- cover probabilities
+- alternate-line availability
+- alternate-line prices
+- expected value
+- positive EV
+- confirmed goalies
+- live injuries
+- missing statistics
+
+Both listed goalies are projected from season usage and are not confirmed starters.
+
+If the selected target is rated "Avoid", the verdict must be PASS.
+
+If the exact +2.5 line cannot be verified, the verdict must be PASS.
+
+Use this structure:
+
+══════════════════════════════
+🏒 EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🎯 Evaluated +2.5 Target
+
+${target.team} +2.5 vs ${opponentAnalysis.team}
+
+Start Time: ${new Date(
+  game.commenceTime
+).toLocaleString()}
+
+ERL Score: ${target.erlScore}/100
+Engine Confidence: ${target.confidence}
+Engine Recommendation: ${target.recommendation}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Team Comparison
+
+Selected Target:
+${target.team}
+ERL Score: ${target.erlScore}/100
+
+Opponent:
+${opponentRecommendation.team}
+ERL Score: ${opponentRecommendation.erlScore}/100
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🥅 Projected Goaltending
+
+Selected Target:
+${targetAnalysis.goalie.goalieName}
+SV%: ${targetAnalysis.goalie.savePct.toFixed(3)}
+GAA: ${targetAnalysis.goalie.gaa.toFixed(2)}
+
+Opponent:
+${opponentAnalysis.goalie.goalieName}
+SV%: ${opponentAnalysis.goalie.savePct.toFixed(3)}
+GAA: ${opponentAnalysis.goalie.gaa.toFixed(2)}
+
+Clearly state that both goalies are projected and unconfirmed.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📈 Recent Form
+
+Selected Target:
+Last 10: ${targetAnalysis.form.last10}
+Momentum: ${targetAnalysis.form.momentum}
+Goals Per Game: ${targetAnalysis.stats.goalsPerGame.toFixed(2)}
+Goals Allowed Per Game: ${targetAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+
+Opponent:
+Last 10: ${opponentAnalysis.form.last10}
+Momentum: ${opponentAnalysis.form.momentum}
+Goals Per Game: ${opponentAnalysis.stats.goalsPerGame.toFixed(2)}
+Goals Allowed Per Game: ${opponentAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Matchup Edge
+
+Edge: ${result.comparison.edge}
+Edge Rating: ${result.comparison.edgeRating}
+Edge Belongs To: ${edgeOwner}
+
+Do not describe an opponent edge as support for the selected target.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Verification
+
+Selected Target Moneyline: ${targetAnalysis.market.moneyline}
+Exact +2.5 Line: Not supplied.
+Exact +2.5 Price: Not supplied.
+
+Do not claim betting value without the exact alternate-line price.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Engine Reasons
+
+${reasons}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Confirmed Starting Goalies: Not supplied.
+Live Injuries: Not supplied.
+Exact +2.5 Line: Not supplied.
+Exact +2.5 Price: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict:
+PLAY, LEAN, or PASS.
+
+If Engine Recommendation is "Avoid", use PASS.
+If the exact +2.5 market cannot be verified, use PASS.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Always verify the exact alternate line and price.
+`;
+
+    setQuestion(
+      `Analyze ${game.awayTeam} vs ${game.homeTeam}.`
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    await analyzeQuestion(
+      reportRequest
+    );
+  }
 
         useEffect(() => {
     if (hasLoaded.current) {
@@ -1936,6 +2153,12 @@ Always confirm the starting goalies and exact alternate-line price.
   analysis={game.analysis}
   recommendation={
     game.recommendation
+  }
+  onAnalyze={() =>
+    analyzeSelectedGame(game)
+  }
+  analyzeLoading={
+    reportLoading
   }
 />
 

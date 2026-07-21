@@ -14,6 +14,10 @@ type NHLGameCardProps = {
 
   recommendation?:
     NHLGameRecommendation;
+
+  onAnalyze?: () => void;
+
+  analyzeLoading?: boolean;
 };
 
 export default function NHLGameCard({
@@ -21,6 +25,8 @@ export default function NHLGameCard({
   homeTeam,
   analysis,
   recommendation,
+  onAnalyze,
+  analyzeLoading = false,
 }: NHLGameCardProps) {
   const recommendedTeam =
     recommendation?.recommendedTeam;
@@ -193,36 +199,48 @@ export default function NHLGameCard({
       )}
 
       <section className="mt-8 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-5 text-center">
-        <p className="text-xs uppercase tracking-[0.25em] text-yellow-300">
-          Recommended +2.5 Target
-        </p>
+  <p className="text-xs uppercase tracking-[0.25em] text-yellow-300">
+    {recommendedTeam?.recommendation === "Avoid"
+      ? "Evaluated +2.5 Target"
+      : "Recommended +2.5 Target"}
+  </p>
 
-        <p className="mt-3 text-2xl font-bold text-yellow-400">
-          {recommendedTeam
-            ? `${recommendedTeam.team} +2.5`
-            : "Analyzing..."}
-        </p>
+  <p className="mt-3 text-2xl font-bold text-yellow-400">
+    {recommendedTeam
+      ? `${recommendedTeam.team} +2.5`
+      : "Analyzing..."}
+  </p>
 
-        {recommendedTeam && (
-          <p className="mt-2 text-sm text-zinc-300">
-            {
-              recommendedTeam.recommendation
-            }
-            {" · "}
-            {
-              recommendedTeam.confidence
-            }{" "}
-            confidence
-          </p>
-        )}
+  {recommendedTeam && (
+    <p className="mt-2 text-sm text-zinc-300">
+      {recommendedTeam.recommendation}
+      {" · "}
+      {recommendedTeam.confidence}
+      {" confidence"}
+    </p>
+  )}
 
-        <p className="mt-3 text-xs leading-5 text-zinc-500">
-          Verify the exact alternate
-          +2.5 puck line and price in
-          your betting app. If it is
-          unavailable, pass.
-        </p>
-      </section>
+  <p className="mt-3 text-xs leading-5 text-zinc-500">
+    Verify the exact alternate +2.5 puck line and price in your betting app.
+    If it is unavailable, pass.
+  </p>
+</section>
+            {onAnalyze && (
+        <button
+          type="button"
+          onClick={onAnalyze}
+          disabled={
+            !analysis ||
+            !recommendation ||
+            analyzeLoading
+          }
+          className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {analyzeLoading
+            ? "Analyzing..."
+            : "Analyze Game"}
+        </button>
+      )}
     </article>
   );
 }
