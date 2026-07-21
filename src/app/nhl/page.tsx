@@ -907,6 +907,291 @@ ${selections}
     );
   }
 
+    async function findBestThreeLegParlay() {
+    const analysisComplete =
+      games.length > 0 &&
+      games.every(
+        (game) =>
+          game.recommendation ||
+          game.analysisError
+      );
+
+    if (!analysisComplete) {
+      setAnswer(
+        "Please wait until all NHL games finish engine analysis."
+      );
+
+      return;
+    }
+
+    const playableRatings = [
+      "Playable",
+      "Strong",
+      "Best Bet",
+    ];
+
+    const candidates = games
+      .filter(
+        (game) =>
+          game.analysis &&
+          game.recommendation &&
+          playableRatings.includes(
+            game.recommendation
+              .recommendedTeam
+              .recommendation
+          )
+      )
+      .sort(
+        (gameA, gameB) =>
+          gameB.recommendation!
+            .recommendedTeam
+            .erlScore -
+          gameA.recommendation!
+            .recommendedTeam
+            .erlScore
+      );
+
+    const topThree:
+      AnalyzedNHLGame[] = [];
+
+    const usedTeams =
+      new Set<string>();
+
+    for (const game of candidates) {
+      if (
+        usedTeams.has(
+          game.homeTeam
+        ) ||
+        usedTeams.has(
+          game.awayTeam
+        )
+      ) {
+        continue;
+      }
+
+      topThree.push(game);
+
+      usedTeams.add(
+        game.homeTeam
+      );
+
+      usedTeams.add(
+        game.awayTeam
+      );
+
+      if (topThree.length === 3) {
+        break;
+      }
+    }
+
+    if (topThree.length < 3) {
+      setQuestion(
+        "Find the best NHL 3-leg +2.5 puck-line parlay."
+      );
+
+      setAnswer(
+        "Fewer than three independent NHL +2.5 targets meet the EasyRunLine playable threshold. The correct decision is PASS."
+      );
+
+      return;
+    }
+
+    const selections = topThree
+      .map((game, index) => {
+        const analysis =
+          game.analysis!;
+
+        const result =
+          game.recommendation!;
+
+        const target =
+          result.recommendedTeam;
+
+        const targetAnalysis =
+          target.team ===
+          analysis.home.team
+            ? analysis.home
+            : analysis.away;
+
+        const opponent =
+          target.team ===
+          analysis.home.team
+            ? analysis.away.team
+            : analysis.home.team;
+
+        const edgeOwner =
+          result.comparison.winner ===
+          target.team
+            ? "Selected target"
+            : "Opponent";
+
+        const reasons =
+          Object.values(
+            target.breakdown
+          )
+            .map(
+              (item) =>
+                `• ${item.title}: ${item.reason} (${item.score})`
+            )
+            .join("\n");
+
+        return `
+LEG ${index + 1}
+
+${target.team} +2.5 vs ${opponent}
+
+Start Time: ${new Date(
+  game.commenceTime
+).toLocaleString()}
+
+ERL Score: ${target.erlScore}/100
+Engine Confidence: ${target.confidence}
+Engine Recommendation: ${target.recommendation}
+
+Projected Goalie: ${targetAnalysis.goalie.goalieName}
+Projected Goalie SV%: ${targetAnalysis.goalie.savePct.toFixed(3)}
+Projected Goalie GAA: ${targetAnalysis.goalie.gaa.toFixed(2)}
+
+Recent Form: ${targetAnalysis.form.last10}
+Momentum: ${targetAnalysis.form.momentum}
+Goals Per Game: ${targetAnalysis.stats.goalsPerGame.toFixed(2)}
+Goals Allowed Per Game: ${targetAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+
+Moneyline: ${targetAnalysis.market.moneyline}
+Implied Probability: ${(targetAnalysis.market.impliedProbability * 100).toFixed(1)}%
+
+Matchup Edge: ${result.comparison.edge}
+Edge Rating: ${result.comparison.edgeRating}
+Edge Belongs To: ${edgeOwner}
+
+Engine Reasons:
+${reasons}
+`;
+      })
+      .join(
+        "\n━━━━━━━━━━━━━━━━━━━━━━\n"
+      );
+
+    const reportRequest = `
+Create an EasyRunLine AI report for the best NHL 3-leg underdog +2.5 puck-line parlay.
+
+IMPORTANT:
+
+These three selections were produced by the fixed EasyRunLine NHL scoring engine.
+
+Do not perform a separate prediction.
+Do not change any selected team.
+Do not recommend favourites +2.5.
+Do not add or remove selections.
+
+Use every supplied ERL Score, confidence, recommendation, matchup edge and engine reason exactly as supplied.
+
+Do not invent:
+- a combined ERL Score
+- combined confidence
+- cover probabilities
+- alternate-line availability
+- alternate-line prices
+- expected value
+- positive EV
+- confirmed goalies
+- live injuries
+
+The listed goalies are projected from season usage and are not confirmed starters.
+
+The selections may play on different dates. Reproduce every supplied start time clearly.
+
+The exact +2.5 lines and prices are not supplied.
+
+Tell the user to verify all three +2.5 alternate lines and prices.
+
+If any one of the three lines is unavailable, the entire parlay verdict must be PASS.
+
+Use this structure:
+
+══════════════════════════════
+🏒 EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🎯 Best 3-Leg +2.5 Parlay
+
+List all three selected legs and their start times exactly.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Individual Engine Ratings
+
+Explain each leg separately.
+Do not create a combined score or confidence.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 +2.5 Cushion Outlook
+
+Give a qualitative outlook for every leg.
+Do not provide percentages.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🥅 Projected Goaltending
+
+Discuss each projected goalie.
+Clearly state that none is confirmed.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Matchup Edges
+
+Explain who owns the edge in each matchup.
+Do not describe an opponent edge as support for a selected target.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Verification
+
+Exact +2.5 Lines: Not supplied.
+Exact +2.5 Prices: Not supplied.
+
+Do not claim betting value without all three exact prices.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Why These Three
+
+Use only the supplied engine reasons.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict:
+PLAY, LEAN, or PASS.
+
+If any exact +2.5 market cannot be verified, use PASS.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+A three-leg parlay loses if any leg fails.
+
+SUPPLIED ENGINE SELECTIONS:
+
+${selections}
+`;
+
+    setQuestion(
+      "Find the best NHL 3-leg +2.5 puck-line parlay."
+    );
+
+    await analyzeQuestion(
+      reportRequest
+    );
+  }
+
         useEffect(() => {
     if (hasLoaded.current) {
       return;
@@ -1064,6 +1349,24 @@ ${selections}
             className="w-full rounded-xl bg-purple-500 px-6 py-4 font-bold text-white transition hover:bg-purple-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Best 2-Leg +2.5 Parlay
+          </button>
+                    <button
+            type="button"
+            onClick={
+              findBestThreeLegParlay
+            }
+            disabled={
+              reportLoading ||
+              games.length === 0 ||
+              games.some(
+                (game) =>
+                  !game.recommendation &&
+                  !game.analysisError
+              )
+            }
+            className="w-full rounded-xl bg-green-500 px-6 py-4 font-bold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            Best 3-Leg +2.5 Parlay
           </button>
         </div>
 
