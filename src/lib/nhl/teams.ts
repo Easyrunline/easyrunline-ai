@@ -44,6 +44,9 @@ export const NHL_TEAM_LOGOS: Record<string, string> = {
   "Montreal Canadiens":
     "https://assets.nhle.com/logos/nhl/svg/MTL_light.svg",
 
+  "Montréal Canadiens":
+    "https://assets.nhle.com/logos/nhl/svg/MTL_light.svg",
+
   "Nashville Predators":
     "https://assets.nhle.com/logos/nhl/svg/NSH_light.svg",
 
@@ -73,6 +76,9 @@ export const NHL_TEAM_LOGOS: Record<string, string> = {
 
   "St. Louis Blues":
     "https://assets.nhle.com/logos/nhl/svg/STL_light.svg",
+      "St Louis Blues":
+    "https://assets.nhle.com/logos/nhl/svg/STL_light.svg",
+
 
   "Tampa Bay Lightning":
     "https://assets.nhle.com/logos/nhl/svg/TBL_light.svg",
