@@ -341,60 +341,237 @@ export default function NHLPage() {
       const hasLoaded =
     useRef(false);
 
-      async function analyzeQuestion(
-    customQuestion?: string
-  ) {
-    const finalQuestion =
-      customQuestion?.trim() ||
-      question.trim();
+      
+    async function analyzeQuestion(
+  customQuestion?: string
+) {
+  const finalQuestion =
+    customQuestion?.trim() ||
+    question.trim();
 
-    if (!finalQuestion) {
-      return;
-    }
-
-    try {
-      setReportLoading(true);
-      setAnswer("");
-
-      const response =
-        await fetch("/api/analyze", {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-          },
-
-          body: JSON.stringify({
-            question: finalQuestion,
-          }),
-        });
-
-      const data =
-        (await response.json()) as
-          AnalyzeAnswerResponse;
-
-      if (!response.ok) {
-        throw new Error(
-          data.answer ??
-            "Unable to create NHL report."
-        );
-      }
-
-      setAnswer(
-        data.answer ??
-          "No report was returned."
-      );
-    } catch (error) {
-      setAnswer(
-        error instanceof Error
-          ? error.message
-          : "Unable to create NHL report."
-      );
-    } finally {
-      setReportLoading(false);
-    }
+  if (!finalQuestion) {
+    return;
   }
+  if (!customQuestion) {
+  const normalizedQuestion =
+    finalQuestion
+      .toLowerCase()
+      .replace(/[–—]/g, "-");
+
+  const asksForGoalieEdge =
+    normalizedQuestion.includes(
+      "goalie edge"
+    ) ||
+    normalizedQuestion.includes(
+      "goaltending edge"
+    );
+
+  const asksForAvoids =
+    normalizedQuestion.includes(
+      "games to avoid"
+    ) ||
+    normalizedQuestion.includes(
+      "games should i avoid"
+    ) ||
+    normalizedQuestion.includes(
+      "teams to avoid"
+    ) ||
+    normalizedQuestion.includes(
+      "which games should"
+    ) &&
+      normalizedQuestion.includes(
+        "avoid"
+      );
+
+  const asksForThreeLeg =
+    normalizedQuestion.includes(
+      "3-leg"
+    ) ||
+    normalizedQuestion.includes(
+      "3 leg"
+    ) ||
+    normalizedQuestion.includes(
+      "three-leg"
+    ) ||
+    normalizedQuestion.includes(
+      "three leg"
+    ) ||
+    normalizedQuestion.includes(
+      "best three"
+    );
+
+  const asksForTwoLeg =
+    normalizedQuestion.includes(
+      "2-leg"
+    ) ||
+    normalizedQuestion.includes(
+      "2 leg"
+    ) ||
+    normalizedQuestion.includes(
+      "two-leg"
+    ) ||
+    normalizedQuestion.includes(
+      "two leg"
+    ) ||
+    normalizedQuestion.includes(
+      "best two"
+    );
+
+  const asksForSafestSingle =
+    normalizedQuestion.includes(
+      "safest single"
+    ) ||
+    (
+      normalizedQuestion.includes(
+        "safest"
+      ) &&
+      normalizedQuestion.includes(
+        "+2.5"
+      )
+    ) ||
+    (
+      normalizedQuestion.includes(
+        "safest playable"
+      ) &&
+      normalizedQuestion.includes(
+        "target"
+      )
+    );
+
+  if (asksForGoalieEdge) {
+    await findBestGoalieEdge();
+    return;
+  }
+
+  if (asksForAvoids) {
+    await findGamesToAvoid();
+    return;
+  }
+
+  if (asksForThreeLeg) {
+    await findBestThreeLegParlay();
+    return;
+  }
+
+  if (asksForTwoLeg) {
+    await findBestTwoLegParlay();
+    return;
+  }
+
+  if (asksForSafestSingle) {
+    await findSafestSingle();
+    return;
+  }
+}
+
+  const analysisComplete =
+    games.length > 0 &&
+    games.every(
+      (game) =>
+        game.recommendation ||
+        game.analysisError
+    );
+
+  if (!analysisComplete) {
+    setAnswer(
+      "Please wait until all NHL games finish engine analysis."
+    );
+
+    return;
+  }
+
+  const analyzedSlate = games.map(
+    (game) => ({
+      id: game.id,
+      commenceTime: game.commenceTime,
+      awayTeam: game.awayTeam,
+      homeTeam: game.homeTeam,
+      moneyline: game.moneyline,
+      puckLine: game.puckLine,
+      analysis: game.analysis ?? null,
+      recommendation:
+        game.recommendation ?? null,
+      analysisError:
+        game.analysisError ?? null,
+    })
+  );
+
+  const reportRequest = `
+You are answering a question about the current EasyRunLine NHL game slate.
+
+The fixed EasyRunLine NHL engine results supplied below are authoritative.
+
+Important rules:
+
+- The recommendedTeam object is the evaluated +2.5 underdog target.
+- Never recommend a favorite +2.5.
+- Never change an engine-selected team.
+- Never describe an Avoid selection as playable.
+- Playable NHL targets must have an engine recommendation of Playable, Strong, or Best Bet.
+- If no target meets the requested criteria, clearly say PASS.
+- The comparison winner is the stronger overall team. It is not automatically support for the selected +2.5 target.
+- Always state which team owns the comparison edge.
+- Do not confuse the projected-goalie edge with the overall matchup edge.
+- Goalies are projected from season usage and are not confirmed starters.
+- Live NHL injury information is currently unavailable.
+- Exact alternate +2.5 availability and prices are not supplied.
+- Never invent probabilities, prices, expected value, positive EV, injuries, confirmed goalies, or missing statistics.
+- When discussing a possible wager, tell the user to verify the exact +2.5 line and price.
+- For a 2-leg or 3-leg parlay, do not select two teams from the same game and do not repeat a team.
+- Preserve every supplied ERL score, confidence label, recommendation, edge, and engine reason exactly.
+- Answer the user’s actual question directly before adding supporting details.
+- Keep the response professional, readable, and specific to the supplied NHL games.
+
+User question:
+${finalQuestion}
+
+Current analyzed NHL slate:
+${JSON.stringify(analyzedSlate, null, 2)}
+`;
+
+  try {
+    setReportLoading(true);
+    setAnswer("");
+
+    const response =
+      await fetch("/api/analyze", {
+        method: "POST",
+
+        headers: {
+          "Content-Type":
+            "application/json",
+        },
+
+        body: JSON.stringify({
+          question: reportRequest,
+        }),
+      });
+
+    const data =
+      (await response.json()) as
+        AnalyzeAnswerResponse;
+
+    if (!response.ok) {
+      throw new Error(
+        data.answer ??
+          "Unable to create NHL report."
+      );
+    }
+
+    setAnswer(
+      data.answer ??
+        "No report was returned."
+    );
+  } catch (error) {
+    setAnswer(
+      error instanceof Error
+        ? error.message
+        : "Unable to create NHL report."
+    );
+  } finally {
+    setReportLoading(false);
+  }
+}
 
     async function findSafestSingle() {
     const candidates = games
