@@ -1,16 +1,61 @@
 import OpenAI from "openai";
 
+import { analyzeGame } from "@/lib/nhl/analyzeGame";
+
+import type {
+  NHLGameAnalysis,
+} from "@/lib/nhl/types";
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+interface AnalyzeRequest {
+  question?: string;
+  sport?: string;
+  game?: NHLGameAnalysis;
+}
+
 export async function POST(request: Request) {
   try {
-    const { question } = await request.json();
+    const body =
+      (await request.json()) as AnalyzeRequest;
 
-    const response = await client.responses.create({
-      model: "gpt-4.1-mini",
-      input: `
+    /* ===========================================================
+       NHL FIXED SCORING ENGINE
+       =========================================================== */
+
+    if (
+      body.sport?.toLowerCase() === "nhl" &&
+      body.game
+    ) {
+      const recommendation =
+        analyzeGame(body.game);
+
+      return Response.json(
+        recommendation
+      );
+    }
+
+    /* ===========================================================
+       EASYRUNLINE AI REPORT
+       =========================================================== */
+
+    if (!body.question?.trim()) {
+      return Response.json(
+        {
+          answer:
+            "A question or NHL game analysis is required.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const response =
+      await client.responses.create({
+        model: "gpt-4.1-mini",
+
+        input: `
 You are EasyRunLine AI.
 
 Produce a professional EasyRunLine report.
@@ -50,19 +95,24 @@ Never recommend the favorite +4.5.
 Follow the report structure, headings, wording rules, and market warnings contained in the supplied request.
 
 Supplied request:
-${question}
+${body.question}
 `,
-
-    });
+      });
 
     return Response.json({
       answer: response.output_text,
     });
   } catch (error) {
-    console.error(error);
+    console.error(
+      "Analyze API error:",
+      error
+    );
 
     return Response.json(
-      { answer: "Something went wrong while analyzing. Please try again." },
+      {
+        answer:
+          "Something went wrong while analyzing. Please try again.",
+      },
       { status: 500 }
     );
   }
