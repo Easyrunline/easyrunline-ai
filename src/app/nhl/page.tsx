@@ -1669,6 +1669,12 @@ Always confirm the starting goalies and exact alternate-line price.
       reportRequest
     );
   }
+    function refreshGames() {
+    setQuestion("");
+    setAnswer("");
+
+    window.location.reload();
+  }
 
         useEffect(() => {
     if (hasLoaded.current) {
@@ -1881,6 +1887,18 @@ Always confirm the starting goalies and exact alternate-line price.
             className="w-full rounded-xl bg-cyan-500 px-6 py-4 font-bold text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Best Goalie Edge
+          </button>
+                    <button
+            type="button"
+            onClick={
+              refreshGames
+            }
+            disabled={
+              reportLoading
+            }
+            className="w-full rounded-xl border border-yellow-500 px-6 py-4 font-bold text-yellow-400 transition hover:bg-yellow-400 hover:text-black disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            Refresh Games
           </button>
         </div>
 
