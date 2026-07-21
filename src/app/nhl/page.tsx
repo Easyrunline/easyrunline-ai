@@ -1396,6 +1396,279 @@ ${avoidedSelections}
       reportRequest
     );
   }
+    async function findBestGoalieEdge() {
+    const analysisComplete =
+      games.length > 0 &&
+      games.every(
+        (game) =>
+          game.recommendation ||
+          game.analysisError
+      );
+
+    if (!analysisComplete) {
+      setAnswer(
+        "Please wait until all NHL games finish engine analysis."
+      );
+
+      return;
+    }
+
+    const playableRatings = [
+      "Playable",
+      "Strong",
+      "Best Bet",
+    ];
+
+    const goalieCandidates =
+      games
+        .flatMap((game) => {
+          const analysis =
+            game.analysis;
+
+          const result =
+            game.recommendation;
+
+          if (
+            !analysis ||
+            !result
+          ) {
+            return [];
+          }
+
+          const target =
+            result.recommendedTeam;
+
+          if (
+            !playableRatings.includes(
+              target.recommendation
+            )
+          ) {
+            return [];
+          }
+
+          const opponentRecommendation =
+            target.team ===
+            result.home.team
+              ? result.away
+              : result.home;
+
+          const goalieEdge =
+            target.breakdown
+              .goalie.score -
+            opponentRecommendation
+              .breakdown.goalie.score;
+
+          if (goalieEdge <= 0) {
+            return [];
+          }
+
+          return [
+            {
+              game,
+              goalieEdge,
+            },
+          ];
+        })
+        .sort(
+          (candidateA, candidateB) =>
+            candidateB.goalieEdge -
+              candidateA.goalieEdge ||
+            candidateB.game
+              .recommendation!
+              .recommendedTeam
+              .erlScore -
+              candidateA.game
+                .recommendation!
+                .recommendedTeam
+                .erlScore
+        );
+
+    const bestCandidate =
+      goalieCandidates[0];
+
+    if (!bestCandidate) {
+      setQuestion(
+        "Find the best NHL +2.5 goalie-edge target."
+      );
+
+      setAnswer(
+        "No playable NHL +2.5 target currently has a positive projected-goaltending edge. The correct decision is PASS."
+      );
+
+      return;
+    }
+
+    const game =
+      bestCandidate.game;
+
+    const analysis =
+      game.analysis!;
+
+    const result =
+      game.recommendation!;
+
+    const target =
+      result.recommendedTeam;
+
+    const targetAnalysis =
+      target.team ===
+      analysis.home.team
+        ? analysis.home
+        : analysis.away;
+
+    const opponentAnalysis =
+      target.team ===
+      analysis.home.team
+        ? analysis.away
+        : analysis.home;
+
+    const opponentRecommendation =
+      target.team ===
+      result.home.team
+        ? result.away
+        : result.home;
+
+    const reasons =
+      Object.values(
+        target.breakdown
+      )
+        .map(
+          (item) =>
+            `• ${item.title}: ${item.reason} (${item.score})`
+        )
+        .join("\n");
+
+    const reportRequest = `
+Create an EasyRunLine AI report for the strongest NHL underdog +2.5 target supported by a projected-goaltending edge.
+
+IMPORTANT:
+
+This selection was produced by the fixed EasyRunLine NHL scoring engine.
+
+Do not perform a separate prediction.
+Do not change the selected team.
+Do not recommend the favourite +2.5.
+
+Use the supplied ERL Score, confidence, recommendation and goalie scores exactly as supplied.
+
+Do not invent:
+- confirmed starting goalies
+- goalie availability
+- cover probabilities
+- alternate-line availability
+- alternate-line prices
+- expected value
+- positive EV
+- live injuries
+
+Both goalies are projected from season usage and are not confirmed starters.
+
+The exact +2.5 line and price are not supplied.
+
+If the exact +2.5 line is unavailable, the verdict must be PASS.
+
+Use this structure:
+
+══════════════════════════════
+🏒 EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🥅 Best Projected Goalie Edge
+
+${target.team} +2.5 vs ${opponentAnalysis.team}
+
+Start Time: ${new Date(
+  game.commenceTime
+).toLocaleString()}
+
+ERL Score: ${target.erlScore}/100
+Engine Confidence: ${target.confidence}
+Engine Recommendation: ${target.recommendation}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🥅 Projected Goalie Comparison
+
+Selected Target:
+${targetAnalysis.goalie.goalieName}
+SV%: ${targetAnalysis.goalie.savePct.toFixed(3)}
+GAA: ${targetAnalysis.goalie.gaa.toFixed(2)}
+Starts: ${targetAnalysis.goalie.starts}
+Goalie Score: ${target.breakdown.goalie.score}
+
+Opponent:
+${opponentAnalysis.goalie.goalieName}
+SV%: ${opponentAnalysis.goalie.savePct.toFixed(3)}
+GAA: ${opponentAnalysis.goalie.gaa.toFixed(2)}
+Starts: ${opponentAnalysis.goalie.starts}
+Goalie Score: ${opponentRecommendation.breakdown.goalie.score}
+
+Projected Goalie Edge: ${bestCandidate.goalieEdge}
+
+Clearly state that both goalies are projected and unconfirmed.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📈 Supporting Team Form
+
+Selected Target Last 10: ${targetAnalysis.form.last10}
+Momentum: ${targetAnalysis.form.momentum}
+Goals Per Game: ${targetAnalysis.stats.goalsPerGame.toFixed(2)}
+Goals Allowed Per Game: ${targetAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Matchup Edge
+
+Overall Edge: ${result.comparison.edge}
+Edge Rating: ${result.comparison.edgeRating}
+Overall Edge Owner: ${result.comparison.winner}
+
+Do not confuse the projected-goalie edge with the overall matchup edge.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Verification
+
+Moneyline: ${targetAnalysis.market.moneyline}
+Exact +2.5 Line: Not supplied.
+Exact +2.5 Price: Not supplied.
+
+Do not claim betting value without the exact alternate-line price.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Engine Reasons
+
+${reasons}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict:
+PLAY, LEAN, or PASS.
+
+If the exact +2.5 market cannot be verified, use PASS.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Always confirm the starting goalies and exact alternate-line price.
+`;
+
+    setQuestion(
+      "Find the best NHL +2.5 goalie-edge target."
+    );
+
+    await analyzeQuestion(
+      reportRequest
+    );
+  }
 
         useEffect(() => {
     if (hasLoaded.current) {
@@ -1590,6 +1863,24 @@ ${avoidedSelections}
             className="w-full rounded-xl bg-red-600 px-6 py-4 font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Games To Avoid
+          </button>
+                    <button
+            type="button"
+            onClick={
+              findBestGoalieEdge
+            }
+            disabled={
+              reportLoading ||
+              games.length === 0 ||
+              games.some(
+                (game) =>
+                  !game.recommendation &&
+                  !game.analysisError
+              )
+            }
+            className="w-full rounded-xl bg-cyan-500 px-6 py-4 font-bold text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            Best Goalie Edge
           </button>
         </div>
 
