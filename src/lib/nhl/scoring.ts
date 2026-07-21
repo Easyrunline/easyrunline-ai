@@ -249,8 +249,16 @@ export function scoreHomeIce(
    =========================================================== */
 
 export function scoreInjuries(
-  keyPlayers: number
+  keyPlayers: number | null
 ): ScoreBreakdown {
+  if (keyPlayers === null) {
+    return {
+      title: "Injuries",
+      score: 0,
+      reason:
+        "Live NHL injury data is not available",
+    };
+  }
 
   const score = clamp(
     -(keyPlayers * 3),
@@ -261,13 +269,17 @@ export function scoreInjuries(
   let reason = "";
 
   if (keyPlayers === 0) {
-    reason = "No key player injuries";
+    reason =
+      "No key player injuries reported";
   } else if (keyPlayers === 1) {
-    reason = "One key player unavailable";
+    reason =
+      "One key player unavailable";
   } else if (keyPlayers === 2) {
-    reason = "Two key players unavailable";
+    reason =
+      "Two key players unavailable";
   } else {
-    reason = `${keyPlayers} key players unavailable`;
+    reason =
+      `${keyPlayers} key players unavailable`;
   }
 
   return {
@@ -275,7 +287,6 @@ export function scoreInjuries(
     score,
     reason,
   };
-
 }
 
 /* ===========================================================

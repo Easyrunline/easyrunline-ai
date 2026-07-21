@@ -42,8 +42,8 @@ export interface TeamStatsAnalysis {
 }
 
 export interface InjuryAnalysis {
-  keyPlayersOut: number;
-  totalPlayersOut: number;
+  keyPlayersOut: number | null;
+  totalPlayersOut: number | null;
 }
 
 export interface MarketAnalysis {
