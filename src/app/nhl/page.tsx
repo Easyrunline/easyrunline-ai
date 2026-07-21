@@ -47,6 +47,8 @@ type NHLStatsResponse = {
 
 type AnalyzedNHLGame =
   NormalizedNHLOddsGame & {
+    analysis?: NHLGameAnalysis;
+
     recommendation?:
       NHLGameRecommendation;
 
@@ -295,8 +297,9 @@ async function buildTeamAnalysis(
       );
     }
 
-    return {
+        return {
       ...game,
+      analysis,
       recommendation: data,
     };
   } catch (error) {
@@ -440,25 +443,15 @@ export default function NHLPage() {
               {games.map((game) => (
                 <div key={game.id}>
                   <NHLGameCard
-                    awayTeam={
-                      game.awayTeam
-                    }
-                    homeTeam={
-                      game.homeTeam
-                    }
-                  />
+  awayTeam={game.awayTeam}
+  homeTeam={game.homeTeam}
+  analysis={game.analysis}
+  recommendation={
+    game.recommendation
+  }
+/>
 
-                  {game.recommendation && (
-                    <p className="mt-2 text-center text-xs text-green-400">
-                      Engine ready:{" "}
-                      {
-                        game.recommendation
-                          .recommendedTeam
-                          .team
-                      }{" "}
-                      +2.5 target
-                    </p>
-                  )}
+                  
 
                   {game.analysisError && (
                     <p className="mt-2 text-center text-xs text-red-400">
