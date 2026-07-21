@@ -2108,22 +2108,44 @@ Always verify the exact alternate line and price.
         setGames(oddsGames);
         setLoading(false);
 
-        for (const game of oddsGames) {
-          const analyzedGame =
-            await analyzeOddsGame(game);
+        for (
+  let index = 0;
+  index < oddsGames.length;
+  index += 2
+) {
+  const gameBatch =
+    oddsGames.slice(
+      index,
+      index + 2
+    );
 
-          setGames((currentGames) =>
-            currentGames.map(
-              (currentGame) =>
-                currentGame.id ===
-                analyzedGame.id
-                  ? analyzedGame
-                  : currentGame
-            )
-          );
+  const analyzedBatch =
+    await Promise.all(
+      gameBatch.map(
+        (game) =>
+          analyzeOddsGame(game)
+      )
+    );
 
-          await wait(600);
-        }
+  setGames((currentGames) =>
+    currentGames.map(
+      (currentGame) =>
+        analyzedBatch.find(
+          (analyzedGame) =>
+            analyzedGame.id ===
+            currentGame.id
+        ) ?? currentGame
+    )
+  );
+
+  const hasMoreGames =
+    index + 2 <
+    oddsGames.length;
+
+  if (hasMoreGames) {
+    await wait(350);
+  }
+}
 
       
       } catch (error) {
