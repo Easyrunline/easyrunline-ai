@@ -340,7 +340,31 @@ export default function NHLPage() {
   ] = useState(false);
       const hasLoaded =
     useRef(false);
+    const answerRef =
+  useRef<HTMLDivElement | null>(
+    null
+  );
+useEffect(() => {
+  if (!answer) {
+    return;
+  }
 
+  const frame =
+    window.requestAnimationFrame(
+      () => {
+        answerRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }
+    );
+
+  return () => {
+    window.cancelAnimationFrame(
+      frame
+    );
+  };
+}, [answer]);
       
     async function analyzeQuestion(
   customQuestion?: string
@@ -531,7 +555,7 @@ ${JSON.stringify(analyzedSlate, null, 2)}
 
   try {
     setReportLoading(true);
-    setAnswer("");
+    
 
     const response =
       await fetch("/api/analyze", {
@@ -1853,95 +1877,73 @@ Always confirm the starting goalies and exact alternate-line price.
 
     window.location.reload();
   }
-    async function analyzeSelectedGame(
-    game: AnalyzedNHLGame
+    function analyzeSelectedGame(
+  game: AnalyzedNHLGame
+) {
+  if (
+    !game.analysis ||
+    !game.recommendation
   ) {
-    if (
-      !game.analysis ||
-      !game.recommendation
-    ) {
-      setAnswer(
-        "This NHL game has not finished engine analysis."
-      );
+    setAnswer(
+      "This NHL game has not finished engine analysis."
+    );
 
-      return;
-    }
+    return;
+  }
 
-    const analysis =
-      game.analysis;
+  const analysis =
+    game.analysis;
 
-    const result =
-      game.recommendation;
+  const result =
+    game.recommendation;
 
-    const target =
-      result.recommendedTeam;
+  const target =
+    result.recommendedTeam;
 
-    const targetAnalysis =
-      target.team ===
-      analysis.home.team
-        ? analysis.home
-        : analysis.away;
+  const targetAnalysis =
+    target.team ===
+    analysis.home.team
+      ? analysis.home
+      : analysis.away;
 
-    const opponentAnalysis =
-      target.team ===
-      analysis.home.team
-        ? analysis.away
-        : analysis.home;
+  const opponentAnalysis =
+    target.team ===
+    analysis.home.team
+      ? analysis.away
+      : analysis.home;
 
-    const opponentRecommendation =
-      target.team ===
-      result.home.team
-        ? result.away
-        : result.home;
+  const opponentRecommendation =
+    target.team ===
+    result.home.team
+      ? result.away
+      : result.home;
 
-    const edgeOwner =
-      result.comparison.winner ===
-      target.team
-        ? "Selected +2.5 target"
-        : "Opponent";
+  const edgeOwner =
+    result.comparison.winner;
 
-    const reasons =
-      Object.values(
-        target.breakdown
+  const reasons =
+    Object.values(
+      target.breakdown
+    )
+      .map(
+        (item) =>
+          `• ${item.title}: ${item.reason} (${item.score})`
       )
-        .map(
-          (item) =>
-            `• ${item.title}: ${item.reason} (${item.score})`
-        )
-        .join("\n");
+      .join("\n");
 
-    const reportRequest = `
-Create an EasyRunLine AI report for this specific NHL matchup.
+  const engineStatus =
+    target.recommendation === "Avoid"
+      ? "NOT QUALIFIED"
+      : target.recommendation === "Lean"
+        ? "LEAN ONLY"
+        : "ENGINE QUALIFIED";
 
-IMPORTANT:
+  const finalAction =
+    target.recommendation === "Avoid"
+      ? "PASS"
+      : "VERIFY MARKET BEFORE PLAYING";
 
-This matchup was already evaluated by the fixed EasyRunLine NHL scoring engine.
-
-Do not perform a separate prediction.
-Do not change the selected underdog target.
-Do not recommend the favourite +2.5.
-Do not upgrade or downgrade the supplied engine ratings.
-
-Use every supplied score, confidence, recommendation, edge and reason exactly.
-
-Do not invent:
-- cover probabilities
-- alternate-line availability
-- alternate-line prices
-- expected value
-- positive EV
-- confirmed goalies
-- live injuries
-- missing statistics
-
-Both listed goalies are projected from season usage and are not confirmed starters.
-
-If the selected target is rated "Avoid", the verdict must be PASS.
-
-If the exact +2.5 line cannot be verified, the verdict must be PASS.
-
-Use this structure:
-
+  const report = `
 ══════════════════════════════
 🏒 EASYRUNLINE AI REPORT
 ══════════════════════════════
@@ -1951,12 +1953,13 @@ Use this structure:
 ${target.team} +2.5 vs ${opponentAnalysis.team}
 
 Start Time: ${new Date(
-  game.commenceTime
-).toLocaleString()}
+    game.commenceTime
+  ).toLocaleString()}
 
 ERL Score: ${target.erlScore}/100
 Engine Confidence: ${target.confidence}
 Engine Recommendation: ${target.recommendation}
+Engine Status: ${engineStatus}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1978,13 +1981,15 @@ Selected Target:
 ${targetAnalysis.goalie.goalieName}
 SV%: ${targetAnalysis.goalie.savePct.toFixed(3)}
 GAA: ${targetAnalysis.goalie.gaa.toFixed(2)}
+Starts: ${targetAnalysis.goalie.starts}
 
 Opponent:
 ${opponentAnalysis.goalie.goalieName}
 SV%: ${opponentAnalysis.goalie.savePct.toFixed(3)}
 GAA: ${opponentAnalysis.goalie.gaa.toFixed(2)}
+Starts: ${opponentAnalysis.goalie.starts}
 
-Clearly state that both goalies are projected and unconfirmed.
+Both goalies are projected from season usage and are not confirmed starters.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1995,12 +2000,14 @@ Last 10: ${targetAnalysis.form.last10}
 Momentum: ${targetAnalysis.form.momentum}
 Goals Per Game: ${targetAnalysis.stats.goalsPerGame.toFixed(2)}
 Goals Allowed Per Game: ${targetAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+Streak: ${targetAnalysis.form.streak}
 
 Opponent:
 Last 10: ${opponentAnalysis.form.last10}
 Momentum: ${opponentAnalysis.form.momentum}
 Goals Per Game: ${opponentAnalysis.stats.goalsPerGame.toFixed(2)}
 Goals Allowed Per Game: ${opponentAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+Streak: ${opponentAnalysis.form.streak}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -2010,7 +2017,9 @@ Edge: ${result.comparison.edge}
 Edge Rating: ${result.comparison.edgeRating}
 Edge Belongs To: ${edgeOwner}
 
-Do not describe an opponent edge as support for the selected target.
+${edgeOwner === target.team
+    ? "The selected +2.5 target owns the overall matchup edge."
+    : "The opponent owns the overall matchup edge. Do not treat this edge as support for the selected target."}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -2020,7 +2029,7 @@ Selected Target Moneyline: ${targetAnalysis.market.moneyline}
 Exact +2.5 Line: Not supplied.
 Exact +2.5 Price: Not supplied.
 
-Do not claim betting value without the exact alternate-line price.
+Verify the exact +2.5 line and price in your betting app.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -2041,11 +2050,11 @@ Exact +2.5 Price: Not supplied.
 
 🏆 EasyRunLine Verdict
 
-Give one verdict:
-PLAY, LEAN, or PASS.
+${finalAction}
 
-If Engine Recommendation is "Avoid", use PASS.
-If the exact +2.5 market cannot be verified, use PASS.
+${target.recommendation === "Avoid"
+    ? "The fixed engine rates this target Avoid."
+    : "The target meets the engine threshold, but the exact +2.5 market and price must be verified."}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -2055,21 +2064,20 @@ One Unit Only.
 Never chase losses.
 Never call anything a lock.
 Always verify the exact alternate line and price.
-`;
+`.trim();
 
-    setQuestion(
-      `Analyze ${game.awayTeam} vs ${game.homeTeam}.`
-    );
+  setQuestion(
+    `Analyze ${game.awayTeam} vs ${game.homeTeam}.`
+  );
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+  setAnswer(report);
 
-    await analyzeQuestion(
-      reportRequest
-    );
-  }
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth",
+  });
+}
+
 
         useEffect(() => {
     if (hasLoaded.current) {
@@ -2097,9 +2105,7 @@ Always verify the exact alternate line and price.
               "Unable to load NHL games."
           );
         }
-                setGames(data.games ?? []);
-        setLoading(false);
-
+                
                
 
                 const oddsGames =
@@ -2108,43 +2114,21 @@ Always verify the exact alternate line and price.
         setGames(oddsGames);
         setLoading(false);
 
-        for (
-  let index = 0;
-  index < oddsGames.length;
-  index += 2
-) {
-  const gameBatch =
-    oddsGames.slice(
-      index,
-      index + 2
-    );
-
-  const analyzedBatch =
-    await Promise.all(
-      gameBatch.map(
-        (game) =>
-          analyzeOddsGame(game)
-      )
-    );
+        for (const game of oddsGames) {
+  const analyzedGame =
+    await analyzeOddsGame(game);
 
   setGames((currentGames) =>
     currentGames.map(
       (currentGame) =>
-        analyzedBatch.find(
-          (analyzedGame) =>
-            analyzedGame.id ===
-            currentGame.id
-        ) ?? currentGame
+        currentGame.id ===
+        analyzedGame.id
+          ? analyzedGame
+          : currentGame
     )
   );
 
-  const hasMoreGames =
-    index + 2 <
-    oddsGames.length;
-
-  if (hasMoreGames) {
-    await wait(350);
-  }
+  await wait(350);
 }
 
       
@@ -2226,7 +2210,10 @@ Always verify the exact alternate line and price.
           </div>
 
           {answer && (
-            <div className="mt-6 whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left leading-7 text-zinc-200">
+  <div
+    ref={answerRef}
+    className="mt-6 scroll-mt-6 whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left leading-7 text-zinc-200"
+  >
               {answer}
             </div>
           )}
