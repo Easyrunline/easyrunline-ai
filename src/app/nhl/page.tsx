@@ -44,6 +44,9 @@ type NHLStatsResponse = {
   stats?: NormalizedNHLTeamStats;
   error?: string;
 };
+type AnalyzeAnswerResponse = {
+  answer?: string;
+};
 
 type AnalyzedNHLGame =
   NormalizedNHLOddsGame & {
@@ -323,8 +326,74 @@ export default function NHLPage() {
 
   const [error, setError] =
     useState<string | null>(null);
+
+      const [question, setQuestion] =
+    useState("");
+
+  const [answer, setAnswer] =
+    useState("");
+
+  const [
+    reportLoading,
+    setReportLoading,
+  ] = useState(false);
       const hasLoaded =
     useRef(false);
+
+      async function analyzeQuestion(
+    customQuestion?: string
+  ) {
+    const finalQuestion =
+      customQuestion?.trim() ||
+      question.trim();
+
+    if (!finalQuestion) {
+      return;
+    }
+
+    try {
+      setReportLoading(true);
+      setAnswer("");
+
+      const response =
+        await fetch("/api/analyze", {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            question: finalQuestion,
+          }),
+        });
+
+      const data =
+        (await response.json()) as
+          AnalyzeAnswerResponse;
+
+      if (!response.ok) {
+        throw new Error(
+          data.answer ??
+            "Unable to create NHL report."
+        );
+      }
+
+      setAnswer(
+        data.answer ??
+          "No report was returned."
+      );
+    } catch (error) {
+      setAnswer(
+        error instanceof Error
+          ? error.message
+          : "Unable to create NHL report."
+      );
+    } finally {
+      setReportLoading(false);
+    }
+  }
 
         useEffect(() => {
     if (hasLoaded.current) {
@@ -413,6 +482,42 @@ export default function NHLPage() {
             market-based recommendations.
           </p>
         </div>
+                <section className="mx-auto mt-8 max-w-3xl">
+          <div className="rounded-2xl border border-yellow-500/30 bg-zinc-950 p-4 shadow-xl">
+            <textarea
+              value={question}
+              onChange={(event) =>
+                setQuestion(
+                  event.target.value
+                )
+              }
+              placeholder="Ask EasyRunLine AI: Is Montréal Canadiens +2.5 a suitable puck-line target?"
+              className="h-32 w-full resize-none rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none focus:border-yellow-500"
+            />
+
+            <button
+              type="button"
+              onClick={() =>
+                analyzeQuestion()
+              }
+              disabled={
+                reportLoading ||
+                !question.trim()
+              }
+              className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {reportLoading
+                ? "Analyzing..."
+                : "Analyze NHL Question"}
+            </button>
+          </div>
+
+          {answer && (
+            <div className="mt-6 whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left leading-7 text-zinc-200">
+              {answer}
+            </div>
+          )}
+        </section>
 
         {loading && (
           <p className="mt-10 text-center text-zinc-400">
