@@ -35,10 +35,11 @@ export interface RecentFormAnalysis {
 export interface TeamStatsAnalysis {
   goalsPerGame: number;
   goalsAgainstPerGame: number;
-  powerPlayPct: number;
-  penaltyKillPct: number;
-  shotsPerGame: number;
-  shotsAgainstPerGame: number;
+
+  powerPlayPct: number | null;
+  penaltyKillPct: number | null;
+  shotsPerGame: number | null;
+  shotsAgainstPerGame: number | null;
 }
 
 export interface InjuryAnalysis {
