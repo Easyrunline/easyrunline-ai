@@ -1191,6 +1191,211 @@ ${selections}
       reportRequest
     );
   }
+    async function findGamesToAvoid() {
+    const analysisComplete =
+      games.length > 0 &&
+      games.every(
+        (game) =>
+          game.recommendation ||
+          game.analysisError
+      );
+
+    if (!analysisComplete) {
+      setAnswer(
+        "Please wait until all NHL games finish engine analysis."
+      );
+
+      return;
+    }
+
+    const avoidGames = games
+      .filter(
+        (game) =>
+          game.analysis &&
+          game.recommendation &&
+          game.recommendation
+            .recommendedTeam
+            .recommendation ===
+            "Avoid"
+      )
+      .sort(
+        (gameA, gameB) =>
+          gameB.recommendation!
+            .recommendedTeam
+            .erlScore -
+          gameA.recommendation!
+            .recommendedTeam
+            .erlScore
+      );
+
+    if (avoidGames.length === 0) {
+      setQuestion(
+        "Show the NHL +2.5 games to avoid."
+      );
+
+      setAnswer(
+        "No analysed NHL +2.5 targets are currently rated Avoid by the EasyRunLine engine."
+      );
+
+      return;
+    }
+
+    const avoidedSelections =
+      avoidGames
+        .map((game, index) => {
+          const analysis =
+            game.analysis!;
+
+          const result =
+            game.recommendation!;
+
+          const target =
+            result.recommendedTeam;
+
+          const targetAnalysis =
+            target.team ===
+            analysis.home.team
+              ? analysis.home
+              : analysis.away;
+
+          const opponent =
+            target.team ===
+            analysis.home.team
+              ? analysis.away.team
+              : analysis.home.team;
+
+          const edgeOwner =
+            result.comparison.winner ===
+            target.team
+              ? "Avoided target"
+              : "Opponent";
+
+          const reasons =
+            Object.values(
+              target.breakdown
+            )
+              .map(
+                (item) =>
+                  `• ${item.title}: ${item.reason} (${item.score})`
+              )
+              .join("\n");
+
+          return `
+${index + 1}. ${target.team} +2.5 vs ${opponent}
+
+Start Time: ${new Date(
+  game.commenceTime
+).toLocaleString()}
+
+ERL Score: ${target.erlScore}/100
+Engine Confidence: ${target.confidence}
+Engine Recommendation: ${target.recommendation}
+
+Projected Goalie: ${targetAnalysis.goalie.goalieName}
+Projected Goalie SV%: ${targetAnalysis.goalie.savePct.toFixed(3)}
+Projected Goalie GAA: ${targetAnalysis.goalie.gaa.toFixed(2)}
+
+Recent Form: ${targetAnalysis.form.last10}
+Momentum: ${targetAnalysis.form.momentum}
+Goals Per Game: ${targetAnalysis.stats.goalsPerGame.toFixed(2)}
+Goals Allowed Per Game: ${targetAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+
+Matchup Edge: ${result.comparison.edge}
+Edge Rating: ${result.comparison.edgeRating}
+Edge Belongs To: ${edgeOwner}
+
+Engine Reasons:
+${reasons}
+`;
+        })
+        .join(
+          "\n━━━━━━━━━━━━━━━━━━━━━━\n"
+        );
+
+    const reportRequest = `
+Create an EasyRunLine AI report identifying the NHL underdog +2.5 targets the engine says to avoid.
+
+IMPORTANT:
+
+Every listed target was rated "Avoid" by the fixed EasyRunLine NHL scoring engine.
+
+Do not recommend any listed target.
+Do not change any ERL Score.
+Do not change any confidence.
+Do not upgrade any recommendation.
+Do not recommend the favourites as replacements.
+Do not suggest forcing a different market.
+
+Do not invent:
+- cover probabilities
+- alternate-line prices
+- expected value
+- positive EV
+- confirmed goalies
+- live injuries
+- new statistics
+
+The listed goalies are projected and are not confirmed starters.
+
+Use this structure:
+
+══════════════════════════════
+⚠ EASYRUNLINE NHL REPORT
+══════════════════════════════
+
+🚫 +2.5 Games To Avoid
+
+List every supplied avoided target with its start time, ERL Score and confidence.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📉 Why They Failed
+
+Explain each target separately using only the supplied engine reasons.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🥅 Goaltending Concerns
+
+Discuss only the supplied projected-goalie information.
+Clearly state that the goalies are not confirmed.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Matchup Risk
+
+Explain who owns the matchup edge.
+Do not describe an opponent edge as support for the avoided target.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+State clearly that every listed target is a PASS.
+
+Do not recommend any wager from this list.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+Passing is part of bankroll management.
+Never chase losses.
+Never force action when the engine says Avoid.
+
+SUPPLIED AVOIDED TARGETS:
+
+${avoidedSelections}
+`;
+
+    setQuestion(
+      "Show the NHL +2.5 games to avoid."
+    );
+
+    await analyzeQuestion(
+      reportRequest
+    );
+  }
 
         useEffect(() => {
     if (hasLoaded.current) {
@@ -1367,6 +1572,24 @@ ${selections}
             className="w-full rounded-xl bg-green-500 px-6 py-4 font-bold text-black transition hover:bg-green-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             Best 3-Leg +2.5 Parlay
+          </button>
+                    <button
+            type="button"
+            onClick={
+              findGamesToAvoid
+            }
+            disabled={
+              reportLoading ||
+              games.length === 0 ||
+              games.some(
+                (game) =>
+                  !game.recommendation &&
+                  !game.analysisError
+              )
+            }
+            className="w-full rounded-xl bg-red-600 px-6 py-4 font-bold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            Games To Avoid
           </button>
         </div>
 
