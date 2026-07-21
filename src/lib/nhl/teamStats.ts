@@ -1,4 +1,10 @@
-const NHL_API_BASE = "https://api-web.nhle.com/v1";
+/* ===========================================================
+   EASYRUNLINE AI
+   NHL TEAM STATISTICS
+   =========================================================== */
+
+const NHL_API_BASE =
+  "https://api-web.nhle.com/v1";
 
 type LocalizedName = {
   default?: string;
@@ -138,24 +144,39 @@ export type NormalizedNHLTeamStats = {
   source: "NHL";
 };
 
-function safeNumber(value: number | undefined): number {
-  return typeof value === "number" && Number.isFinite(value) ? value : 0;
+function safeNumber(
+  value: number | undefined
+): number {
+  return typeof value === "number" &&
+    Number.isFinite(value)
+    ? value
+    : 0;
 }
 
-function round(value: number, decimals = 3): number {
+function round(
+  value: number,
+  decimals = 3
+): number {
   const multiplier = 10 ** decimals;
 
-  return Math.round(value * multiplier) / multiplier;
+  return (
+    Math.round(value * multiplier) /
+    multiplier
+  );
 }
 
 function getPlayerName(
   firstName: LocalizedName | undefined,
   lastName: LocalizedName | undefined
 ): string {
-  const first = firstName?.default?.trim() ?? "";
-  const last = lastName?.default?.trim() ?? "";
+  const first =
+    firstName?.default?.trim() ?? "";
 
-  const fullName = `${first} ${last}`.trim();
+  const last =
+    lastName?.default?.trim() ?? "";
+
+  const fullName =
+    `${first} ${last}`.trim();
 
   return fullName || "Unknown Player";
 }
@@ -164,69 +185,111 @@ function normalizeSkaters(
   skaters: RawNHLSkater[]
 ): NHLTeamSkaterSummary {
   const totalGoals = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.goals),
+    (sum, player) =>
+      sum + safeNumber(player.goals),
     0
   );
 
   const totalAssists = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.assists),
+    (sum, player) =>
+      sum + safeNumber(player.assists),
     0
   );
 
   const totalPoints = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.points),
+    (sum, player) =>
+      sum + safeNumber(player.points),
     0
   );
 
   const totalShots = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.shots),
-    0
-  );
-
-  const totalPowerPlayGoals = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.powerPlayGoals),
-    0
-  );
-
-  const totalShorthandedGoals = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.shorthandedGoals),
-    0
-  );
-
-  const totalGameWinningGoals = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.gameWinningGoals),
-    0
-  );
-
-  const totalPenaltyMinutes = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.penaltyMinutes),
-    0
-  );
-
-  const combinedPlusMinus = skaters.reduce(
-    (sum, player) => sum + safeNumber(player.plusMinus),
-    0
-  );
-
-  const faceoffPlayers = skaters.filter(
-    (player) =>
-      typeof player.faceoffWinPctg === "number" &&
-      player.faceoffWinPctg > 0 &&
-      safeNumber(player.gamesPlayed) > 0
-  );
-
-  const totalFaceoffWeight = faceoffPlayers.reduce(
-    (sum, player) => sum + safeNumber(player.gamesPlayed),
-    0
-  );
-
-  const weightedFaceoffPct = faceoffPlayers.reduce(
     (sum, player) =>
-      sum +
-      safeNumber(player.faceoffWinPctg) *
-        safeNumber(player.gamesPlayed),
+      sum + safeNumber(player.shots),
     0
   );
+
+  const totalPowerPlayGoals =
+    skaters.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.powerPlayGoals
+        ),
+      0
+    );
+
+  const totalShorthandedGoals =
+    skaters.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.shorthandedGoals
+        ),
+      0
+    );
+
+  const totalGameWinningGoals =
+    skaters.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.gameWinningGoals
+        ),
+      0
+    );
+
+  const totalPenaltyMinutes =
+    skaters.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.penaltyMinutes
+        ),
+      0
+    );
+
+  const combinedPlusMinus =
+    skaters.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.plusMinus
+        ),
+      0
+    );
+
+  const faceoffPlayers =
+    skaters.filter(
+      (player) =>
+        typeof player.faceoffWinPctg ===
+          "number" &&
+        player.faceoffWinPctg > 0 &&
+        safeNumber(player.gamesPlayed) >
+          0
+    );
+
+  const totalFaceoffWeight =
+    faceoffPlayers.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.gamesPlayed
+        ),
+      0
+    );
+
+  const weightedFaceoffPct =
+    faceoffPlayers.reduce(
+      (sum, player) =>
+        sum +
+        safeNumber(
+          player.faceoffWinPctg
+        ) *
+          safeNumber(
+            player.gamesPlayed
+          ),
+      0
+    );
 
   return {
     playerCount: skaters.length,
@@ -236,8 +299,14 @@ function normalizeSkaters(
     totalPoints,
 
     totalShots,
+
     shootingPct:
-      totalShots > 0 ? round(totalGoals / totalShots, 4) : 0,
+      totalShots > 0
+        ? round(
+            totalGoals / totalShots,
+            4
+          )
+        : 0,
 
     totalPowerPlayGoals,
     totalShorthandedGoals,
@@ -248,7 +317,11 @@ function normalizeSkaters(
 
     faceoffWinPct:
       totalFaceoffWeight > 0
-        ? round(weightedFaceoffPct / totalFaceoffWeight, 4)
+        ? round(
+            weightedFaceoffPct /
+              totalFaceoffWeight,
+            4
+          )
         : null,
   };
 }
@@ -256,62 +329,109 @@ function normalizeSkaters(
 function normalizeGoalies(
   goalies: RawNHLGoalie[]
 ): NHLTeamGoalieSummary {
-  const gamesPlayed = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.gamesPlayed),
-    0
-  );
+  const gamesPlayed =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.gamesPlayed
+        ),
+      0
+    );
 
-  const gamesStarted = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.gamesStarted),
-    0
-  );
+  const gamesStarted =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.gamesStarted
+        ),
+      0
+    );
 
   const wins = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.wins),
+    (sum, goalie) =>
+      sum + safeNumber(goalie.wins),
     0
   );
 
   const losses = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.losses),
+    (sum, goalie) =>
+      sum + safeNumber(goalie.losses),
     0
   );
 
-  const overtimeLosses = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.overtimeLosses),
-    0
-  );
+  const overtimeLosses =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.overtimeLosses
+        ),
+      0
+    );
 
-  const shotsAgainst = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.shotsAgainst),
-    0
-  );
+  const shotsAgainst =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.shotsAgainst
+        ),
+      0
+    );
 
   const saves = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.saves),
+    (sum, goalie) =>
+      sum + safeNumber(goalie.saves),
     0
   );
 
-  const goalsAgainst = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.goalsAgainst),
-    0
-  );
+  const goalsAgainst =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.goalsAgainst
+        ),
+      0
+    );
 
-  const shutouts = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.shutouts),
-    0
-  );
+  const shutouts =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.shutouts
+        ),
+      0
+    );
 
-  const totalTimeOnIce = goalies.reduce(
-    (sum, goalie) => sum + safeNumber(goalie.timeOnIce),
-    0
-  );
+  const totalTimeOnIce =
+    goalies.reduce(
+      (sum, goalie) =>
+        sum +
+        safeNumber(
+          goalie.timeOnIce
+        ),
+      0
+    );
 
   const savePct =
-    shotsAgainst > 0 ? round(saves / shotsAgainst, 4) : null;
+    shotsAgainst > 0
+      ? round(
+          saves / shotsAgainst,
+          4
+        )
+      : null;
 
   const goalsAgainstAverage =
     totalTimeOnIce > 0
-      ? round((goalsAgainst * 3600) / totalTimeOnIce, 3)
+      ? round(
+          (goalsAgainst * 3600) /
+            totalTimeOnIce,
+          3
+        )
       : null;
 
   return {
@@ -341,18 +461,36 @@ function getScoringLeaders(
   return [...skaters]
     .sort(
       (a, b) =>
-        safeNumber(b.points) - safeNumber(a.points)
+        safeNumber(b.points) -
+        safeNumber(a.points)
     )
     .slice(0, 5)
     .map((player) => ({
       playerId: player.playerId,
-      name: getPlayerName(player.firstName, player.lastName),
-      position: player.positionCode ?? null,
 
-      gamesPlayed: safeNumber(player.gamesPlayed),
-      goals: safeNumber(player.goals),
-      assists: safeNumber(player.assists),
-      points: safeNumber(player.points),
+      name: getPlayerName(
+        player.firstName,
+        player.lastName
+      ),
+
+      position:
+        player.positionCode ?? null,
+
+      gamesPlayed: safeNumber(
+        player.gamesPlayed
+      ),
+
+      goals: safeNumber(
+        player.goals
+      ),
+
+      assists: safeNumber(
+        player.assists
+      ),
+
+      points: safeNumber(
+        player.points
+      ),
     }));
 }
 
@@ -362,39 +500,77 @@ function getGoalieStats(
   return [...goalies]
     .sort(
       (a, b) =>
-        safeNumber(b.gamesStarted) - safeNumber(a.gamesStarted)
+        safeNumber(
+          b.gamesStarted
+        ) -
+        safeNumber(
+          a.gamesStarted
+        )
     )
     .map((goalie) => ({
       playerId: goalie.playerId,
-      name: getPlayerName(goalie.firstName, goalie.lastName),
 
-      gamesPlayed: safeNumber(goalie.gamesPlayed),
-      gamesStarted: safeNumber(goalie.gamesStarted),
+      name: getPlayerName(
+        goalie.firstName,
+        goalie.lastName
+      ),
 
-      wins: safeNumber(goalie.wins),
-      losses: safeNumber(goalie.losses),
-      overtimeLosses: safeNumber(goalie.overtimeLosses),
+      gamesPlayed: safeNumber(
+        goalie.gamesPlayed
+      ),
+
+      gamesStarted: safeNumber(
+        goalie.gamesStarted
+      ),
+
+      wins: safeNumber(
+        goalie.wins
+      ),
+
+      losses: safeNumber(
+        goalie.losses
+      ),
+
+      overtimeLosses: safeNumber(
+        goalie.overtimeLosses
+      ),
 
       savePct:
-        typeof goalie.savePercentage === "number"
-          ? round(goalie.savePercentage, 4)
+        typeof goalie.savePercentage ===
+        "number"
+          ? round(
+              goalie.savePercentage,
+              4
+            )
           : null,
 
       goalsAgainstAverage:
-        typeof goalie.goalsAgainstAverage === "number"
-          ? round(goalie.goalsAgainstAverage, 3)
+        typeof goalie
+          .goalsAgainstAverage ===
+        "number"
+          ? round(
+              goalie.goalsAgainstAverage,
+              3
+            )
           : null,
 
-      shutouts: safeNumber(goalie.shutouts),
+      shutouts: safeNumber(
+        goalie.shutouts
+      ),
     }));
 }
 
 export async function getNHLTeamStats(
   team: string
 ): Promise<NormalizedNHLTeamStats> {
-  const normalizedTeam = team.trim().toUpperCase();
+  const normalizedTeam =
+    team.trim().toUpperCase();
 
-  if (!/^[A-Z]{3}$/.test(normalizedTeam)) {
+  if (
+    !/^[A-Z]{3}$/.test(
+      normalizedTeam
+    )
+  ) {
     throw new Error(
       "Invalid NHL team abbreviation. Use a three-letter code such as TOR."
     );
@@ -410,7 +586,8 @@ export async function getNHLTeamStats(
   );
 
   if (!response.ok) {
-    const details = await response.text();
+    const details =
+      await response.text();
 
     throw new Error(
       `NHL team stats request failed with status ${response.status}: ${details}`
@@ -420,19 +597,32 @@ export async function getNHLTeamStats(
   const data =
     (await response.json()) as RawNHLClubStatsResponse;
 
-  const skaters = data.skaters ?? [];
-  const goalies = data.goalies ?? [];
+  const skaters =
+    data.skaters ?? [];
+
+  const goalies =
+    data.goalies ?? [];
 
   return {
     team: normalizedTeam,
-    season: data.season ?? null,
-    gameType: data.gameType ?? null,
 
-    skaters: normalizeSkaters(skaters),
-    goalies: normalizeGoalies(goalies),
+    season:
+      data.season ?? null,
 
-    scoringLeaders: getScoringLeaders(skaters),
-    goalieStats: getGoalieStats(goalies),
+    gameType:
+      data.gameType ?? null,
+
+    skaters:
+      normalizeSkaters(skaters),
+
+    goalies:
+      normalizeGoalies(goalies),
+
+    scoringLeaders:
+      getScoringLeaders(skaters),
+
+    goalieStats:
+      getGoalieStats(goalies),
 
     source: "NHL",
   };

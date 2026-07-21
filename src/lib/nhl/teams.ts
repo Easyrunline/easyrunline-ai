@@ -1,3 +1,8 @@
+/* ===========================================================
+   EASYRUNLINE AI
+   NHL TEAM LOGOS AND ABBREVIATIONS
+   =========================================================== */
+
 export const NHL_TEAM_LOGOS: Record<string, string> = {
   "Anaheim Ducks":
     "https://assets.nhle.com/logos/nhl/svg/ANA_light.svg",
@@ -76,9 +81,9 @@ export const NHL_TEAM_LOGOS: Record<string, string> = {
 
   "St. Louis Blues":
     "https://assets.nhle.com/logos/nhl/svg/STL_light.svg",
-      "St Louis Blues":
-    "https://assets.nhle.com/logos/nhl/svg/STL_light.svg",
 
+  "St Louis Blues":
+    "https://assets.nhle.com/logos/nhl/svg/STL_light.svg",
 
   "Tampa Bay Lightning":
     "https://assets.nhle.com/logos/nhl/svg/TBL_light.svg",
@@ -101,3 +106,50 @@ export const NHL_TEAM_LOGOS: Record<string, string> = {
   "Winnipeg Jets":
     "https://assets.nhle.com/logos/nhl/svg/WPG_light.svg",
 };
+
+export const NHL_TEAM_CODES: Record<string, string> = {
+  "Anaheim Ducks": "ANA",
+  "Boston Bruins": "BOS",
+  "Buffalo Sabres": "BUF",
+  "Calgary Flames": "CGY",
+  "Carolina Hurricanes": "CAR",
+  "Chicago Blackhawks": "CHI",
+  "Colorado Avalanche": "COL",
+  "Columbus Blue Jackets": "CBJ",
+  "Dallas Stars": "DAL",
+  "Detroit Red Wings": "DET",
+  "Edmonton Oilers": "EDM",
+  "Florida Panthers": "FLA",
+  "Los Angeles Kings": "LAK",
+  "Minnesota Wild": "MIN",
+
+  "Montreal Canadiens": "MTL",
+  "Montréal Canadiens": "MTL",
+
+  "Nashville Predators": "NSH",
+  "New Jersey Devils": "NJD",
+  "New York Islanders": "NYI",
+  "New York Rangers": "NYR",
+  "Ottawa Senators": "OTT",
+  "Philadelphia Flyers": "PHI",
+  "Pittsburgh Penguins": "PIT",
+  "San Jose Sharks": "SJS",
+  "Seattle Kraken": "SEA",
+
+  "St. Louis Blues": "STL",
+  "St Louis Blues": "STL",
+
+  "Tampa Bay Lightning": "TBL",
+  "Toronto Maple Leafs": "TOR",
+  "Utah Mammoth": "UTA",
+  "Vancouver Canucks": "VAN",
+  "Vegas Golden Knights": "VGK",
+  "Washington Capitals": "WSH",
+  "Winnipeg Jets": "WPG",
+};
+
+export function getNHLTeamCode(
+  team: string
+): string | null {
+  return NHL_TEAM_CODES[team] ?? null;
+}
