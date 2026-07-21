@@ -150,8 +150,15 @@ export function analyzeGame(
       away
     );
 
+    const homeImpliedProbability =
+    game.home.market.impliedProbability;
+
+  const awayImpliedProbability =
+    game.away.market.impliedProbability;
+
   const recommendedTeam =
-    comparison.winner === home.team
+    homeImpliedProbability <
+    awayImpliedProbability
       ? home
       : away;
 
