@@ -5,6 +5,7 @@ import {
   useRef,
   useState,
 } from "react";
+import SportSelector from "@/components/SportSelector";
 
 import NHLGameCard from "@/components/nhl/NHLGameCard";
 
@@ -1964,6 +1965,21 @@ Always verify the exact alternate line and price.
 
   return (
     <main className="min-h-screen bg-black text-white">
+      <header className="bg-black">
+  <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+    <div>
+      <p className="text-sm font-bold tracking-[0.25em] text-yellow-400">
+        EASYRUNLINE AI
+      </p>
+
+      <p className="mt-1 text-xs text-zinc-500">
+        Multi-Sport Intelligence
+      </p>
+    </div>
+
+    <SportSelector />
+  </div>
+</header>
       <div className="mx-auto max-w-7xl px-6 py-10">
         <div className="text-center">
           <h1 className="text-4xl font-bold">
