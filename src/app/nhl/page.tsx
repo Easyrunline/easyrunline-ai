@@ -395,6 +395,225 @@ export default function NHLPage() {
     }
   }
 
+    async function findSafestSingle() {
+    const candidates = games
+      .filter(
+        (game) =>
+          game.analysis &&
+          game.recommendation
+      )
+      .sort(
+        (gameA, gameB) =>
+          gameB.recommendation!
+            .recommendedTeam
+            .erlScore -
+          gameA.recommendation!
+            .recommendedTeam
+            .erlScore
+      );
+
+    const safestGame =
+      candidates[0];
+
+    if (
+      !safestGame?.analysis ||
+      !safestGame.recommendation
+    ) {
+      setAnswer(
+        "The NHL engine is still analyzing today’s games."
+      );
+
+      return;
+    }
+
+    const analysis =
+      safestGame.analysis;
+
+    const result =
+      safestGame.recommendation;
+
+    const target =
+      result.recommendedTeam;
+
+    const opponent =
+      target.team ===
+      analysis.home.team
+        ? analysis.away.team
+        : analysis.home.team;
+
+    const targetAnalysis =
+      target.team ===
+      analysis.home.team
+        ? analysis.home
+        : analysis.away;
+
+    const edgeOwner =
+      result.comparison.winner ===
+      target.team
+        ? "Selected target"
+        : "Opponent";
+
+    const reasons =
+      Object.values(
+        target.breakdown
+      )
+        .map(
+          (item) =>
+            `• ${item.title}: ${item.reason} (${item.score})`
+        )
+        .join("\n");
+
+    const reportRequest = `
+Create an EasyRunLine AI report for the safest NHL underdog +2.5 puck-line target.
+
+IMPORTANT:
+
+This selection was produced by the EasyRunLine fixed NHL scoring engine.
+
+Do not perform a separate prediction.
+Do not change the selected team.
+Do not recommend the favourite +2.5.
+Do not replace this target with another game.
+
+Use the supplied ERL Score exactly.
+Use the supplied confidence exactly.
+Use the supplied engine recommendation exactly.
+Do not upgrade or downgrade any engine rating.
+
+Do not invent:
+- cover probabilities
+- unsupported percentages
+- alternate-line availability
+- alternate-line prices
+- expected value
+- positive EV
+- injury information
+- confirmed starting-goalie status
+
+The listed goalie is projected from season usage and is not a confirmed starter.
+
+The visible market does not confirm the exact +2.5 alternate puck line or price.
+
+Tell the user to verify the exact +2.5 line and price in their betting app.
+
+If the exact +2.5 line is unavailable, the verdict must be PASS.
+
+If the supplied engine recommendation is "Avoid", the verdict must be PASS.
+
+Use this report structure:
+
+══════════════════════════════
+🏒 EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🎯 Safest Single +2.5 Target
+
+${target.team} +2.5 vs ${opponent}
+
+ERL Score: ${target.erlScore}/100
+Engine Confidence: ${target.confidence}
+Engine Recommendation: ${target.recommendation}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 Engine Confidence
+
+Reproduce and explain the supplied confidence without changing it.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🛡 +2.5 Cushion Outlook
+
+Give a qualitative outlook only.
+Do not invent a cover percentage.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🥅 Projected Goaltending
+
+Goalie: ${targetAnalysis.goalie.goalieName}
+Save Percentage: ${targetAnalysis.goalie.savePct.toFixed(3)}
+Goals-Against Average: ${targetAnalysis.goalie.gaa.toFixed(2)}
+Starts: ${targetAnalysis.goalie.starts}
+
+Clearly state that this goalie is projected, not confirmed.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📈 Recent Form
+
+Last 10: ${targetAnalysis.form.last10}
+Momentum: ${targetAnalysis.form.momentum}
+Goals Per Game: ${targetAnalysis.stats.goalsPerGame.toFixed(2)}
+Goals Allowed Per Game: ${targetAnalysis.stats.goalsAgainstPerGame.toFixed(2)}
+Streak: ${targetAnalysis.form.streak}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ Matchup Edge
+
+Edge: ${result.comparison.edge}
+Edge Rating: ${result.comparison.edgeRating}
+Edge belongs to: ${edgeOwner}
+
+Do not describe an opponent edge as support for the selected target.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market
+
+Moneyline: ${targetAnalysis.market.moneyline}
+Implied Probability: ${(targetAnalysis.market.impliedProbability * 100).toFixed(1)}%
+
+Exact +2.5 Line: Not supplied.
+Exact +2.5 Price: Not supplied.
+
+Do not claim betting value without the exact alternate-line price.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🧠 Engine Reasons
+
+${reasons}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+⚠ Missing Live Data
+
+Confirmed Starting Goalie: Not supplied.
+Live Injuries: Not supplied.
+Exact +2.5 Line: Not supplied.
+Exact +2.5 Price: Not supplied.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 EasyRunLine Verdict
+
+Give one verdict only:
+PLAY, LEAN, or PASS.
+
+If Engine Recommendation is "Avoid", use PASS.
+If the exact +2.5 market cannot be verified, use PASS.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Always verify the exact alternate line and price.
+`;
+
+    setQuestion(
+      "Find the safest NHL +2.5 puck-line target."
+    );
+
+    await analyzeQuestion(
+      reportRequest
+    );
+  }
+
         useEffect(() => {
     if (hasLoaded.current) {
       return;
@@ -518,6 +737,24 @@ export default function NHLPage() {
             </div>
           )}
         </section>
+                <div className="mx-auto mt-6 flex max-w-3xl justify-center">
+          <button
+            type="button"
+            onClick={
+              findSafestSingle
+            }
+            disabled={
+              reportLoading ||
+              !games.some(
+                (game) =>
+                  game.recommendation
+              )
+            }
+            className="w-full rounded-xl bg-blue-500 px-6 py-4 font-bold text-white transition hover:bg-blue-400 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+          >
+            Safest Single +2.5
+          </button>
+        </div>
 
         {loading && (
           <p className="mt-10 text-center text-zinc-400">
