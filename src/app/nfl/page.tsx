@@ -61,6 +61,14 @@ const [bestTwoLegMessage, setBestTwoLegMessage] =
 
 const [avoidMessage, setAvoidMessage] =
   useState("");
+  const [question, setQuestion] =
+  useState("");
+
+const [answer, setAnswer] =
+  useState("");
+
+const [questionLoading, setQuestionLoading] =
+  useState(false);
 
   useEffect(() => {
     loadNFLGames();
@@ -565,7 +573,106 @@ async function findBestTwoLegAltSpread() {
 
     return `${point} at ${formatPrice(outcome.price)}`;
   }
+    async function analyzeNFLQuestion() {
+    const normalizedQuestion =
+      question.trim().toLowerCase();
 
+    if (!normalizedQuestion) {
+      return;
+    }
+
+    if (games.length === 0) {
+      setAnswer(
+        "No NFL games are currently available for analysis."
+      );
+      return;
+    }
+
+    try {
+      setQuestionLoading(true);
+      setAnswer("");
+
+      const asksForAvoid =
+        normalizedQuestion.includes(
+          "avoid"
+        ) ||
+        normalizedQuestion.includes(
+          "no play"
+        ) ||
+        normalizedQuestion.includes(
+          "stay away"
+        );
+
+      const asksForTwoLeg =
+        normalizedQuestion.includes(
+          "2-leg"
+        ) ||
+        normalizedQuestion.includes(
+          "2 leg"
+        ) ||
+        normalizedQuestion.includes(
+          "two-leg"
+        ) ||
+        normalizedQuestion.includes(
+          "two leg"
+        ) ||
+        normalizedQuestion.includes(
+          "parlay"
+        );
+
+      const asksForSafestSpread =
+        normalizedQuestion.includes(
+          "safest"
+        ) ||
+        normalizedQuestion.includes(
+          "alternate spread"
+        ) ||
+        normalizedQuestion.includes(
+          "alt spread"
+        );
+
+      if (asksForAvoid) {
+        findGamesToAvoid();
+
+        setAnswer(
+          "EasyRunLine used the deterministic NFL engine to identify the current Games to Avoid. The results are displayed below."
+        );
+        return;
+      }
+
+      if (asksForTwoLeg) {
+        await findBestTwoLegAltSpread();
+
+        setAnswer(
+          "EasyRunLine used the deterministic NFL engine to build the best available independent 2-leg alternate-spread parlay. The result is displayed below."
+        );
+        return;
+      }
+
+      if (asksForSafestSpread) {
+        await findSafestAltSpread();
+
+        setAnswer(
+          "EasyRunLine used the deterministic NFL engine to find the highest-safety available alternate spread. The result is displayed below."
+        );
+        return;
+      }
+
+      setAnswer(
+        "That NFL question is not connected to a deterministic report yet. Try asking for the safest alternate spread, best 2-leg parlay, or games to avoid."
+      );
+    } catch (error) {
+      setAnswer(
+        error instanceof Error
+          ? error.message
+          : "Unable to complete NFL question analysis."
+      );
+    } finally {
+      setQuestionLoading(false);
+    }
+  }
+
+  
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="border-b border-zinc-900 bg-black/95">
@@ -638,6 +745,43 @@ async function findBestTwoLegAltSpread() {
   Games To Avoid
 </button>
         </div>
+                <section className="mx-auto mt-8 max-w-3xl">
+          <div className="rounded-2xl border border-yellow-500/30 bg-zinc-950 p-4 shadow-xl">
+            <textarea
+              value={question}
+              onChange={(event) =>
+                setQuestion(
+                  event.target.value
+                )
+              }
+              placeholder="Ask EasyRunLine AI: What is the safest NFL alternate spread?"
+              className="h-28 w-full resize-none rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none transition placeholder:text-zinc-600 focus:border-yellow-500"
+            />
+
+            <button
+              type="button"
+              onClick={
+                analyzeNFLQuestion
+              }
+              disabled={
+                questionLoading ||
+                !question.trim() ||
+                loading
+              }
+              className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {questionLoading
+                ? "Analyzing..."
+                : "Analyze NFL Question"}
+            </button>
+          </div>
+
+          {answer && (
+            <div className="mt-5 whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left leading-7 text-zinc-200">
+              {answer}
+            </div>
+          )}
+        </section>
 
         {loading && (
           <div className="mt-10 rounded-xl border border-zinc-800 bg-zinc-950 p-8 text-center text-zinc-400">
