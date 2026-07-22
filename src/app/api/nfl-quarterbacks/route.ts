@@ -75,11 +75,13 @@ const nflTeams: NFLTeamReference[] = [
 async function loadTeamQuarterbacks(team: NFLTeamReference) {
   try {
     const response = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.code}/roster`,
-      {
-        cache: "no-store",
-      }
-    );
+  `https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/${team.code}/roster`,
+  {
+    next: {
+      revalidate: 900,
+    },
+  }
+);
 
     if (!response.ok) {
       return {
@@ -150,11 +152,21 @@ export async function GET() {
       nflTeams.map((team) => loadTeamQuarterbacks(team))
     );
 
-    return Response.json({
-      status: "ready",
-      note: "Quarterbacks are roster candidates and are not confirmed starters.",
-      teams,
-    });
+    return Response.json(
+  {
+    status: "ready",
+    note: "Quarterbacks are roster candidates and are not confirmed starters.",
+    teams,
+    cacheMinutes: 15,
+    fetchedAt: new Date().toISOString(),
+  },
+  {
+    headers: {
+      "Cache-Control":
+        "public, s-maxage=900, stale-while-revalidate=3600",
+    },
+  }
+);
   } catch (error) {
     console.error("NFL quarterback route error:", error);
 
