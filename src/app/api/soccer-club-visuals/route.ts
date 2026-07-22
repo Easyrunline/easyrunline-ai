@@ -27,9 +27,9 @@ const competitionLeagueNames: Record<string, string> = {
 const teamNameAliases: Record<string, string> = {
   "arsenal": "Arsenal",
   "aston villa": "Aston Villa",
-  "bournemouth": "AFC Bournemouth",
+  "bournemouth": "Bournemouth",
   "brentford": "Brentford",
-  "brighton and hove albion": "Brighton & Hove Albion",
+  "brighton and hove albion": "Brighton and Hove Albion",
   "chelsea": "Chelsea",
   "coventry city": "Coventry City",
   "crystal palace": "Crystal Palace",
@@ -56,7 +56,10 @@ const teamNameAliases: Record<string, string> = {
 
 function normalizeTeamName(value: string) {
   return value
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/&/g, "and")
     .replace(/\bfc\b/g, "")
     .replace(/\bafc\b/g, "")
     .replace(/\bsc\b/g, "")
@@ -122,10 +125,10 @@ export async function GET(request: NextRequest) {
       process.env.THESPORTSDB_API_KEY || "123";
 
     const url = new URL(
-      `https://www.thesportsdb.com/api/v1/json/${apiKey}/search_all_teams.php`
-    );
+  `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php`
+);
 
-    url.searchParams.set("l", leagueName);
+url.searchParams.set("t", resolvedTeamName);
 
     const response = await fetch(url, {
       next: {
@@ -146,20 +149,59 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const matchedTeam =
+    let matchedTeam =
   data.teams?.find((team) =>
     teamMatches(team, resolvedTeamName)
   ) || null;
 
-    if (!matchedTeam) {
-      return NextResponse.json({
-        team: teamName,
-        badge: null,
-        primaryColor: null,
-        secondaryColor: null,
-        tertiaryColor: null,
-      });
+/*
+ * TheSportsDB league searches may return only a
+ * limited number of clubs. If the requested club
+ * is absent, search for that team directly.
+ */
+if (!matchedTeam) {
+  const teamSearchUrl = new URL(
+    `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php`
+  );
+
+  teamSearchUrl.searchParams.set(
+    "t",
+    resolvedTeamName
+  );
+
+  const teamSearchResponse = await fetch(
+    teamSearchUrl,
+    {
+      next: {
+        revalidate: 86400,
+      },
     }
+  );
+
+  if (teamSearchResponse.ok) {
+    const teamSearchData =
+      (await teamSearchResponse.json()) as
+        SportsDbResponse;
+
+    matchedTeam =
+      teamSearchData.teams?.find((team) =>
+        teamMatches(
+          team,
+          resolvedTeamName
+        )
+      ) || null;
+  }
+}
+
+if (!matchedTeam) {
+  return NextResponse.json({
+    team: teamName,
+    badge: null,
+    primaryColor: null,
+    secondaryColor: null,
+    tertiaryColor: null,
+  });
+}
 
     return NextResponse.json({
       team: matchedTeam.strTeam || teamName,

@@ -1,6 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+import SportSelector from "@/components/SportSelector";
 import {
   buildSoccerIntelligence,
   type RankedSoccerGame,
@@ -19,6 +24,31 @@ const competitions = [
   "Champions League",
   "Europa League",
 ];
+const competitionLogos: Record<string, string> = {
+  MLS:
+    "https://r2.thesportsdb.com/images/media/league/badge/dqo6r91549878326.png",
+
+  "Premier League":
+    "https://r2.thesportsdb.com/images/media/league/badge/gasy9d1737743125.png",
+
+  "La Liga":
+    "https://r2.thesportsdb.com/images/media/league/badge/ja4it51687628717.png",
+
+  Bundesliga:
+    "https://r2.thesportsdb.com/images/media/league/badge/teqh1b1679952008.png",
+
+  "Serie A":
+    "https://r2.thesportsdb.com/images/media/league/badge/67q3q21679951383.png",
+
+  "Ligue 1":
+    "https://r2.thesportsdb.com/images/media/league/badge/9f7z9d1742983155.png",
+
+  "Champions League":
+    "https://r2.thesportsdb.com/images/media/league/badge/facv1u1742998896.png",
+
+  "Europa League":
+    "https://r2.thesportsdb.com/images/media/league/badge/mlsr7d1718774547.png",
+};
 type SoccerGame = {
   id: string;
   sport_key: string;
@@ -60,8 +90,39 @@ type SoccerClubVisual = {
   tertiaryColor: string | null;
   error?: string;
 };
+type SoccerAlternateTotalBookmaker = {
+  key: string;
+  title: string;
+  outcomes: SoccerOutcome[];
+};
+
+type SoccerAlternateTotalsResponse = {
+  available?: boolean;
+  bookmakers?: SoccerAlternateTotalBookmaker[];
+  error?: string;
+};
+
+type SoccerUnder45Selection = {
+  eventId: string;
+  homeTeam: string;
+  awayTeam: string;
+  commenceTime: string;
+
+  bookmaker: string;
+  price: number;
+  point: number;
+
+  marketProbability: number;
+  safetyScore: number;
+
+  erlScore: number;
+  confidence: RankedSoccerGame["confidence"];
+  probabilityEdge: number;
+};
 
 export default function SoccerPage() {
+  const hasLoadedPremierLeague =
+  useRef(false);
   const [selectedCompetition, setSelectedCompetition] =
   useState("Premier League");
   const [games, setGames] = useState<SoccerGame[]>([]);
@@ -79,9 +140,34 @@ const [safestHandicapPick, setSafestHandicapPick] =
 
 const [safestHandicapMessage, setSafestHandicapMessage] =
   useState("");
+  const [safestUnder45Pick, setSafestUnder45Pick] =
+  useState<SoccerUnder45Selection | null>(
+    null
+  );
+
+const [safestUnder45Message, setSafestUnder45Message] =
+  useState("");
+
+const [safestUnder45Loading, setSafestUnder45Loading] =
+  useState(false);
 const [clubVisuals, setClubVisuals] = useState<
   Record<string, SoccerClubVisual>
 >({});
+useEffect(() => {
+  if (hasLoadedPremierLeague.current) {
+    return;
+  }
+
+  hasLoadedPremierLeague.current = true;
+
+  setSelectedCompetition(
+    "Premier League"
+  );
+
+  loadSoccerGames(
+    "Premier League"
+  );
+}, []);
 async function loadSoccerGames(competition: string) {
   setLoading(true);
   setError("");
@@ -164,6 +250,8 @@ const soccerRecommendations =
 setRecommendations(soccerRecommendations);
 setSafestHandicapPick(null);
 setSafestHandicapMessage("");
+setSafestUnder45Pick(null);
+setSafestUnder45Message("");
 const uniqueTeams = Array.from(
   new Set(
     loadedGames.flatMap((game) => [
@@ -187,6 +275,8 @@ await Promise.all(
   function findSafestHandicap() {
   setSafestHandicapPick(null);
   setSafestHandicapMessage("");
+  setSafestUnder45Pick(null);
+setSafestUnder45Message("");
 
   if (games.length === 0 || rankedGames.length === 0) {
     setSafestHandicapMessage(
@@ -283,7 +373,198 @@ await Promise.all(
     `${safest.handicap.team} +${safest.handicap.line} is the highest-rated available positive-handicap selection for ${selectedCompetition}.`
   );
 }
-  
+  async function findSafestUnder45() {
+  setSafestUnder45Pick(null);
+  setSafestUnder45Message("");
+
+  setSafestHandicapPick(null);
+  setSafestHandicapMessage("");
+
+  if (games.length === 0) {
+    setSafestUnder45Message(
+      "No soccer games are currently available."
+    );
+    return;
+  }
+
+  try {
+    setSafestUnder45Loading(true);
+
+    let bestSelection:
+      | SoccerUnder45Selection
+      | null = null;
+
+    for (const game of games) {
+      const response = await fetch(
+        `/api/soccer-alternate-totals?eventId=${encodeURIComponent(
+          game.id
+        )}&competition=${encodeURIComponent(
+          selectedCompetition
+        )}`,
+        {
+          cache: "no-store",
+        }
+      );
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const data =
+        (await response.json()) as
+          SoccerAlternateTotalsResponse;
+
+      if (!data.available) {
+        continue;
+      }
+
+      const intelligence =
+        getGameIntelligence(
+          rankedGames,
+          game.id
+        );
+
+      if (!intelligence) {
+        continue;
+      }
+
+      const offers = (
+        data.bookmakers ?? []
+      ).flatMap((bookmaker) =>
+        bookmaker.outcomes
+          .filter(
+            (outcome) =>
+              outcome.name
+                .trim()
+                .toLowerCase() ===
+                "under" &&
+              outcome.point !== undefined &&
+              Math.abs(
+                outcome.point - 4.5
+              ) < 0.001 &&
+              Number.isFinite(
+                outcome.price
+              ) &&
+              outcome.price > 1
+          )
+          .map((outcome) => ({
+            bookmaker:
+              bookmaker.title,
+            price: outcome.price,
+            point:
+              outcome.point as number,
+          }))
+      );
+
+      if (offers.length === 0) {
+        continue;
+      }
+
+      const bestOffer = [...offers].sort(
+        (a, b) => b.price - a.price
+      )[0];
+
+      const marketProbability =
+        offers.reduce(
+          (total, offer) =>
+            total + 1 / offer.price,
+          0
+        ) /
+        offers.length *
+        100;
+
+      /*
+       * This is a conservative market-safety
+       * ranking, not a predicted cover probability.
+       *
+       * A large one-sided matchup edge receives a
+       * small penalty because it may carry greater
+       * high-score risk.
+       */
+      const safetyScore = Math.max(
+        0,
+        Math.min(
+          100,
+          marketProbability -
+            intelligence.probabilityEdge *
+              0.15 +
+            Math.min(offers.length, 5)
+        )
+      );
+
+      const selection: SoccerUnder45Selection =
+        {
+          eventId: game.id,
+          homeTeam: game.home_team,
+          awayTeam: game.away_team,
+          commenceTime:
+            game.commence_time,
+
+          bookmaker:
+            bestOffer.bookmaker,
+          price: bestOffer.price,
+          point: bestOffer.point,
+
+          marketProbability: Number(
+            marketProbability.toFixed(1)
+          ),
+
+          safetyScore: Number(
+            safetyScore.toFixed(1)
+          ),
+
+          erlScore:
+            intelligence.erlScore,
+
+          confidence:
+            intelligence.confidence,
+
+          probabilityEdge:
+            intelligence.probabilityEdge,
+        };
+
+      if (
+        !bestSelection ||
+        selection.safetyScore >
+          bestSelection.safetyScore ||
+        (selection.safetyScore ===
+          bestSelection.safetyScore &&
+          selection.price >
+            bestSelection.price)
+      ) {
+        bestSelection = selection;
+      }
+    }
+
+    if (!bestSelection) {
+      setSafestUnder45Message(
+        `No verified Under 4.5 market is currently available for ${selectedCompetition}.`
+      );
+      return;
+    }
+
+    setSafestUnder45Pick(
+      bestSelection
+    );
+
+    setSafestUnder45Message(
+      `Under 4.5 at ${formatPrice(
+        bestSelection.price
+      )} is the highest-rated verified Under 4.5 market currently available for ${selectedCompetition}.`
+    );
+  } catch (error) {
+    console.error(
+      "Safest Under 4.5 error:",
+      error
+    );
+
+    setSafestUnder45Message(
+      "Could not complete the Under 4.5 market analysis."
+    );
+  } finally {
+    setSafestUnder45Loading(false);
+  }
+}
 
 function getClubVisual(
   clubVisuals: Record<string, SoccerClubVisual>,
@@ -395,13 +676,26 @@ function formatSpread(outcome?: SoccerOutcome) {
 }
   return (
     <main className="min-h-screen bg-black p-8 text-white">
-      <h1 className="text-3xl font-bold text-yellow-400">
-        EasyRunLine Soccer
-      </h1>
+      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
+  <div>
+    <p className="text-sm font-bold uppercase tracking-[0.3em] text-yellow-400">
+      Soccer Intelligence
+    </p>
 
-      <p className="mt-4 text-gray-300">
-        Select a competition to access soccer game intelligence and analysis.
-      </p>
+    <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">
+      EasyRunLine Soccer
+    </h1>
+
+    <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400 sm:text-base">
+      Competition-specific matchup intelligence, verified market data
+      and risk-aware football analysis.
+    </p>
+  </div>
+
+  <div className="shrink-0">
+    <SportSelector />
+  </div>
+</div>
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {competitions.map((competition) => (
@@ -419,11 +713,27 @@ function formatSpread(outcome?: SoccerOutcome) {
                 : "border-gray-800 bg-gray-950 hover:border-gray-600"
             }`}
           >
-            <h2 className="font-semibold">{competition}</h2>
+            <div className="flex items-center gap-3">
+  {competitionLogos[competition] ? (
+    <img
+      src={competitionLogos[competition]}
+      alt={`${competition} logo`}
+      className="h-10 w-10 shrink-0 object-contain"
+    />
+  ) : (
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gray-700 bg-black text-xs font-bold text-gray-400">
+      {competition.slice(0, 2).toUpperCase()}
+    </div>
+  )}
 
-            <p className="mt-2 text-sm text-gray-400">
-              Engine under development
-            </p>
+  <h2 className="font-semibold">
+    {competition}
+  </h2>
+</div>
+
+              
+
+
           </button>
         ))}
       </div>
@@ -447,6 +757,20 @@ function formatSpread(outcome?: SoccerOutcome) {
   >
     Safest Handicap
   </button>
+  <button
+  type="button"
+  onClick={findSafestUnder45}
+  disabled={
+    loading ||
+    games.length === 0 ||
+    safestUnder45Loading
+  }
+  className="rounded-lg bg-cyan-500 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+>
+  {safestUnder45Loading
+    ? "Checking Under 4.5..."
+    : "Safest Under 4.5"}
+</button>
 </div>
 {safestHandicapPick && (
   <div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
@@ -503,6 +827,141 @@ function formatSpread(outcome?: SoccerOutcome) {
 {safestHandicapMessage && (
   <div className="mt-4 rounded-lg border border-emerald-900 bg-emerald-950/20 p-4 text-sm text-emerald-200">
     {safestHandicapMessage}
+  </div>
+)}
+{safestUnder45Pick && (
+  <div className="mt-6 rounded-xl border border-cyan-700 bg-cyan-950/20 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+      EasyRunLine — Safest Verified Under 4.5
+    </p>
+
+    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-gray-500">
+          Selection
+        </p>
+
+        <p className="font-bold text-white">
+          Under {safestUnder45Pick.point}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500">
+          Matchup
+        </p>
+
+        <p className="font-bold text-white">
+          {safestUnder45Pick.awayTeam} at{" "}
+          {safestUnder45Pick.homeTeam}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500">
+          Price
+        </p>
+
+        <p className="font-bold text-cyan-400">
+          {formatPrice(
+            safestUnder45Pick.price
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500">
+          Bookmaker
+        </p>
+
+        <p className="font-bold text-white">
+          {safestUnder45Pick.bookmaker}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-4 grid gap-4 border-t border-cyan-900 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-gray-500">
+          Start Time
+        </p>
+
+        <p className="font-semibold text-white">
+          {new Date(
+            safestUnder45Pick.commenceTime
+          ).toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500">
+          Market Safety Rank
+        </p>
+
+        <p className="font-bold text-cyan-400">
+          {safestUnder45Pick.safetyScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500">
+          ERL Matchup Score
+        </p>
+
+        <p className="font-bold text-white">
+          {safestUnder45Pick.erlScore}/100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-gray-500">
+          Matchup Confidence
+        </p>
+
+        <p className="font-bold text-white">
+          {safestUnder45Pick.confidence}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-4 border-t border-cyan-900 pt-4">
+  <p className="text-sm font-bold uppercase tracking-wide text-cyan-400">
+    EasyRunLine Market Verdict:{" "}
+    {safestUnder45Pick.safetyScore >= 85
+      ? "Strong Market Support"
+      : safestUnder45Pick.safetyScore >= 70
+        ? "Moderate Market Support"
+        : "Limited Market Support"}
+  </p>
+
+  <p className="mt-2 text-sm leading-6 text-gray-300">
+    EasyRunLine ranks Under{" "}
+    {safestUnder45Pick.point} in{" "}
+    {safestUnder45Pick.awayTeam} at{" "}
+    {safestUnder45Pick.homeTeam} as the strongest
+    verified safety-oriented total currently available
+    in {selectedCompetition}. The exact market is confirmed
+    at {formatPrice(safestUnder45Pick.price)} with{" "}
+    {safestUnder45Pick.bookmaker}, and the current market
+    consensus supports this selection.
+  </p>
+
+  <p className="mt-2 text-xs leading-5 text-gray-500">
+    This is the system’s preferred market-safety option,
+    not a guarantee or a claim of positive betting value.
+    Always confirm the displayed line and price before
+    placing a wager.
+  </p>
+</div>
+</div>
+)}
+
+{safestUnder45Message && (
+  <div className="mt-4 rounded-lg border border-cyan-900 bg-cyan-950/20 p-4 text-sm text-cyan-200">
+    {safestUnder45Message}
   </div>
 )}
 
