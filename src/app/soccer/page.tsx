@@ -150,6 +150,17 @@ const [safestUnder45Message, setSafestUnder45Message] =
 
 const [safestUnder45Loading, setSafestUnder45Loading] =
   useState(false);
+  const [question, setQuestion] =
+  useState("");
+
+const [answer, setAnswer] =
+  useState("");
+
+const [questionLoading, setQuestionLoading] =
+  useState(false);
+
+const answerRef =
+  useRef<HTMLDivElement | null>(null);
 const [clubVisuals, setClubVisuals] = useState<
   Record<string, SoccerClubVisual>
 >({});
@@ -168,10 +179,24 @@ useEffect(() => {
     "Premier League"
   );
 }, []);
+useEffect(() => {
+  if (!answer) {
+    return;
+  }
+
+  requestAnimationFrame(() => {
+    answerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  });
+}, [answer]);
 async function loadSoccerGames(competition: string) {
   setLoading(true);
   setError("");
   setGames([]);
+  setQuestion("");
+setAnswer("");
   async function loadClubVisual(
   teamName: string,
   competition: string
@@ -565,6 +590,246 @@ setSafestUnder45Message("");
     setSafestUnder45Loading(false);
   }
 }
+async function analyzeSoccerQuestion(
+  customQuestion?: string
+) {
+  const finalQuestion =
+    customQuestion?.trim() ||
+    question.trim();
+
+  if (!finalQuestion) {
+    return;
+  }
+function analyzeSelectedSoccerGame(
+  game: SoccerGame
+) {
+  const gameQuestion =
+    `Analyze ${game.away_team} vs ${game.home_team}.`;
+
+  setQuestion(gameQuestion);
+
+  void analyzeSoccerQuestion(
+    gameQuestion
+  );
+}
+  const normalizedQuestion =
+    finalQuestion.toLowerCase();
+
+  setQuestionLoading(true);
+  setAnswer("");
+
+  try {
+    const asksForUnder45 =
+      normalizedQuestion.includes(
+        "under 4.5"
+      ) ||
+      normalizedQuestion.includes(
+        "under4.5"
+      );
+
+    const asksForHandicap =
+      normalizedQuestion.includes(
+        "handicap"
+      ) ||
+      normalizedQuestion.includes(
+        "spread"
+      );
+
+    if (asksForUnder45) {
+      await findSafestUnder45();
+
+      setAnswer(
+        `EasyRunLine checked verified alternate-total markets for ${selectedCompetition}. The highest-rated available Under 4.5 result is displayed below with its exact line, price, bookmaker and start time.`
+      );
+
+      return;
+    }
+
+    if (asksForHandicap) {
+      findSafestHandicap();
+
+      setAnswer(
+        `EasyRunLine checked the available positive-handicap markets for ${selectedCompetition}. A selection is displayed below only when it satisfies the engine's market and confidence requirements.`
+      );
+
+      return;
+    }
+
+    const selectedGame = games.find(
+      (game) =>
+        normalizedQuestion.includes(
+          game.home_team.toLowerCase()
+        ) &&
+        normalizedQuestion.includes(
+          game.away_team.toLowerCase()
+        )
+    );
+
+    if (selectedGame) {
+      const intelligence =
+        getGameIntelligence(
+          rankedGames,
+          selectedGame.id
+        );
+
+      const h2h = getMarket(
+        selectedGame,
+        "h2h"
+      );
+
+      const spreads = getMarket(
+        selectedGame,
+        "spreads"
+      );
+
+      const totals = getMarket(
+        selectedGame,
+        "totals"
+      );
+
+      const homeMoneyline = getOutcome(
+        h2h,
+        selectedGame.home_team
+      );
+
+      const awayMoneyline = getOutcome(
+        h2h,
+        selectedGame.away_team
+      );
+
+      const drawMoneyline = getOutcome(
+        h2h,
+        "Draw"
+      );
+
+      const homeSpread = getOutcome(
+        spreads,
+        selectedGame.home_team
+      );
+
+      const awaySpread = getOutcome(
+        spreads,
+        selectedGame.away_team
+      );
+
+      const over = getOutcome(
+        totals,
+        "Over"
+      );
+
+      const under = getOutcome(
+        totals,
+        "Under"
+      );
+
+      const startDate = new Date(
+        selectedGame.commence_time
+      );
+
+      setAnswer(
+`══════════════════════════════
+⚽ EASYRUNLINE SOCCER REPORT
+══════════════════════════════
+
+Competition:
+${selectedCompetition}
+
+Matchup:
+${selectedGame.away_team} at ${selectedGame.home_team}
+
+Local Start Time:
+${startDate.toLocaleString()}
+
+UTC Start Time:
+${startDate.toISOString()}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 ERL 1X2 Intelligence
+
+Preferred Team:
+${intelligence?.preferredTeam ?? "Not available"}
+
+ERL 1X2 Score:
+${intelligence ? `${intelligence.erlScore}/100` : "Not available"}
+
+1X2 Confidence:
+${intelligence?.confidence ?? "Not available"}
+
+Matchup Grade:
+${intelligence?.grade ?? "Not available"}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Visible Markets
+
+Home Moneyline:
+${selectedGame.home_team} ${formatPrice(homeMoneyline?.price)}
+
+Draw:
+${formatPrice(drawMoneyline?.price)}
+
+Away Moneyline:
+${selectedGame.away_team} ${formatPrice(awayMoneyline?.price)}
+
+Home Spread:
+${selectedGame.home_team} ${formatSpread(homeSpread)}
+
+Away Spread:
+${selectedGame.away_team} ${formatSpread(awaySpread)}
+
+Total:
+Over ${over?.point ?? "N/A"} at ${formatPrice(over?.price)}
+Under ${under?.point ?? "N/A"} at ${formatPrice(under?.price)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 Engine Status
+
+${
+  !intelligence
+    ? "DATA LIMITED — No complete ERL intelligence is available."
+    : intelligence.confidence === "Low"
+      ? "PASS — The current ERL 1X2 confidence is Low."
+      : "QUALIFIED FOR REVIEW — Verify the exact intended market and price before wagering."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+This report uses deterministic EasyRunLine data. It does not invent unavailable markets or prices.`
+      );
+
+      return;
+    }
+
+    setAnswer(
+      `That question is not connected to a deterministic ${selectedCompetition} report yet. Ask for the safest Under 4.5, the safest handicap, or include both team names from a listed matchup.`
+    );
+  } catch (error) {
+    console.error(
+      "Soccer question error:",
+      error
+    );
+
+    setAnswer(
+      "Unable to complete the soccer question analysis."
+    );
+  } finally {
+    setQuestionLoading(false);
+  }
+}
+function analyzeSelectedSoccerGame(
+  game: SoccerGame
+) {
+  const gameQuestion =
+    `Analyze ${game.away_team} vs ${game.home_team}.`;
+
+  setQuestion(gameQuestion);
+
+  void analyzeSoccerQuestion(
+    gameQuestion
+  );
+}
 
 function getClubVisual(
   clubVisuals: Record<string, SoccerClubVisual>,
@@ -737,6 +1002,43 @@ function formatSpread(outcome?: SoccerOutcome) {
           </button>
         ))}
       </div>
+      <div className="mt-8 rounded-2xl border border-yellow-500/30 bg-gray-950 p-4">
+  <textarea
+    value={question}
+    onChange={(event) =>
+      setQuestion(event.target.value)
+    }
+    className="h-28 w-full resize-none rounded-xl border border-gray-800 bg-black p-4 text-white outline-none transition focus:border-yellow-500"
+    placeholder={`Ask EasyRunLine about ${selectedCompetition}: What is the safest Under 4.5?`}
+  />
+
+  <button
+    type="button"
+    onClick={() => {
+  void analyzeSoccerQuestion();
+}}
+    disabled={
+      questionLoading ||
+      loading ||
+      games.length === 0 ||
+      !question.trim()
+    }
+    className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {questionLoading
+      ? "Analyzing Soccer Question..."
+      : "Analyze Soccer Question"}
+  </button>
+</div>
+
+{answer && (
+  <div
+    ref={answerRef}
+    className="mt-6 scroll-mt-6 whitespace-pre-line rounded-2xl border border-gray-800 bg-gray-950 p-6 text-left text-sm leading-7 text-gray-200"
+  >
+    {answer}
+  </div>
+)}
             {loading && (
         <div className="mt-8 rounded-xl border border-gray-800 bg-gray-950 p-8 text-center text-gray-400">
           Loading {selectedCompetition} games...
@@ -1190,6 +1492,18 @@ const awayVisual = getClubVisual(
     Total bookmaker: {getMarketBookmaker(game, "totals")}
   </p>
 </div>
+<button
+  type="button"
+  onClick={() =>
+    analyzeSelectedSoccerGame(game)
+  }
+  disabled={questionLoading}
+  className="mt-5 w-full rounded-xl bg-yellow-400 px-5 py-3 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {questionLoading
+    ? "Analyzing..."
+    : "Analyze Game"}
+</button>
             </div>
             );
 })}
