@@ -675,7 +675,7 @@ async function findBestTwoLegAltSpread() {
   
   return (
     <main className="min-h-screen bg-black text-white">
-      <header className="border-b border-zinc-900 bg-black/95">
+      <header className="bg-black/95">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
           <div>
             <p className="text-sm font-bold tracking-[0.25em] text-yellow-400">

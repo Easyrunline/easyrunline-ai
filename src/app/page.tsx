@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import SportSelector from "@/components/SportSelector";
 import {
   rankEasyRunLinePicks,
@@ -113,6 +117,21 @@ export default function Home() {
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
   const [loading, setLoading] = useState(false);
+  const answerRef =
+  useRef<HTMLDivElement | null>(null);
+
+useEffect(() => {
+  if (!answer) {
+    return;
+  }
+
+  window.setTimeout(() => {
+    answerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, 100);
+}, [answer]);
 
   const [games, setGames] = useState<Game[]>([]);
   const [gamesLoading, setGamesLoading] = useState(false);
@@ -248,6 +267,48 @@ setGames(gamesWithLiveData);
     const point = outcome.point !== undefined ? `${outcome.point} ` : "";
     return `${outcome.name}: ${point}${outcome.price}`;
   }
+  function formatMLBGameStart(
+  team: string,
+  opponent: string
+) {
+  const matchingGame = games.find(
+    (game) =>
+      (game.home_team === team &&
+        game.away_team === opponent) ||
+      (game.away_team === team &&
+        game.home_team === opponent)
+  );
+
+  if (!matchingGame) {
+    return `Game Date and Time:
+Not available`;
+  }
+
+  const gameStart = new Date(
+    matchingGame.commence_time
+  );
+
+  if (
+    Number.isNaN(gameStart.getTime())
+  ) {
+    return `Game Date and Time:
+Not available`;
+  }
+
+  const localTime =
+    gameStart.toLocaleString();
+
+  const utcTime =
+    gameStart.toLocaleString("en-GB", {
+      timeZone: "UTC",
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+
+  return `Game Date and Time:
+Local: ${localTime}
+UTC: ${utcTime} UTC`;
+}
 
   function analyzeGame(game: Game) {
   const moneyline = getMarket(game, "h2h");
@@ -270,7 +331,19 @@ setGames(gamesWithLiveData);
 
   if (!enginePick) return;
 
+const gameStart = new Date(
+  game.commence_time
+);
 
+const localStartTime =
+  gameStart.toLocaleString();
+
+const utcStartTime =
+  gameStart.toLocaleString("en-GB", {
+    timeZone: "UTC",
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
   const gameQuestion = `
 Create an EasyRunLine AI report explaining the engine decision for this MLB matchup.
 
@@ -313,6 +386,9 @@ Use this exact report structure:
 🎯 Recommended +4.5 Side
 
 ${enginePick.team} +4.5 vs ${enginePick.opponent}
+Game Date and Time:
+Local: ${localStartTime}
+UTC: ${utcStartTime} UTC
 
 ${enginePick.team} — ERL Score: ${enginePick.score}/100 — Engine Confidence: ${enginePick.confidence} — Blowout Risk: ${enginePick.blowoutRisk}
 
@@ -401,8 +477,11 @@ Always explain uncertainty.
 Matchup:
 ${game.away_team} vs ${game.home_team}
 
-Start Time:
-${new Date(game.commence_time).toLocaleString()}
+Game Date and Time:
+Local: ${localStartTime}
+UTC: ${utcStartTime} UTC
+
+Do not substitute another game's teams, date, or time.
 `;
 
   setQuestion(gameQuestion);
@@ -459,6 +538,11 @@ Use this exact report structure:
 🎯 Recommended +4.5 Side
 
 ${topPick.team} +4.5 vs ${topPick.opponent}
+
+${formatMLBGameStart(
+  topPick.team,
+  topPick.opponent
+)}
 
 ${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence} — Blowout Risk: ${topPick.blowoutRisk}
 
@@ -590,7 +674,11 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
   .map(
     (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
+${formatMLBGameStart(
+  pick.team,
+  pick.opponent
+)}
+${pick.team} — ERL Score:${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
 `
   )
   .join("\n\n");
@@ -817,6 +905,10 @@ const avoidPicks = [...rankedPicks]
     .map(
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+${formatMLBGameStart(
+  pick.team,
+  pick.opponent
+)}
 Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
@@ -1000,6 +1092,11 @@ Use this exact report structure:
 🔥 Best F5 Angle
 
 ${topPick.team} F5 +2.5 or safer F5 alternate line vs ${topPick.opponent}
+
+${formatMLBGameStart(
+  topPick.team,
+  topPick.opponent
+)}
 
 ${topPick.team} —
 ERL Score: ${topPick.score}/100
@@ -1197,6 +1294,10 @@ ${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
   .map(
     (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+${formatMLBGameStart(
+  pick.team,
+  pick.opponent
+)}
 ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
 `
   )
@@ -1384,8 +1485,9 @@ Always explain uncertainty.
 
     return (
     <main className="min-h-screen bg-black text-white">
+      
 
-      <header className="border-b border-zinc-900 bg-black/95">
+      <header className="bg-black/95">
   <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
     <div>
       <p className="text-sm font-bold tracking-[0.25em] text-yellow-400">
@@ -1434,7 +1536,10 @@ Always explain uncertainty.
 </div>
 
 {answer && (
-  <div className="mt-8 w-full max-w-2xl whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left text-zinc-200">
+  <div
+    ref={answerRef}
+    className="scroll-mt-6 mt-8 w-full max-w-2xl whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left text-zinc-200"
+  >
     {answer}
   </div>
 )}
