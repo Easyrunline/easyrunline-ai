@@ -113,11 +113,25 @@ function calculateDataCompleteness(
     completeness += 15;
   }
 
-  if (quarterback.starterConfirmed) {
+    if (quarterback.starterConfirmed) {
     completeness += 5;
   }
 
-  return clamp(completeness);
+  /*
+   * Without a confirmed game-day starter,
+   * the available NFL dataset must not be
+   * treated as nearly complete.
+   */
+  const maximumCompleteness =
+    quarterback.starterConfirmed
+      ? 100
+      : 75;
+
+  return clamp(
+    completeness,
+    0,
+    maximumCompleteness
+  );
 }
 
 function buildTeamRating(params: {
@@ -277,10 +291,18 @@ export function runERLNFLBrain(
    * Later we can replace this with a calibrated
    * scoring-margin model.
    */
+    /*
+   * Conservative point-margin estimate.
+   * ERL rating separation is not equivalent
+   * to an NFL scoreboard margin.
+   *
+   * Keep this provisional until the model
+   * is calibrated against completed games.
+   */
   const projectedMargin = clamp(
-    erlEdge * 0.55,
+    erlEdge * 0.3,
     0,
-    21
+    14
   );
 
   const dataCompleteness =
@@ -303,11 +325,18 @@ export function runERLNFLBrain(
     uncertainty >= 65 ||
     erlEdge < 3;
 
+    /*
+   * Overall recommendation strength.
+   *
+   * Keep rating separation influential without
+   * counting it so heavily that strong matchups
+   * automatically saturate at 100.
+   */
   const erlRating = clamp(
-    preferred.powerRating * 0.75 +
-      erlEdge * 1.25 +
-      dataCompleteness * 0.12 -
-      uncertainty * 0.08
+    preferred.powerRating * 0.65 +
+      erlEdge * 0.45 +
+      dataCompleteness * 0.1 -
+      uncertainty * 0.1
   );
 
   const reasons = [

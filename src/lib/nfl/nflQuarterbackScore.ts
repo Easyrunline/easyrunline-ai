@@ -119,17 +119,25 @@ export function scoreNFLQuarterbackSituation(
   let score = 55;
   const reasons: string[] = [];
 
-  const starterConfirmed = likelyStarter.depth === 1;
+    const listedFirst =
+    likelyStarter.depth === 1;
 
-  if (starterConfirmed) {
-    score += 15;
+  /*
+   * ESPN roster depth identifies the likely
+   * starter, but it is not official game-day
+   * confirmation.
+   */
+  const starterConfirmed = false;
+
+  if (listedFirst) {
+    score += 8;
     reasons.push(
-      "Listed as the first quarterback on the depth chart."
+      "Listed first on the quarterback depth chart, but not confirmed for game day."
     );
   } else {
     score -= 5;
     reasons.push(
-      "Starting-quarterback position is not clearly confirmed."
+      "Starting-quarterback position is not clearly identified or confirmed."
     );
   }
 

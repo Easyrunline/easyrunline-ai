@@ -181,24 +181,30 @@ async function findSafestAltSpread() {
       );
       return;
     }
-    const rankedGames = buildNFLIntelligence(
-  games,
-  teamForm,
-  teamQuarterbacks
-)
 
-    
+    const rankedGames =
+      buildNFLIntelligence(
+        games,
+        teamForm,
+        teamQuarterbacks
+      );
 
-    
-      
+    const availableSelections: Array<{
+      selection: NonNullable<
+        ReturnType<
+          typeof findSafestAvailableSpread
+        >
+      >;
+      candidate:
+        (typeof rankedGames)[number];
+    }> = [];
 
+    for (const candidate of rankedGames) {
+      if (candidate.avoid) {
+        continue;
+      }
 
-   for (const candidate of rankedGames) {
-  if (candidate.avoid) {
-    continue;
-  }
-
-  const response = await fetch(
+      const response = await fetch(
         `/api/nfl-alternate-spreads?eventId=${encodeURIComponent(
           candidate.eventId
         )}`,
@@ -211,71 +217,108 @@ async function findSafestAltSpread() {
         continue;
       }
 
-      const data = (await response.json()) as {
-        available?: boolean;
-        bookmakers?: NFLAlternateSpreadBookmaker[];
-        message?: string;
-      };
+      const data =
+        (await response.json()) as {
+          available?: boolean;
+          bookmakers?:
+            NFLAlternateSpreadBookmaker[];
+        };
 
       if (!data.available) {
         continue;
       }
 
-      const selection = findSafestAvailableSpread(
-  data.bookmakers || [],
-  {
-    homeTeam: candidate.homeTeam,
-    awayTeam: candidate.awayTeam,
+      const selection =
+        findSafestAvailableSpread(
+          data.bookmakers || [],
+          {
+            homeTeam:
+              candidate.homeTeam,
 
-    preferredTeam:
-      candidate.preferredTeam,
+            awayTeam:
+              candidate.awayTeam,
 
-    projectedMargin:
-      candidate.projectedMargin,
+            preferredTeam:
+              candidate.preferredTeam,
 
-    erlRating:
-      candidate.preferredScore,
+            projectedMargin:
+              candidate.projectedMargin,
 
-    uncertainty:
-      candidate.uncertainty,
+            erlRating:
+              candidate.preferredScore,
 
-    dataCompleteness:
-      candidate.dataCompleteness,
-  }
-);
+            uncertainty:
+              candidate.uncertainty,
 
-      if (selection) {
-  const opponentScore =
-    candidate.preferredScore - candidate.scoreGap;
+            dataCompleteness:
+              candidate.dataCompleteness,
+          }
+        );
 
-  const rating = buildERLRating(
-    candidate.preferredScore,
-    opponentScore
-  );
+      if (!selection) {
+        continue;
+      }
 
-  setSafestAltSpread(selection);
-
-  setSafestAltMessage(
-    `EasyRunLine preferred team: ${
-      candidate.preferredTeam
-    }. ERL Score: ${
-      rating.score
-    }/100. EasyRunLine Edge: ${
-      rating.edge > 0 ? "+" : ""
-    }${rating.edge}. ${
-      rating.edgeGrade
-    }. Confidence: ${
-      rating.confidence
-    }. ${rating.starDisplay}. ${
-      rating.summary
-    }`
-  );
-
-  return;
-}
+      availableSelections.push({
+        selection,
+        candidate,
+      });
     }
 
-    const strongestCandidate = rankedGames[0];
+    const bestResult =
+      availableSelections.sort(
+        (resultA, resultB) => {
+          const safetyDifference =
+            resultB.selection.safetyScore -
+            resultA.selection.safetyScore;
+
+          if (safetyDifference !== 0) {
+            return safetyDifference;
+          }
+
+          return (
+            resultB.selection.modelCushion -
+            resultA.selection.modelCushion
+          );
+        }
+      )[0];
+
+    if (bestResult) {
+      const { selection, candidate } =
+        bestResult;
+
+      const opponentScore =
+        candidate.preferredScore -
+        candidate.scoreGap;
+
+      const rating = buildERLRating(
+        candidate.preferredScore,
+        opponentScore
+      );
+
+      setSafestAltSpread(selection);
+
+      setSafestAltMessage(
+        `EasyRunLine preferred team: ${
+          candidate.preferredTeam
+        }. ERL Score: ${
+          rating.score
+        }/100. EasyRunLine Edge: ${
+          rating.edge > 0 ? "+" : ""
+        }${rating.edge}. ${
+          rating.edgeGrade
+        }. NFL Brain Confidence: ${
+          candidate.confidence
+        }. ${rating.summary}`
+      );
+
+      return;
+    }
+
+    const strongestCandidate =
+      rankedGames.find(
+        (candidate) => !candidate.avoid
+      );
 
     if (!strongestCandidate) {
       setSafestAltMessage(
@@ -285,22 +328,32 @@ async function findSafestAltSpread() {
     }
 
     const strongestGame = games.find(
-  (game) => game.id === strongestCandidate.eventId
-);
+      (game) =>
+        game.id ===
+        strongestCandidate.eventId
+    );
 
-const mainSpreadMarket = strongestGame
-  ? getMarket(strongestGame, "spreads")
-  : undefined;
+    const mainSpreadMarket =
+      strongestGame
+        ? getMarket(
+            strongestGame,
+            "spreads"
+          )
+        : undefined;
 
     const mainSpreadOutcome =
       mainSpreadMarket?.outcomes.find(
         (outcome) =>
-          outcome.name === strongestCandidate.preferredTeam
+          outcome.name ===
+          strongestCandidate.preferredTeam
       );
 
     const currentMainSpread =
-      mainSpreadOutcome?.point !== undefined
-        ? formatNFLSpread(mainSpreadOutcome.point)
+      mainSpreadOutcome?.point !==
+      undefined
+        ? formatNFLSpread(
+            mainSpreadOutcome.point
+          )
         : "unavailable";
 
     setSafestAltMessage(
@@ -319,6 +372,7 @@ const mainSpreadMarket = strongestGame
     setSafestAltLoading(false);
   }
 }
+
 async function findBestTwoLegAltSpread() {
   clearNFLAnalysisResults();
   try {
@@ -403,9 +457,7 @@ async function findBestTwoLegAltSpread() {
         scoreGap: candidate.scoreGap,
       });
 
-      if (availableLegs.length === 2) {
-        break;
-      }
+     
     }
 
     const parlay = buildNFLAlternateSpreadParlay(
