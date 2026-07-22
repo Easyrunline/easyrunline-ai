@@ -194,7 +194,11 @@ async function findSafestAltSpread() {
 
 
    for (const candidate of rankedGames) {
-      const response = await fetch(
+  if (candidate.avoid) {
+    continue;
+  }
+
+  const response = await fetch(
         `/api/nfl-alternate-spreads?eventId=${encodeURIComponent(
           candidate.eventId
         )}`,
@@ -337,7 +341,11 @@ async function findBestTwoLegAltSpread() {
     const availableLegs: NFLAlternateSpreadLeg[] = [];
 
     for (const candidate of rankedGames) {
-      const response = await fetch(
+  if (candidate.avoid) {
+    continue;
+  }
+
+  const response = await fetch(
         `/api/nfl-alternate-spreads?eventId=${encodeURIComponent(
           candidate.eventId
         )}`,
