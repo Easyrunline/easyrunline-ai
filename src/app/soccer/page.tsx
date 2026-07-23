@@ -696,6 +696,14 @@ function analyzeSelectedSoccerGame(
       normalizedQuestion.includes(
         "under4.5"
       );
+      const asksForSafestVerifiedMarket =
+  normalizedQuestion.includes(
+    "safest verified market"
+  ) ||
+  normalizedQuestion.includes(
+    "safest available market"
+  );
+  
 
     const asksForHandicap =
       normalizedQuestion.includes(
@@ -705,12 +713,15 @@ function analyzeSelectedSoccerGame(
         "spread"
       );
 
-    if (asksForUnder45) {
+    if (
+  asksForUnder45 ||
+  asksForSafestVerifiedMarket
+) {
       await findSafestUnder45();
 
       setAnswer(
-        `EasyRunLine checked verified alternate-total markets for ${selectedCompetition}. The highest-rated available Under 4.5 result is displayed below with its exact line, price, bookmaker and start time.`
-      );
+  `EasyRunLine reviewed the verified safety-oriented markets currently connected for ${selectedCompetition}. The highest-ranked available result is the Under 4.5 selection displayed below with its exact price, bookmaker, start time, relative market-safety ranking and matchup intelligence.`
+);
 
       return;
     }
@@ -1267,7 +1278,7 @@ function formatSpread(outcome?: SoccerOutcome) {
 
       <div>
         <p className="text-xs text-gray-500">
-          Market Safety Rank
+          Relative Market Safety Rank
         </p>
 
         <p className="font-bold text-cyan-400">
@@ -1301,37 +1312,58 @@ function formatSpread(outcome?: SoccerOutcome) {
 
     <div className="mt-4 border-t border-cyan-900 pt-4">
   <p className="text-sm font-bold uppercase tracking-wide text-cyan-400">
-    EasyRunLine Market Verdict:{" "}
+    EasyRunLine Market Classification:{" "}
     {safestUnder45Pick.safetyScore >= 85
-      ? "Strong Market Support"
+      ? "Highest Verified Market Protection"
       : safestUnder45Pick.safetyScore >= 70
-        ? "Moderate Market Support"
-        : "Limited Market Support"}
+        ? "Moderate Verified Market Protection"
+        : "Limited Verified Market Protection"}
   </p>
 
   <p className="mt-2 text-sm leading-6 text-gray-300">
     EasyRunLine ranks Under{" "}
     {safestUnder45Pick.point} in{" "}
     {safestUnder45Pick.awayTeam} at{" "}
-    {safestUnder45Pick.homeTeam} as the strongest
-    verified safety-oriented total currently available
-    in {selectedCompetition}. The exact market is confirmed
+    {safestUnder45Pick.homeTeam} as the most protected
+    verified Under 4.5 market currently identified in{" "}
+    {selectedCompetition}. The exact market is available
     at {formatPrice(safestUnder45Pick.price)} with{" "}
-    {safestUnder45Pick.bookmaker}, and the current market
-    consensus supports this selection.
+    {safestUnder45Pick.bookmaker}.
+  </p>
+
+  <p className="mt-2 text-sm font-semibold text-white">
+    Price Profile:{" "}
+    <span
+      className={
+        safestUnder45Pick.price < 1.1
+          ? "text-amber-400"
+          : safestUnder45Pick.price < 1.25
+            ? "text-yellow-400"
+            : "text-emerald-400"
+      }
+    >
+      {safestUnder45Pick.price < 1.1
+        ? "Very Low Return"
+        : safestUnder45Pick.price < 1.25
+          ? "Low Return"
+          : "Standard Return"}
+    </span>
   </p>
 
   <p className="mt-2 text-xs leading-5 text-gray-500">
-    This is the system’s preferred market-safety option,
-    not a guarantee or a claim of positive betting value.
-    Always confirm the displayed line and price before
-    placing a wager.
+    The Relative Market Safety Rank compares this selection
+    with the other verified Under 4.5 markets currently
+    available in this competition. It is not a predicted
+    probability, guarantee or claim of positive betting
+    value. Always confirm the displayed line and price
+    before placing a wager.
   </p>
 </div>
 </div>
 )}
 
-{safestUnder45Message && (
+{safestUnder45Message &&
+  !safestUnder45Pick && (
   <div className="mt-4 rounded-lg border border-cyan-900 bg-cyan-950/20 p-4 text-sm text-cyan-200">
     {safestUnder45Message}
   </div>
