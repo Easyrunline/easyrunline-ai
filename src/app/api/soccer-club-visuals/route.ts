@@ -65,6 +65,12 @@ const teamNameAliases: Record<string, string> = {
   "Deportivo de A Coruña",
   "real racing club de santander":
   "Racing de Santander",
+  "inter miami cf": "Inter Miami",
+"minnesota united fc": "Minnesota United",
+"seattle sounders fc": "Seattle Sounders",
+};
+const teamIdOverrides: Record<string, string> = {
+  "st. louis city sc": "147062",
 };
 
 function normalizeTeamName(value: string) {
@@ -140,6 +146,62 @@ export async function GET(request: NextRequest) {
     const url = new URL(
   `https://www.thesportsdb.com/api/v1/json/${apiKey}/searchteams.php`
 );
+const teamIdOverride =
+  teamIdOverrides[teamName.toLowerCase()];
+
+if (teamIdOverride) {
+  const lookupUrl = new URL(
+    `https://www.thesportsdb.com/api/v1/json/${apiKey}/lookupteam.php`
+  );
+
+  lookupUrl.searchParams.set(
+    "id",
+    teamIdOverride
+  );
+
+  const lookupResponse = await fetch(
+    lookupUrl,
+    {
+      next: {
+        revalidate: 86400,
+      },
+    }
+  );
+
+  if (lookupResponse.ok) {
+    const lookupData =
+      (await lookupResponse.json()) as
+        SportsDbResponse;
+
+    const overrideTeam =
+      lookupData.teams?.[0] || null;
+
+    if (overrideTeam) {
+      return NextResponse.json({
+        team:
+          overrideTeam.strTeam ||
+          teamName,
+
+        badge:
+          overrideTeam.strBadge
+            ? `${overrideTeam.strBadge}/small`
+            : null,
+
+        primaryColor:
+          overrideTeam.strColour1 ||
+          null,
+
+        secondaryColor:
+          overrideTeam.strColour2 ||
+          null,
+
+        tertiaryColor:
+          overrideTeam.strColour3 ||
+          null,
+      });
+    }
+  }
+}
 
 url.searchParams.set("t", resolvedTeamName);
 
