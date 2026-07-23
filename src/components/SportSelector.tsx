@@ -7,7 +7,7 @@ const sports = [
   {
   name: "MLB",
   icon: "⚾",
-  path: "/",
+  path: "/mlb",
 },
   {
     name: "NFL",
