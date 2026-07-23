@@ -52,6 +52,8 @@ const teamNameAliases: Record<string, string> = {
   "1. fc köln": "FC Köln",
   "bayer leverkusen": "Bayer Leverkusen",
   "borussia mönchengladbach": "Borussia Monchengladbach",
+  "as roma": "Roma",
+"atalanta bc": "Atalanta",
   "athletic bilbao": "Athletic Bilbao",
   "atlético madrid": "Atletico Madrid",
   "alavés": "Deportivo Alaves",
