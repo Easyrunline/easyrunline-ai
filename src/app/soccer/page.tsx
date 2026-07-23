@@ -1616,7 +1616,9 @@ const awayVisual = getClubVisual(
 
       {!loading && !error && games.length === 0 && (
         <div className="mt-8 rounded-xl border border-gray-800 bg-gray-950 p-8 text-center text-gray-500">
-          Select a competition to load available fixtures.
+          No currently available fixtures were returned for{" "}
+{selectedCompetition}. Please check again when bookmaker
+markets open.
         </div>
       )}
     </main>
