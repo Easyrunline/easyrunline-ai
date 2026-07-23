@@ -51,7 +51,13 @@ const teamNameAliases: Record<string, string> = {
   "borussia mönchengladbach": "Borussia Monchengladbach",
   "athletic bilbao": "Athletic Bilbao",
   "atlético madrid": "Atletico Madrid",
-  "alavés": "Alaves",
+  "alavés": "Deportivo Alaves",
+  "ca osasuna": "Osasuna",
+"elche cf": "Elche",
+"deportivo la coruña":
+  "Deportivo de A Coruña",
+  "real racing club de santander":
+  "Racing de Santander",
 };
 
 function normalizeTeamName(value: string) {

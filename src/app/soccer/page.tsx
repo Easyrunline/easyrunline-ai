@@ -248,18 +248,88 @@ setAnswer("");
 
     const rawGames = data.games || [];
 
-const loadedGames = Array.from(
-  new Map(
-    rawGames.map((game) => {
-      const fixtureKey = [
-        game.home_team.trim().toLowerCase(),
-        game.away_team.trim().toLowerCase(),
-        game.commence_time,
-      ].join("|");
+/*
+ * Remove near-date duplicate fixtures returned as
+ * separate event records by the odds provider.
+ *
+ * When the same home and away teams appear within
+ * 14 days, retain the event supported by the largest
+ * number of bookmakers.
+ */
+const duplicateWindowMs =
+  14 * 24 * 60 * 60 * 1000;
 
-      return [fixtureKey, game];
-    })
-  ).values()
+const loadedGames: SoccerGame[] = [];
+
+const gamesByKickoff = [...rawGames].sort(
+  (a, b) =>
+    new Date(a.commence_time).getTime() -
+    new Date(b.commence_time).getTime()
+);
+
+for (const game of gamesByKickoff) {
+  const homeTeam =
+    game.home_team.trim().toLowerCase();
+
+  const awayTeam =
+    game.away_team.trim().toLowerCase();
+
+  const kickoffTime = new Date(
+    game.commence_time
+  ).getTime();
+
+  const duplicateIndex = loadedGames.findIndex(
+    (existingGame) => {
+      const sameMatchup =
+        existingGame.home_team
+          .trim()
+          .toLowerCase() === homeTeam &&
+        existingGame.away_team
+          .trim()
+          .toLowerCase() === awayTeam;
+
+      if (!sameMatchup) {
+        return false;
+      }
+
+      const existingKickoffTime = new Date(
+        existingGame.commence_time
+      ).getTime();
+
+      return (
+        Math.abs(
+          kickoffTime - existingKickoffTime
+        ) <= duplicateWindowMs
+      );
+    }
+  );
+
+  if (duplicateIndex === -1) {
+    loadedGames.push(game);
+    continue;
+  }
+
+  const existingGame =
+    loadedGames[duplicateIndex];
+
+  const currentBookmakerCount =
+    game.bookmakers?.length ?? 0;
+
+  const existingBookmakerCount =
+    existingGame.bookmakers?.length ?? 0;
+
+  if (
+    currentBookmakerCount >
+    existingBookmakerCount
+  ) {
+    loadedGames[duplicateIndex] = game;
+  }
+}
+
+loadedGames.sort(
+  (a, b) =>
+    new Date(a.commence_time).getTime() -
+    new Date(b.commence_time).getTime()
 );
 
 setGames(loadedGames);
