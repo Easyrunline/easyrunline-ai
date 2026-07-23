@@ -368,6 +368,7 @@ await Promise.all(
   }
   }
   function findSafestHandicap() {
+      setAnswer("");
   setSafestHandicapPick(null);
   setSafestHandicapMessage("");
   setSafestUnder45Pick(null);
@@ -469,6 +470,7 @@ setSafestUnder45Message("");
   );
 }
   async function findSafestUnder45() {
+    setAnswer("");
   setSafestUnder45Pick(null);
   setSafestUnder45Message("");
 

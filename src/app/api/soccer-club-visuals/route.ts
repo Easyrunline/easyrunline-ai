@@ -45,7 +45,10 @@ const teamNameAliases: Record<string, string> = {
   "nottingham forest": "Nottingham Forest",
   "sunderland": "Sunderland",
   "tottenham hotspur": "Tottenham Hotspur",
-
+"fc schalke 04": "Schalke 04",
+"tsg hoffenheim": "Hoffenheim",
+"vfb stuttgart": "Stuttgart",
+"fsv mainz 05": "Mainz",
   "1. fc köln": "FC Köln",
   "bayer leverkusen": "Bayer Leverkusen",
   "borussia mönchengladbach": "Borussia Monchengladbach",
