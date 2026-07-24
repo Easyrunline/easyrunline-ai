@@ -5,7 +5,8 @@ import {
   useRef,
   useState,
 } from "react";
-import SportSelector from "@/components/SportSelector";
+
+import LeagueHeader from "@/components/LeagueHeader";
 
 import NHLGameCard from "@/components/nhl/NHLGameCard";
 
@@ -2148,37 +2149,13 @@ Always verify the exact alternate line and price.
 
   return (
     <main className="min-h-screen bg-black text-white">
-      <header className="bg-black">
-  <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-    <div>
-      <p className="text-sm font-bold tracking-[0.25em] text-yellow-400">
-        EASYRUNLINE AI
-      </p>
-
-      <p className="mt-1 text-xs text-zinc-500">
-        Multi-Sport Intelligence
-      </p>
-    </div>
-
-    <SportSelector />
-  </div>
-</header>
+      
       <div className="mx-auto max-w-7xl px-6 py-10">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold">
-            🏒 EASYRUNLINE AI
-          </h1>
-
-          <p className="mt-3 text-lg text-zinc-400">
-            National Hockey League
-          </p>
-
-          <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-zinc-500">
-            NHL puck-line intelligence,
-            goalie analysis, team form and
-            market-based recommendations.
-          </p>
-        </div>
+        <LeagueHeader
+  subtitle="NHL PUCK-LINE INTELLIGENCE"
+  title="EasyRunLine NHL Analysis"
+/>
+        
                 <section className="mx-auto mt-8 max-w-3xl">
           <div className="rounded-2xl border border-yellow-500/30 bg-zinc-950 p-4 shadow-xl">
             <textarea
