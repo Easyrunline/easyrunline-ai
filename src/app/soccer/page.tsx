@@ -6,6 +6,8 @@ import {
   useState,
 } from "react";
 import SportSelector from "@/components/SportSelector";
+import Image from "next/image";
+import Link from "next/link";
 import {
   buildSoccerIntelligence,
   type RankedSoccerGame,
@@ -1023,29 +1025,64 @@ function formatSpread(outcome?: SoccerOutcome) {
   return `${line} at ${formatPrice(outcome.price)}`;
 }
   return (
-    <main className="min-h-screen bg-black p-8 text-white">
-      <div className="flex flex-col gap-6 sm:flex-row sm:items-start sm:justify-between">
-  <div>
+    <main className="min-h-screen bg-black text-white">
+      <header className="bg-black/95">
+  <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+    <Link
+      href="/"
+      className="flex items-center gap-3"
+      aria-label="Return to EasyRunLine homepage"
+    >
+      <Image
+        src="/brand/erl-logo.png"
+        alt="EasyRunLine Logo"
+        width={44}
+        height={44}
+        priority
+        className="rounded-lg"
+      />
+
+      <div>
+        <p className="text-sm font-black tracking-[0.22em] text-yellow-400">
+          EASYRUNLINE
+        </p>
+
+        <p className="mt-1 text-xs text-zinc-500">
+          Soccer Intelligence
+        </p>
+      </div>
+    </Link>
+
+    <div className="flex items-center gap-3">
+      <Link
+        href="/"
+        className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-yellow-400 hover:text-yellow-400"
+      >
+        ← Home
+      </Link>
+
+      <SportSelector />
+    </div>
+  </div>
+</header>
+
+<section className="mx-auto max-w-7xl px-6 py-10">
+  <div className="max-w-3xl">
     <p className="text-sm font-bold uppercase tracking-[0.3em] text-yellow-400">
-      Soccer Intelligence
+      SOCCER INTELLIGENCE
     </p>
 
-    <h1 className="mt-2 text-3xl font-bold text-white sm:text-4xl">
+    <h1 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
       EasyRunLine Soccer
     </h1>
 
-    <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-400 sm:text-base">
-      Competition-specific matchup intelligence, verified market data
-      and risk-aware football analysis.
+    <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
+      Competition-specific matchup intelligence, verified market data and
+      risk-aware football analysis.
     </p>
   </div>
 
-  <div className="shrink-0">
-    <SportSelector />
-  </div>
-</div>
-
-            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mx-auto mt-12 grid max-w-6xl gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {competitions.map((competition) => (
           <button
             type="button"
@@ -1085,7 +1122,7 @@ function formatSpread(outcome?: SoccerOutcome) {
           </button>
         ))}
       </div>
-      <div className="mt-8 rounded-2xl border border-yellow-500/30 bg-gray-950 p-4">
+      <div className="mx-auto mt-10 max-w-6xl rounded-2xl border border-yellow-500/30 bg-gray-950 p-4">
   <textarea
     value={question}
     onChange={(event) =>
@@ -1133,7 +1170,7 @@ function formatSpread(outcome?: SoccerOutcome) {
           {error}
         </div>
       )}
-      <div className="mt-6 flex flex-wrap gap-3">
+      <div className="mx-auto mt-8 flex max-w-6xl flex-wrap gap-3">
   <button
     type="button"
     onClick={findSafestHandicap}
@@ -1158,7 +1195,7 @@ function formatSpread(outcome?: SoccerOutcome) {
 </button>
 </div>
 {safestHandicapPick && (
-  <div className="mt-6 rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
+  <div className="mx-auto mt-8 max-w-6xl rounded-xl border border-emerald-700 bg-emerald-950/20 p-6">
     <p className="text-xs font-bold uppercase tracking-widest text-emerald-400">
       EasyRunLine — Safest Handicap
     </p>
@@ -1366,13 +1403,13 @@ function formatSpread(outcome?: SoccerOutcome) {
 
 {safestUnder45Message &&
   !safestUnder45Pick && (
-  <div className="mt-4 rounded-lg border border-cyan-900 bg-cyan-950/20 p-4 text-sm text-cyan-200">
-    {safestUnder45Message}
-  </div>
-)}
+    <div className="mx-auto mt-8 max-w-6xl rounded-lg border border-cyan-900 bg-cyan-950/20 p-4 text-sm text-cyan-200">
+      {safestUnder45Message}
+    </div>
+  )}
 
       {!loading && !error && games.length > 0 && (
-        <div className="mt-8 grid gap-6 lg:grid-cols-2">
+        <div className="mx-auto mt-10 grid max-w-6xl gap-8 lg:grid-cols-2">
           {games.map((game) => {
   const h2h = getMarket(game, "h2h");
   const spreads = getMarket(game, "spreads");
@@ -1621,6 +1658,7 @@ const awayVisual = getClubVisual(
 markets open.
         </div>
       )}
+      </section>
     </main>
   );
 }
