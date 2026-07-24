@@ -109,6 +109,10 @@ function getGameIntelligence(
 }
 
 export default function NBAPage() {
+  const [question, setQuestion] = useState("");
+const [answer, setAnswer] = useState("");
+const [questionLoading, setQuestionLoading] =
+  useState(false);
   const [games, setGames] = useState<NBAGame[]>([]);
   const [teamForm] = useState<NBATeamForm[]>([]);
 
@@ -175,7 +179,48 @@ const [
   useState<NBAPremiumMarketKey | null>(
     null
   );
-  
+  async function analyzeQuestion() {
+  if (!question.trim()) {
+    return;
+  }
+
+  try {
+    setQuestionLoading(true);
+    setAnswer("");
+
+    const response = await fetch("/api/analyze", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        question: question.trim(),
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(
+        data.error ||
+          "Could not complete NBA analysis."
+      );
+    }
+
+    setAnswer(
+      data.answer ||
+        "No NBA analysis was returned."
+    );
+  } catch (error) {
+    setAnswer(
+      error instanceof Error
+        ? error.message
+        : "Could not complete NBA analysis."
+    );
+  } finally {
+    setQuestionLoading(false);
+  }
+}
 
   useEffect(() => {
     async function loadGames() {
@@ -612,14 +657,58 @@ async function findBestPremiumMarket(
   return (
     <main className="min-h-screen bg-black px-4 py-8 text-white sm:px-6 lg:px-8">
       <div className="mx-auto max-w-7xl">
-        <SportSelector />
+        
 
-        <div className="mt-8">
-          <LeagueHeader
-            title="EasyRunLine NBA"
-            subtitle="NBA Spread and Game Intelligence"
-          />
-        </div>
+        <LeagueHeader
+  title="EasyRunLine"
+  subtitle="NBA Spread and Game Intelligence"
+/>
+
+<section className="mt-12 mb-10 max-w-3xl">
+  <p className="text-sm font-bold uppercase tracking-[0.3em] text-yellow-400">
+    NBA SPREAD INTELLIGENCE
+  </p>
+
+  <h1 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
+    Live NBA Games and Protected
+    <br />
+    Alternate Spread Analysis
+  </h1>
+
+  <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
+    Review team form, injuries, market movement and EasyRunLine
+    alternate spread analysis.
+  </p>
+</section>
+<div className="mb-10 w-full max-w-2xl rounded-2xl border border-yellow-500/30 bg-zinc-950 p-4 shadow-2xl">
+  <textarea
+    value={question}
+    onChange={(event) =>
+      setQuestion(event.target.value)
+    }
+    className="h-32 w-full resize-none rounded-xl border border-zinc-800 bg-black p-4 text-white outline-none placeholder:text-zinc-600 focus:border-yellow-500/60"
+    placeholder="Ask EasyRunLine AI: Is Lakers +6.5 a good bet tonight?"
+  />
+
+  <button
+    type="button"
+    onClick={analyzeQuestion}
+    disabled={
+      questionLoading || !question.trim()
+    }
+    className="mt-4 w-full rounded-xl bg-yellow-400 px-6 py-4 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {questionLoading
+      ? "Analyzing..."
+      : "Analyze"}
+  </button>
+</div>
+
+{answer && (
+  <div className="mb-10 w-full max-w-2xl whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left text-zinc-200">
+    {answer}
+  </div>
+)}
         <div className="mb-8 flex flex-wrap gap-3">
   <button
     type="button"
