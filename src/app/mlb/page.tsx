@@ -12,6 +12,7 @@ import {
   getUnderdogPick,
   type ScoredPick,
 } from "@/lib/erlScore";
+import Image from "next/image";
 
 type Outcome = {
   name: string;
@@ -1497,9 +1498,14 @@ Always explain uncertainty.
       className="flex items-center gap-3"
       aria-label="Return to EasyRunLine homepage"
     >
-      <div className="flex h-12 w-11 items-center justify-center bg-yellow-400 text-xs font-black text-black [clip-path:polygon(50%_0%,100%_18%,88%_78%,50%_100%,12%_78%,0%_18%)]">
-        ERL
-      </div>
+      <Image
+  src="/brand/erl-logo.png"
+  alt="EasyRunLine Logo"
+  width={44}
+  height={44}
+  priority
+  className="rounded-lg"
+/>
 
       <div>
         <p className="text-sm font-black tracking-[0.22em] text-yellow-400">
@@ -1512,7 +1518,16 @@ Always explain uncertainty.
       </div>
     </Link>
 
-    <SportSelector />
+    <div className="flex items-center gap-3">
+  <Link
+    href="/"
+    className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-yellow-400 hover:text-yellow-400"
+  >
+    ← Home
+  </Link>
+
+  <SportSelector />
+</div>
   </div>
 </header>
 

@@ -2148,14 +2148,33 @@ Always verify the exact alternate line and price.
   }, []);
 
   return (
-    <main className="min-h-screen bg-black text-white">
-      
-      <div className="mx-auto max-w-7xl px-6 py-10">
-        <LeagueHeader
-  subtitle="NHL PUCK-LINE INTELLIGENCE"
-  title="EasyRunLine NHL Analysis"
-/>
+  <main className="min-h-screen bg-black text-white">
+    <LeagueHeader
+      title="EASYRUNLINE"
+      subtitle="NHL Intelligence"
+    />
+
+    <div className="mx-auto max-w-7xl px-6 py-10">
         
+
+  <section className="max-w-3xl">
+  <p className="text-xs font-bold uppercase tracking-[0.3em] text-yellow-400">
+    NHL PUCK-LINE INTELLIGENCE
+  </p>
+
+  <h1 className="mt-3 text-4xl font-bold leading-tight text-white sm:text-5xl">
+    Live NHL Games and Protected
+    <br />
+    +2.5 Puck-Line Analysis
+  </h1>
+
+  <p className="mt-6 max-w-2xl text-base leading-7 text-zinc-400">
+  Review projected goalies, recent form, team strength and
+  EasyRunLine alternate +2.5 puck-line analysis.
+</p>
+</section>
+
+  
                 <section className="mx-auto mt-8 max-w-3xl">
           <div className="rounded-2xl border border-yellow-500/30 bg-zinc-950 p-4 shadow-xl">
             <textarea

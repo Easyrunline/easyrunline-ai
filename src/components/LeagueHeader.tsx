@@ -13,33 +13,32 @@ export default function LeagueHeader({
   subtitle,
 }: LeagueHeaderProps) {
   return (
-    <div className="mb-8 border-b border-zinc-800 pb-6">
-      <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <Link
-            href="/"
-            aria-label="EasyRunLine Home"
-          >
-            <Image
-              src="/brand/erl-logo.png"
-              alt="EasyRunLine Logo"
-              width={64}
-              height={64}
-              priority
-              className="rounded-xl"
-            />
-          </Link>
+    <header className="bg-black">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <Link
+          href="/"
+          aria-label="EasyRunLine Home"
+          className="flex items-center gap-3"
+        >
+          <Image
+            src="/brand/erl-logo.png"
+            alt="EasyRunLine Logo"
+            width={44}
+            height={44}
+            priority
+            className="rounded-lg"
+          />
 
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.25em] text-yellow-400">
-              {subtitle}
+            <p className="text-sm font-bold uppercase tracking-[0.25em] text-yellow-400">
+              {title}
             </p>
 
-            <h1 className="mt-2 text-4xl font-bold text-white">
-              {title}
-            </h1>
+            <p className="mt-1 text-xs text-zinc-500">
+              {subtitle}
+            </p>
           </div>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-3">
           <Link
@@ -52,6 +51,6 @@ export default function LeagueHeader({
           <SportSelector />
         </div>
       </div>
-    </div>
+    </header>
   );
 }
