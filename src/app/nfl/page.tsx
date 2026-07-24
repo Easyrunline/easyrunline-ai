@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
 import { getNFLLogoUrl } from "@/lib/nfl/nflLogos";
 import SportSelector from "@/components/SportSelector";
 import { scoreNFLTeam } from "@/lib/nfl/nflScore";
@@ -676,34 +678,63 @@ async function findBestTwoLegAltSpread() {
   return (
     <main className="min-h-screen bg-black text-white">
       <header className="bg-black/95">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
-          <div>
-            <p className="text-sm font-bold tracking-[0.25em] text-yellow-400">
-              EASYRUNLINE AI
-            </p>
+  <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+    <Link
+      href="/"
+      className="flex items-center gap-3"
+      aria-label="Return to EasyRunLine homepage"
+    >
+      <Image
+        src="/brand/erl-logo.png"
+        alt="EasyRunLine Logo"
+        width={44}
+        height={44}
+        priority
+        className="rounded-lg"
+      />
 
-            <p className="mt-1 text-xs text-zinc-500">
-              Multi-Sport Intelligence
-            </p>
-          </div>
+      <div>
+        <p className="text-sm font-black tracking-[0.22em] text-yellow-400">
+          EASYRUNLINE
+        </p>
 
-          <SportSelector />
-        </div>
-      </header>
+        <p className="mt-1 text-xs text-zinc-500">
+          NFL Intelligence
+        </p>
+      </div>
+    </Link>
+
+    <div className="flex items-center gap-3">
+      <Link
+        href="/"
+        className="rounded-lg border border-zinc-700 px-4 py-2 text-sm font-semibold text-zinc-300 transition hover:border-yellow-400 hover:text-yellow-400"
+      >
+        ← Home
+      </Link>
+
+      <SportSelector />
+    </div>
+  </div>
+</header>
 
       <section className="mx-auto max-w-6xl px-6 py-12">
-        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-yellow-400">
-              NFL Intelligence
-            </p>
+        <div className="max-w-3xl">
+  <p className="text-sm font-bold uppercase tracking-[0.3em] text-yellow-400">
+    NFL INTELLIGENCE
+  </p>
 
-            <h1 className="mt-2 text-3xl font-bold sm:text-4xl">
-              Live NFL Games
-            </h1>
+  <h1 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
+    Live NFL Games and Protected
+    <br />
+    Alternate Spread Analysis
+  </h1>
 
-            
-          </div>
+  <p className="mt-4 max-w-2xl text-base leading-7 text-zinc-400">
+    Review quarterback matchups, recent form, market spreads and
+    EasyRunLine alternate-spread analysis.
+  </p>
+</div>
+<div className="mt-10 flex flex-wrap gap-4">
 
           <button
             type="button"
