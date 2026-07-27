@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import GeneralAIBox from "@/components/GeneralAIBox";
 const sports = [
@@ -119,9 +120,16 @@ export default function HomePage() {
             className="flex items-center gap-3"
             aria-label="EasyRunLine home"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-yellow-400/70 bg-yellow-400/10 text-sm font-black text-yellow-400">
-              ERL
-            </div>
+            <div className="h-12 w-12 shrink-0">
+  <Image
+    src="/brand/erl-logo-transparent.png"
+    alt="EasyRunLine logo"
+    width={48}
+    height={48}
+    priority
+    className="h-full w-full object-contain"
+  />
+</div>
 
             <div>
               <p className="text-sm font-black tracking-[0.22em] text-yellow-400">
@@ -222,9 +230,15 @@ export default function HomePage() {
                   </h2>
                 </div>
 
-                <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-yellow-400/50 bg-yellow-400/10 font-black text-yellow-400">
-                  ERL
-                </div>
+                <div className="h-16 w-16 shrink-0">
+  <Image
+    src="/brand/erl-logo-transparent.png"
+    alt="EasyRunLine intelligence logo"
+    width={64}
+    height={64}
+    className="h-full w-full object-contain"
+  />
+</div>
               </div>
 
               <div className="mt-6 space-y-4">

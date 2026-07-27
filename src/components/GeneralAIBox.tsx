@@ -283,9 +283,9 @@ className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
           >
             <div className="flex items-center justify-between gap-4 border-b border-zinc-900 pb-5">
   <div className="flex items-center gap-3">
-    <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-yellow-500/40 bg-black p-1">
+    <div className="h-11 w-11 shrink-0">
   <Image
-    src="/brand/erl-logo.png"
+    src="/brand/erl-logo-transparent.png"
     alt="EasyRunLine logo"
     width={44}
     height={44}
