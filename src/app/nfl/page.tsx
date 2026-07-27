@@ -30,6 +30,18 @@ import type {
   NFLTeamQuarterbacks,
 } from "@/lib/nfl/nflTypes";
 
+type NFLSafestAltSpreadDisplay =
+  NFLAlternateSpreadSelection & {
+    eventId: string;
+    homeTeam: string;
+    awayTeam: string;
+    opponent: string;
+    commenceTime: string;
+    erlScore: number;
+    confidence: string;
+  };
+
+
 type NFLOddsResponse = {
   games?: NFLGame[];
   error?: string;
@@ -41,10 +53,12 @@ export default function NFLPage() {
   const [teamForm, setTeamForm] = useState<NFLTeamForm[]>([]);
   const [teamQuarterbacks, setTeamQuarterbacks] =
   useState<NFLTeamQuarterbacks[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
   const [safestAltSpread, setSafestAltSpread] =
-  useState<NFLAlternateSpreadSelection | null>(null);
+  useState<NFLSafestAltSpreadDisplay | null>(null);
 
 const [safestAltMessage, setSafestAltMessage] = useState("");
 
@@ -306,7 +320,32 @@ async function findSafestAltSpread() {
         opponentScore
       );
 
-      setSafestAltSpread(selection);
+      const selectedGame = games.find(
+  (game) => game.id === candidate.eventId
+);
+
+if (!selectedGame) {
+  setSafestAltMessage(
+    "The selected NFL matchup could not be matched to its fixture."
+  );
+  return;
+}
+
+const opponent =
+  selection.team === selectedGame.home_team
+    ? selectedGame.away_team
+    : selectedGame.home_team;
+
+setSafestAltSpread({
+  ...selection,
+  eventId: selectedGame.id,
+  homeTeam: selectedGame.home_team,
+  awayTeam: selectedGame.away_team,
+  opponent,
+  commenceTime: selectedGame.commence_time,
+  erlScore: rating.score,
+  confidence: candidate.confidence,
+});
 
       setSafestAltMessage(
         `EasyRunLine preferred team: ${
@@ -674,6 +713,269 @@ async function findBestTwoLegAltSpread() {
     }
   }
 
+function analyzeSelectedNFLGame(game: NFLGame) {
+  clearNFLAnalysisResults();
+
+  const moneyline = getMarket(game, "h2h");
+  const spread = getMarket(game, "spreads");
+  const total = getMarket(game, "totals");
+
+  const awayMoneyline = getTeamOutcome(
+    moneyline,
+    game.away_team
+  );
+
+  const homeMoneyline = getTeamOutcome(
+    moneyline,
+    game.home_team
+  );
+
+  const awaySpread = getTeamOutcome(
+    spread,
+    game.away_team
+  );
+
+  const homeSpread = getTeamOutcome(
+    spread,
+    game.home_team
+  );
+
+  const over = getNamedOutcome(total, "Over");
+  const under = getNamedOutcome(total, "Under");
+
+  const awayForm = teamForm.find(
+    (team) => team.team === game.away_team
+  );
+
+  const homeForm = teamForm.find(
+    (team) => team.team === game.home_team
+  );
+
+  const awayQuarterbacks =
+    teamQuarterbacks.find(
+      (team) => team.team === game.away_team
+    )?.quarterbacks ?? [];
+
+  const homeQuarterbacks =
+    teamQuarterbacks.find(
+      (team) => team.team === game.home_team
+    )?.quarterbacks ?? [];
+
+  const findLikelyQuarterback = (
+    quarterbacks: typeof awayQuarterbacks
+  ) => {
+    const activeQuarterbacks = quarterbacks.filter(
+      (quarterback) =>
+        quarterback.status === "Active"
+    );
+
+    return (
+      activeQuarterbacks.find(
+        (quarterback) =>
+          quarterback.depth === 1
+      ) ??
+      [...activeQuarterbacks].sort(
+        (a, b) =>
+          b.experienceYears -
+          a.experienceYears
+      )[0]
+    );
+  };
+
+  const awayQuarterback =
+    findLikelyQuarterback(awayQuarterbacks);
+
+  const homeQuarterback =
+    findLikelyQuarterback(homeQuarterbacks);
+
+  const awayScore = scoreNFLTeam(
+    awayForm,
+    game.away_team,
+    false
+  );
+
+  const homeScore = scoreNFLTeam(
+    homeForm,
+    game.home_team,
+    true
+  );
+
+  const homeIsPreferred =
+    homeScore.score >= awayScore.score;
+
+  const preferredTeam = homeIsPreferred
+    ? game.home_team
+    : game.away_team;
+
+  const preferredScore = homeIsPreferred
+    ? homeScore
+    : awayScore;
+
+  const opponentScore = homeIsPreferred
+    ? awayScore
+    : homeScore;
+
+  const scoreGap = Math.abs(
+    preferredScore.score -
+      opponentScore.score
+  );
+
+  const verdict =
+    preferredScore.score >= 70 &&
+    scoreGap >= 10 &&
+    preferredScore.confidence !== "Low"
+      ? "PLAY"
+      : preferredScore.score >= 60 &&
+          scoreGap >= 6
+        ? "LEAN"
+        : "PASS";
+
+  const formatRecord = (
+    form: NFLTeamForm | undefined,
+    period: "last5" | "last10"
+  ) => {
+    if (!form) {
+      return "Not supplied";
+    }
+
+    if (period === "last5") {
+      return `${form.winsLast5}-${form.lossesLast5}${
+        form.tiesLast5 > 0
+          ? `-${form.tiesLast5}`
+          : ""
+      }`;
+    }
+
+    return `${form.winsLast10}-${form.lossesLast10}${
+      form.tiesLast10 > 0
+        ? `-${form.tiesLast10}`
+        : ""
+    }`;
+  };
+
+  const report = `
+══════════════════════════════
+🏈 EASYRUNLINE NFL REPORT
+══════════════════════════════
+
+Matchup:
+${game.away_team} at ${game.home_team}
+
+Local Start Time:
+${new Date(game.commence_time).toLocaleString()}
+
+UTC Start Time:
+${new Date(game.commence_time).toISOString()}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📊 EasyRunLine Intelligence
+
+Preferred Team:
+${preferredTeam}
+
+${game.away_team} ERL Score:
+${awayScore.score}/100
+
+${game.home_team} ERL Score:
+${homeScore.score}/100
+
+Score Gap:
+${scoreGap.toFixed(1)}
+
+Engine Confidence:
+${preferredScore.confidence}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Visible Markets
+
+Away Moneyline:
+${game.away_team} ${formatPrice(awayMoneyline?.price)}
+
+Home Moneyline:
+${game.home_team} ${formatPrice(homeMoneyline?.price)}
+
+Away Spread:
+${game.away_team} ${formatSpread(awaySpread)}
+
+Home Spread:
+${game.home_team} ${formatSpread(homeSpread)}
+
+Total:
+Over ${over?.point ?? "N/A"} at ${formatPrice(over?.price)}
+Under ${under?.point ?? "N/A"} at ${formatPrice(under?.price)}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📈 Recent Form
+
+${game.away_team}:
+Last 5: ${formatRecord(awayForm, "last5")}
+Last 10: ${formatRecord(awayForm, "last10")}
+Points For: ${awayForm?.averagePointsForLast10 ?? "Not supplied"}
+Points Against: ${awayForm?.averagePointsAgainstLast10 ?? "Not supplied"}
+
+${game.home_team}:
+Last 5: ${formatRecord(homeForm, "last5")}
+Last 10: ${formatRecord(homeForm, "last10")}
+Points For: ${homeForm?.averagePointsForLast10 ?? "Not supplied"}
+Points Against: ${homeForm?.averagePointsAgainstLast10 ?? "Not supplied"}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏈 Quarterback Intelligence
+
+${game.away_team}:
+${
+  awayQuarterback
+    ? `${awayQuarterback.player} — active roster candidate`
+    : "No active quarterback candidate supplied."
+}
+
+${game.home_team}:
+${
+  homeQuarterback
+    ? `${homeQuarterback.player} — active roster candidate`
+    : "No active quarterback candidate supplied."
+}
+
+Starting quarterbacks must be verified before kickoff.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 Engine Status
+
+${verdict}
+
+${
+  verdict === "PLAY"
+    ? `${preferredTeam} currently satisfies the EasyRunLine matchup-score and confidence requirements.`
+    : verdict === "LEAN"
+      ? `${preferredTeam} has the stronger current profile, but the matchup does not satisfy every PLAY requirement.`
+      : "The current matchup does not satisfy the EasyRunLine PLAY or LEAN requirements."
+}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+This deterministic report uses currently connected market, recent-form and quarterback-roster data. It does not confirm an alternate spread or alternate total unless that exact market and price are separately verified.
+`;
+
+  setQuestion(
+    `Analyze ${game.away_team} at ${game.home_team}`
+  );
+
+  setAnswer(report);
+
+  requestAnimationFrame(() => {
+    document
+      .getElementById("nfl-analysis-answer")
+      ?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+  });
+}
   
   return (
     <main className="min-h-screen bg-black text-white">
@@ -808,10 +1110,13 @@ async function findBestTwoLegAltSpread() {
           </div>
 
           {answer && (
-            <div className="mt-5 whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left leading-7 text-zinc-200">
-              {answer}
-            </div>
-          )}
+  <div
+    id="nfl-analysis-answer"
+    className="mt-5 whitespace-pre-line rounded-2xl border border-zinc-800 bg-zinc-950 p-6 text-left leading-7 text-zinc-200"
+  >
+    {answer}
+  </div>
+)}
         </section>
 
         {loading && (
@@ -848,52 +1153,131 @@ async function findBestTwoLegAltSpread() {
       🟢 EasyRunLine Safest Alt Spread
     </p>
 
-    <div className="mt-4 space-y-2 text-sm text-white">
-      <p>
-        <span className="font-semibold">
-          {safestAltSpread.team}
-        </span>
-      </p>
+    <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
 
-      <p>
-        Line:
-        <span className="ml-2 font-bold text-emerald-400">
-          {safestAltSpread.point > 0 ? "+" : ""}
-          {safestAltSpread.point}
-        </span>
-      </p>
+        <p className="mt-1 font-bold text-white">
+          {safestAltSpread.team}{" "}
+          <span className="text-emerald-400">
+            {safestAltSpread.point > 0 ? "+" : ""}
+            {safestAltSpread.point}
+          </span>
+        </p>
+      </div>
 
-      <p>
-        Price:
-        <span className="ml-2 text-yellow-400">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Opponent
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAltSpread.opponent}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Matchup
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAltSpread.awayTeam} at{" "}
+          {safestAltSpread.homeTeam}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Start Time
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {new Date(
+            safestAltSpread.commenceTime
+          ).toLocaleString()}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-emerald-900 pt-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price
+        </p>
+
+        <p className="mt-1 font-bold text-yellow-400">
           {safestAltSpread.price}
-        </span>
-      </p>
+        </p>
+      </div>
 
-      <p>
-        Bookmaker:
-        <span className="ml-2">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Bookmaker
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
           {safestAltSpread.bookmaker}
-        </span>
-      </p>
-      <p className="mt-2 text-sm text-emerald-400">
-  Safety Score:{" "}
-  {safestAltSpread.safetyScore.toFixed(1)}/100
-</p>
+        </p>
+      </div>
 
-<p className="mt-1 text-sm text-zinc-300">
-  Projected Team Margin:{" "}
-  {safestAltSpread.projectedTeamMargin > 0 ? "+" : ""}
-  {safestAltSpread.projectedTeamMargin.toFixed(1)}
-</p>
+      <div>
+        <p className="text-xs text-zinc-500">
+          Safety Score
+        </p>
 
-<p className="mt-1 text-sm text-zinc-300">
-  Model Cushion:{" "}
-  {safestAltSpread.modelCushion > 0 ? "+" : ""}
-  {safestAltSpread.modelCushion.toFixed(1)}
-</p>
+        <p className="mt-1 font-bold text-emerald-400">
+          {safestAltSpread.safetyScore.toFixed(1)}/100
+        </p>
+      </div>
 
-      
+      <div>
+        <p className="text-xs text-zinc-500">
+          ERL Score
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAltSpread.erlScore}/100
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-zinc-800 pt-4 sm:grid-cols-3">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Projected Team Margin
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAltSpread.projectedTeamMargin > 0
+            ? "+"
+            : ""}
+          {safestAltSpread.projectedTeamMargin.toFixed(1)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Model Cushion
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAltSpread.modelCushion > 0 ? "+" : ""}
+          {safestAltSpread.modelCushion.toFixed(1)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Engine Confidence
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAltSpread.confidence}
+        </p>
+      </div>
     </div>
   </div>
 )}
@@ -1596,6 +1980,18 @@ return (
                       {bookmaker}
                     </span>
                   </div>
+                  <button
+  type="button"
+  onClick={() =>
+    analyzeSelectedNFLGame(game)
+  }
+  disabled={questionLoading}
+  className="mt-5 w-full rounded-xl bg-yellow-400 px-5 py-3 font-bold text-black transition hover:bg-yellow-300 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {questionLoading
+    ? "Analyzing..."
+    : "Analyze Game"}
+</button>
                 </article>
               );
             })}
