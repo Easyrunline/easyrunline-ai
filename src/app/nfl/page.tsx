@@ -944,17 +944,20 @@ Starting quarterbacks must be verified before kickoff.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 Engine Status
+🏆 Matchup Intelligence Status
 
 ${verdict}
 
 ${
   verdict === "PLAY"
-    ? `${preferredTeam} currently satisfies the EasyRunLine matchup-score and confidence requirements.`
+    ? `${preferredTeam} satisfies the current EasyRunLine team-strength and matchup-intelligence requirements. This status does not automatically approve the visible spread, an alternate spread, or the moneyline price.`
     : verdict === "LEAN"
-      ? `${preferredTeam} has the stronger current profile, but the matchup does not satisfy every PLAY requirement.`
-      : "The current matchup does not satisfy the EasyRunLine PLAY or LEAN requirements."
+      ? `${preferredTeam} has the stronger current team profile, but the matchup does not satisfy every high-confidence requirement. This is not yet a verified spread or moneyline recommendation.`
+      : "Neither team currently satisfies the EasyRunLine matchup-intelligence requirements for a recommendation."
 }
+
+Market Interpretation:
+The preferred team identifies the stronger current EasyRunLine profile. Any spread, alternate spread, moneyline or total must be evaluated and verified separately using its exact line and price.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
