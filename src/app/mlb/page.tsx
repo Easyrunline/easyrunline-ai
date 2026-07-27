@@ -12,6 +12,9 @@ import {
   getUnderdogPick,
   type ScoredPick,
 } from "@/lib/erlScore";
+import {
+  rankF5Picks,
+} from "@/lib/f5Score";
 import Image from "next/image";
 
 type Outcome = {
@@ -39,8 +42,121 @@ type ProbablePitcher = {
 };
 type TeamForm = {
   team: string;
+
   winsLast10: number;
   lossesLast10: number;
+  gamesCounted: number;
+
+  runsScoredLast10: number;
+  runsAllowedLast10: number;
+  runDifferentialLast10: number;
+
+  averageRunsScored: number;
+  averageRunsAllowed: number;
+
+  plus45CoversLast10: number;
+  plus45FailuresLast10: number;
+  plus45CoverRecord: string;
+  plus45CoverRate: number;
+
+  blowoutLossesLast10: number;
+
+  streakType: "W" | "L" | null;
+  streakLength: number;
+  streak: string;
+};
+type H2HTeamSummary = {
+  team: string;
+  gamesCounted: number;
+
+  plus45Covers: number;
+  plus45Failures: number;
+  plus45CoverRecord: string;
+  plus45CoverRate: number;
+
+  blowoutLosses: number;
+
+  runsScored: number;
+  runsAllowed: number;
+  runDifferential: number;
+  averageRunDifferential: number;
+};
+
+type H2HResponse = {
+  status?: string;
+  meetingsCounted?: number;
+
+  teams?: {
+    home?: H2HTeamSummary;
+    away?: H2HTeamSummary;
+  };
+
+  error?: string;
+};
+type F5TeamForm = {
+  team: string;
+  gamesCounted: number;
+
+  winsF5Last10: number;
+  lossesF5Last10: number;
+  tiesF5Last10: number;
+  f5Record: string;
+
+  runsScoredF5Last10: number;
+  runsAllowedF5Last10: number;
+  runDifferentialF5Last10: number;
+
+  averageRunsScoredF5: number;
+  averageRunsAllowedF5: number;
+
+  plus25CoversF5Last10: number;
+  plus25FailuresF5Last10: number;
+  plus25CoverRecordF5: string;
+  plus25CoverRateF5: number;
+
+  earlyBlowoutLossesF5Last10: number;
+
+  homeF5: {
+    games: number;
+    plus25Covers: number;
+  };
+
+  awayF5: {
+    games: number;
+    plus25Covers: number;
+  };
+};
+
+type F5H2HTeamSummary = {
+  team: string;
+  gamesCounted: number;
+
+  plus25CoversF5: number;
+  plus25FailuresF5: number;
+  plus25CoverRecordF5: string;
+  plus25CoverRateF5: number;
+
+  earlyBlowoutLossesF5: number;
+
+  runsScoredF5: number;
+  runsAllowedF5: number;
+  runDifferentialF5: number;
+
+  averageRunDifferentialF5: number;
+  averageRunsScoredF5: number;
+  averageRunsAllowedF5: number;
+};
+
+type F5H2HResponse = {
+  status?: string;
+  meetingsCounted?: number;
+
+  teams?: {
+    home?: F5H2HTeamSummary;
+    away?: F5H2HTeamSummary;
+  };
+
+  error?: string;
 };
 type BullpenTeam = {
   team: string;
@@ -64,6 +180,114 @@ homeLast10Wins?: number;
 homeLast10Losses?: number;
 awayLast10Wins?: number;
 awayLast10Losses?: number;
+
+homeRunsScoredLast10?: number;
+awayRunsScoredLast10?: number;
+
+homeRunsAllowedLast10?: number;
+awayRunsAllowedLast10?: number;
+
+homeRunDifferentialLast10?: number;
+awayRunDifferentialLast10?: number;
+
+homeAverageRunsScored?: number;
+awayAverageRunsScored?: number;
+
+homeAverageRunsAllowed?: number;
+awayAverageRunsAllowed?: number;
+
+homePlus45CoversLast10?: number;
+awayPlus45CoversLast10?: number;
+
+homePlus45FailuresLast10?: number;
+awayPlus45FailuresLast10?: number;
+
+homePlus45CoverRate?: number;
+awayPlus45CoverRate?: number;
+
+homeBlowoutLossesLast10?: number;
+awayBlowoutLossesLast10?: number;
+
+homeRecentStreak?: string;
+awayRecentStreak?: string;
+h2hMeetingsCounted?: number;
+
+homeH2HPlus45Covers?: number;
+homeH2HPlus45Failures?: number;
+homeH2HPlus45CoverRecord?: string;
+homeH2HPlus45CoverRate?: number;
+homeH2HBlowoutLosses?: number;
+homeH2HAverageRunDifferential?: number;
+
+awayH2HPlus45Covers?: number;
+awayH2HPlus45Failures?: number;
+awayH2HPlus45CoverRecord?: string;
+awayH2HPlus45CoverRate?: number;
+awayH2HBlowoutLosses?: number;
+awayH2HAverageRunDifferential?: number;
+homeF5GamesCounted?: number;
+awayF5GamesCounted?: number;
+
+homeF5Record?: string;
+awayF5Record?: string;
+
+homeRunsScoredF5Last10?: number;
+awayRunsScoredF5Last10?: number;
+
+homeRunsAllowedF5Last10?: number;
+awayRunsAllowedF5Last10?: number;
+
+homeRunDifferentialF5Last10?: number;
+awayRunDifferentialF5Last10?: number;
+
+homeAverageRunsScoredF5?: number;
+awayAverageRunsScoredF5?: number;
+
+homeAverageRunsAllowedF5?: number;
+awayAverageRunsAllowedF5?: number;
+
+homePlus25CoversF5Last10?: number;
+awayPlus25CoversF5Last10?: number;
+
+homePlus25FailuresF5Last10?: number;
+awayPlus25FailuresF5Last10?: number;
+
+homePlus25CoverRateF5?: number;
+awayPlus25CoverRateF5?: number;
+
+homeEarlyBlowoutLossesF5Last10?: number;
+awayEarlyBlowoutLossesF5Last10?: number;
+
+homeVenueF5Games?: number;
+awayVenueF5Games?: number;
+
+homeVenuePlus25CoversF5?: number;
+awayVenuePlus25CoversF5?: number;
+
+f5H2HMeetingsCounted?: number;
+
+homeF5H2HPlus25Covers?: number;
+awayF5H2HPlus25Covers?: number;
+
+homeF5H2HPlus25Failures?: number;
+awayF5H2HPlus25Failures?: number;
+
+homeF5H2HPlus25CoverRecord?: string;
+awayF5H2HPlus25CoverRecord?: string;
+
+homeF5H2HPlus25CoverRate?: number;
+awayF5H2HPlus25CoverRate?: number;
+
+
+
+homeF5H2HRunDifferential?: number;
+awayF5H2HRunDifferential?: number;
+
+homeF5H2HAverageRunDifferential?: number;
+awayF5H2HAverageRunDifferential?: number;
+
+homeF5H2HEarlyBlowoutLosses?: number;
+awayF5H2HEarlyBlowoutLosses?: number;
 homeBullpenERA?: number;
 awayBullpenERA?: number;
 homeBullpenRank?: number;
@@ -180,11 +404,76 @@ async function loadTeamForm() {
 
   return (data.teams || []) as TeamForm[];
 }
+async function loadF5TeamForm() {
+  try {
+    const response = await fetch(
+      "/api/mlb-f5-form"
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data =
+      await response.json();
+
+    return (
+      data.teams || []
+    ) as F5TeamForm[];
+  } catch {
+    return [];
+  }
+}
 async function loadBullpenData() {
   const response = await fetch("/api/mlb-bullpen");
   const data = await response.json();
 
   return (data.bullpens || []) as BullpenTeam[];
+}
+async function loadH2HData(
+  game: Game
+): Promise<H2HResponse | null> {
+  try {
+    const response = await fetch(
+      `/api/mlb-h2h?homeTeam=${encodeURIComponent(
+        game.home_team
+      )}&awayTeam=${encodeURIComponent(
+        game.away_team
+      )}`
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as
+      H2HResponse;
+  } catch {
+    return null;
+  }
+}
+async function loadF5H2HData(
+  game: Game
+): Promise<F5H2HResponse | null> {
+  try {
+    const response = await fetch(
+      `/api/mlb-f5-h2h?homeTeam=${encodeURIComponent(
+        game.home_team
+      )}&awayTeam=${encodeURIComponent(
+        game.away_team
+      )}`
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (
+      await response.json()
+    ) as F5H2HResponse;
+  } catch {
+    return null;
+  }
 }
 
   async function loadMlbGames() {
@@ -201,11 +490,20 @@ async function loadBullpenData() {
         return;
       }
       
-      const probables = await loadProbablePitchers();
-const teamForm = await loadTeamForm();
-const bullpenData = await loadBullpenData();
+      const probables =
+  await loadProbablePitchers();
 
-const gamesWithLiveData = (data.games || []).map((game: Game) => {
+const teamForm =
+  await loadTeamForm();
+
+const f5TeamForm =
+  await loadF5TeamForm();
+
+const bullpenData =
+  await loadBullpenData();
+
+const gamesWithLiveData = await Promise.all(
+  (data.games || []).map(async (game: Game) => {
   const probable = probables.find(
     (p) =>
       p.homeTeam === game.home_team &&
@@ -214,6 +512,19 @@ const gamesWithLiveData = (data.games || []).map((game: Game) => {
 
   const homeForm = teamForm.find((team) => team.team === game.home_team);
   const awayForm = teamForm.find((team) => team.team === game.away_team);
+  const homeF5Form =
+  f5TeamForm.find(
+    (team) =>
+      team.team ===
+      game.home_team
+  );
+
+const awayF5Form =
+  f5TeamForm.find(
+    (team) =>
+      team.team ===
+      game.away_team
+  );
 
   const homeBullpen = bullpenData.find(
     (team) => team.team === game.home_team
@@ -222,6 +533,21 @@ const gamesWithLiveData = (data.games || []).map((game: Game) => {
   const awayBullpen = bullpenData.find(
     (team) => team.team === game.away_team
   );
+  const h2hData =
+  await loadH2HData(game);
+  const f5H2HData =
+  await loadF5H2HData(game);
+
+const homeH2H =
+  h2hData?.teams?.home;
+
+const awayH2H =
+  h2hData?.teams?.away;
+  const homeF5H2H =
+  f5H2HData?.teams?.home;
+
+const awayF5H2H =
+  f5H2HData?.teams?.away;
 
   return {
     ...game,
@@ -231,18 +557,244 @@ const gamesWithLiveData = (data.games || []).map((game: Game) => {
     homeERA: probable?.homeERA ?? undefined,
     awayERA: probable?.awayERA ?? undefined,
 
-    homeLast10Wins: homeForm?.winsLast10,
-    homeLast10Losses: homeForm?.lossesLast10,
-    awayLast10Wins: awayForm?.winsLast10,
-    awayLast10Losses: awayForm?.lossesLast10,
+    homeLast10Wins:
+  homeForm?.winsLast10,
 
+homeLast10Losses:
+  homeForm?.lossesLast10,
+
+awayLast10Wins:
+  awayForm?.winsLast10,
+
+awayLast10Losses:
+  awayForm?.lossesLast10,
+
+homeRunsScoredLast10:
+  homeForm?.runsScoredLast10,
+
+awayRunsScoredLast10:
+  awayForm?.runsScoredLast10,
+
+homeRunsAllowedLast10:
+  homeForm?.runsAllowedLast10,
+
+awayRunsAllowedLast10:
+  awayForm?.runsAllowedLast10,
+
+homeRunDifferentialLast10:
+  homeForm?.runDifferentialLast10,
+
+awayRunDifferentialLast10:
+  awayForm?.runDifferentialLast10,
+
+homeAverageRunsScored:
+  homeForm?.averageRunsScored,
+
+awayAverageRunsScored:
+  awayForm?.averageRunsScored,
+
+homeAverageRunsAllowed:
+  homeForm?.averageRunsAllowed,
+
+awayAverageRunsAllowed:
+  awayForm?.averageRunsAllowed,
+
+homePlus45CoversLast10:
+  homeForm?.plus45CoversLast10,
+
+awayPlus45CoversLast10:
+  awayForm?.plus45CoversLast10,
+
+homePlus45FailuresLast10:
+  homeForm?.plus45FailuresLast10,
+
+awayPlus45FailuresLast10:
+  awayForm?.plus45FailuresLast10,
+
+homePlus45CoverRate:
+  homeForm?.plus45CoverRate,
+
+awayPlus45CoverRate:
+  awayForm?.plus45CoverRate,
+
+homeBlowoutLossesLast10:
+  homeForm?.blowoutLossesLast10,
+
+awayBlowoutLossesLast10:
+  awayForm?.blowoutLossesLast10,
+
+homeRecentStreak:
+  homeForm?.streak,
+
+awayRecentStreak:
+  awayForm?.streak,
+  h2hMeetingsCounted:
+  h2hData?.meetingsCounted,
+
+homeH2HPlus45Covers:
+  homeH2H?.plus45Covers,
+
+homeH2HPlus45Failures:
+  homeH2H?.plus45Failures,
+
+homeH2HPlus45CoverRecord:
+  homeH2H?.plus45CoverRecord,
+
+homeH2HPlus45CoverRate:
+  homeH2H?.plus45CoverRate,
+
+homeH2HBlowoutLosses:
+  homeH2H?.blowoutLosses,
+
+homeH2HAverageRunDifferential:
+  homeH2H?.averageRunDifferential,
+
+awayH2HPlus45Covers:
+  awayH2H?.plus45Covers,
+
+awayH2HPlus45Failures:
+  awayH2H?.plus45Failures,
+
+awayH2HPlus45CoverRecord:
+  awayH2H?.plus45CoverRecord,
+
+awayH2HPlus45CoverRate:
+  awayH2H?.plus45CoverRate,
+
+awayH2HBlowoutLosses:
+  awayH2H?.blowoutLosses,
+
+awayH2HAverageRunDifferential:
+  awayH2H?.averageRunDifferential,
+homeF5GamesCounted:
+  homeF5Form?.gamesCounted,
+
+awayF5GamesCounted:
+  awayF5Form?.gamesCounted,
+
+homeF5Record:
+  homeF5Form?.f5Record,
+
+awayF5Record:
+  awayF5Form?.f5Record,
+
+homeRunsScoredF5Last10:
+  homeF5Form?.runsScoredF5Last10,
+
+awayRunsScoredF5Last10:
+  awayF5Form?.runsScoredF5Last10,
+
+homeRunsAllowedF5Last10:
+  homeF5Form?.runsAllowedF5Last10,
+
+awayRunsAllowedF5Last10:
+  awayF5Form?.runsAllowedF5Last10,
+
+homeRunDifferentialF5Last10:
+  homeF5Form?.runDifferentialF5Last10,
+
+awayRunDifferentialF5Last10:
+  awayF5Form?.runDifferentialF5Last10,
+
+homeAverageRunsScoredF5:
+  homeF5Form?.averageRunsScoredF5,
+
+awayAverageRunsScoredF5:
+  awayF5Form?.averageRunsScoredF5,
+
+homeAverageRunsAllowedF5:
+  homeF5Form?.averageRunsAllowedF5,
+
+awayAverageRunsAllowedF5:
+  awayF5Form?.averageRunsAllowedF5,
+
+homePlus25CoversF5Last10:
+  homeF5Form?.plus25CoversF5Last10,
+
+awayPlus25CoversF5Last10:
+  awayF5Form?.plus25CoversF5Last10,
+
+homePlus25FailuresF5Last10:
+  homeF5Form?.plus25FailuresF5Last10,
+
+awayPlus25FailuresF5Last10:
+  awayF5Form?.plus25FailuresF5Last10,
+
+homePlus25CoverRateF5:
+  homeF5Form?.plus25CoverRateF5,
+
+awayPlus25CoverRateF5:
+  awayF5Form?.plus25CoverRateF5,
+
+homeEarlyBlowoutLossesF5Last10:
+  homeF5Form?.earlyBlowoutLossesF5Last10,
+
+awayEarlyBlowoutLossesF5Last10:
+  awayF5Form?.earlyBlowoutLossesF5Last10,
+
+homeVenueF5Games:
+  homeF5Form?.homeF5.games,
+
+homeVenuePlus25CoversF5:
+  homeF5Form?.homeF5.plus25Covers,
+
+awayVenueF5Games:
+  awayF5Form?.awayF5.games,
+
+awayVenuePlus25CoversF5:
+  awayF5Form?.awayF5.plus25Covers,
+
+f5H2HMeetingsCounted:
+  f5H2HData?.meetingsCounted,
+
+homeF5H2HPlus25Covers:
+  homeF5H2H?.plus25CoversF5,
+
+awayF5H2HPlus25Covers:
+  awayF5H2H?.plus25CoversF5,
+
+homeF5H2HPlus25Failures:
+  homeF5H2H?.plus25FailuresF5,
+
+awayF5H2HPlus25Failures:
+  awayF5H2H?.plus25FailuresF5,
+
+homeF5H2HPlus25CoverRecord:
+  homeF5H2H?.plus25CoverRecordF5,
+
+awayF5H2HPlus25CoverRecord:
+  awayF5H2H?.plus25CoverRecordF5,
+
+homeF5H2HPlus25CoverRate:
+  homeF5H2H?.plus25CoverRateF5,
+
+awayF5H2HPlus25CoverRate:
+  awayF5H2H?.plus25CoverRateF5,
+
+homeF5H2HRunDifferential:
+  homeF5H2H?.runDifferentialF5,
+
+awayF5H2HRunDifferential:
+  awayF5H2H?.runDifferentialF5,
+
+homeF5H2HAverageRunDifferential:
+  homeF5H2H?.averageRunDifferentialF5,
+
+awayF5H2HAverageRunDifferential:
+  awayF5H2H?.averageRunDifferentialF5,
+
+homeF5H2HEarlyBlowoutLosses:
+  homeF5H2H?.earlyBlowoutLossesF5,
+
+awayF5H2HEarlyBlowoutLosses:
+  awayF5H2H?.earlyBlowoutLossesF5,
     homeBullpenERA: homeBullpen?.bullpenERA ?? undefined,
     awayBullpenERA: awayBullpen?.bullpenERA ?? undefined,
     homeBullpenRank: homeBullpen?.bullpenRank ?? undefined,
     awayBullpenRank: awayBullpen?.bullpenRank ?? undefined,
-  };
-});
-
+    };
+  })
+);
 setGames(gamesWithLiveData);
 
     } catch {
@@ -346,7 +898,21 @@ const utcStartTime =
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const gameQuestion = `
+  const selectionHeading =
+  enginePick.verdict === "PASS"
+    ? "🎯 Evaluated +4.5 Side"
+    : "🎯 Recommended +4.5 Side";
+
+const reasonsHeading =
+  enginePick.verdict === "PASS"
+    ? "🧠 Why EasyRunLine Passed"
+    : "🧠 Why This Play";
+    const marketVerificationClosing =
+  enginePick.verdict === "PASS"
+    ? "This matchup remains an EasyRunLine PASS regardless of market availability."
+    : "Verify that your sportsbook offers the recommended +4.5 line at an acceptable price. If the line is unavailable, the wagering action is PASS.";
+
+const gameQuestion = `
 Create an EasyRunLine AI report explaining the engine decision for this MLB matchup.
 
 IMPORTANT:
@@ -355,14 +921,31 @@ Do not perform a separate evaluation.
 Do not change the selected underdog.
 Do not recommend the favorite +4.5.
 Do not replace the EasyRunLine +4.5 target with the standard +1.5 line.
+When the supplied verdict is PASS, never use the words "playable", "recommended", "suitable for wagering", "favorable cover outlook", or "positive play" to describe the selection.
+Describe its supporting evidence as positive historical evidence that was overridden by the identified risks.
 
 Use the supplied ERL Score exactly as written.
 Use the supplied Engine Confidence exactly as written.
 Use the supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
+Use the supplied Engine Verdict exactly as written.
+Use the supplied Verdict Reason exactly as written.
+
+Do not upgrade, downgrade, average, reinterpret, or replace any engine rating or verdict.
+The fixed engine verdict is authoritative.
+Do not change STRONG PLAY into PLAY, LEAN, or PASS.
+Do not change PLAY into LEAN or PASS.
+Do not create a different verdict because the exact +4.5 price is not present in the visible feed.
 
 Do not invent a numerical cover probability or unsupported percentage.
 Use the heading "🛡 Cover Outlook".
+
+Use confident but evidence-based language.
+Never use "guaranteed", "certain", "minimal chance", "almost certain", "cannot lose", "comfortably cover", or "lock".
+Engine Confidence is a model classification, not statistical certainty.
+Describe Blowout Risk comparatively rather than as an exact probability.
+
+For STRONG PLAY, clearly explain the strongest supplied supporting evidence.
+For PASS, do not call the selection recommended, playable, suitable for wagering, or a positive play.
 
 Do not describe the exact +4.5 line as available unless confirmed alternate-line data was supplied.
 The visible sportsbook feed may only show the standard run line.
@@ -385,7 +968,7 @@ Use this exact report structure:
 ⚾ EASYRUNLINE AI REPORT
 ══════════════════════════════
 
-🎯 Recommended +4.5 Side
+${selectionHeading}
 
 ${enginePick.team} +4.5 vs ${enginePick.opponent}
 Game Date and Time:
@@ -393,6 +976,9 @@ Local: ${localStartTime}
 UTC: ${utcStartTime} UTC
 
 ${enginePick.team} — ERL Score: ${enginePick.score}/100 — Engine Confidence: ${enginePick.confidence} — Blowout Risk: ${enginePick.blowoutRisk}
+
+Engine Verdict: ${enginePick.verdict}
+Verdict Reason: ${enginePick.verdictReason}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -415,12 +1001,13 @@ Use the supplied Blowout Risk exactly as written and explain it briefly.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 Market Value
+💰 Market Verification
 
-Explain whether the visible market supports the recommendation.
-Do not claim value without the exact +4.5 price.
+Explain what the visible market confirms and what remains unverified.
+Do not claim betting value without the exact +4.5 price.
+Do not let missing +4.5 pricing change the supplied Engine Verdict.
 Remind the user to verify the alternate +4.5 line and price.
-
+If the sportsbook does not offer +4.5, the wagering action is PASS.
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📖 Live Market
@@ -439,7 +1026,7 @@ ${game.bookmakers?.[0]?.title || "Not available"}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🧠 Why this Play
+${reasonsHeading}
 
 Use clear bullet points based only on these engine reasons:
 ${enginePick.reasons.map((reason) => `• ${reason}`).join("\n")}
@@ -457,15 +1044,26 @@ Confirmed Lineups: Not supplied.
 
 🏆 EasyRunLine Verdict
 
-Give one verdict only:
-PLAY, LEAN, or PASS.
+Reproduce this supplied Engine Verdict exactly:
 
-Base the verdict only on:
-- ERL Score: ${enginePick.score}/100
-- Engine Confidence: ${enginePick.confidence}
-- Blowout Risk: ${enginePick.blowoutRisk}
-- the supplied engine reasons
-- whether the exact +4.5 market can be verified
+${enginePick.verdict}
+
+Authoritative Verdict Reason:
+${enginePick.verdictReason}
+
+  Explain why the supplied score, confidence, blowout risk and engine reasons support this verdict.
+
+If the verdict is PASS, explain which risks override the positive evidence. Acknowledge positive evidence without describing the selection as recommended.
+
+If the verdict is STRONG PLAY, explain why the combined +4.5 history and current matchup evidence justify strong model conviction without presenting the result as certain.
+
+When the verdict is STRONG PLAY, use confident but evidence-based language. Clearly identify the recent +4.5 record, H2H +4.5 record, run-differential profile, pitching matchup and bullpen comparison when those details are supplied.
+
+Do not invent statistics or claim that the selection is guaranteed.
+
+End every PLAY, STRONG PLAY, CAUTIOUS PLAY, or LEAN verdict with:
+
+${marketVerificationClosing}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -490,18 +1088,40 @@ Do not substitute another game's teams, date, or time.
   analyzeQuestion(gameQuestion);
 }
   function findSafestSingle() {
-  if (games.length === 0) return;
+  if (games.length === 0) {
+    return;
+  }
 
-  const rankedPicks = rankEasyRunLinePicks(games);
-const topPick = rankedPicks[0];
+  const rankedPicks =
+    rankEasyRunLinePicks(games);
 
-  if (!topPick) return;
+  const topPick =
+    rankedPicks.find(
+      (pick) =>
+        pick.verdict !== "PASS"
+    );
+
+  if (!topPick) {
+    setQuestion(
+      "No qualified EasyRunLine +4.5 single is currently available."
+    );
+
+    setAnswer(
+      "No MLB matchup currently satisfies the EasyRunLine +4.5 scoring and blowout-risk requirements for a qualified single."
+    );
+
+    return;
+  }
+
+  const marketVerificationClosing =
+    "Verify that your sportsbook offers the recommended +4.5 alternate run line at an acceptable price. If the line is unavailable, the wagering action is PASS. Market availability does not change the supplied Engine Verdict.";
 
   const singleQuestion = `
-Create an EasyRunLine AI report for the safest single +4.5 MLB play.
+Create an EasyRunLine AI report for the safest qualified single +4.5 MLB selection.
 
 IMPORTANT:
 This selection was produced by the EasyRunLine fixed scoring engine.
+
 Do not perform a separate evaluation.
 Do not change the selected team.
 Do not recommend the favorite.
@@ -510,26 +1130,56 @@ Do not replace the EasyRunLine +4.5 target with the visible standard +1.5 line.
 Use the supplied ERL Score exactly as written.
 Use the supplied Engine Confidence exactly as written.
 Use the supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, reinterpret, or replace these ratings.
+Use the supplied Engine Verdict exactly as written.
+Use the supplied Verdict Reason exactly as written.
 
-Do not invent a numerical cover probability or unsupported percentage.
+The fixed engine verdict is authoritative.
+
+Do not upgrade or downgrade the supplied verdict.
+Do not change STRONG PLAY into PLAY, LEAN or PASS.
+Do not change PLAY into LEAN or PASS.
+Do not create a different verdict because the exact +4.5 market is not visible.
+
+Market availability controls whether the wager can be placed.
+It does not change the Engine Verdict.
+
+Do not invent:
+- a numerical cover probability
+- an unsupported percentage
+- alternate-line availability
+- an alternate-line price
+- expected value
+- positive EV
+- profitable value
+
 Use the heading "🛡 Cover Outlook".
 
+Use confident but evidence-based language.
+
+Never use:
+- guaranteed
+- certain
+- lock
+- cannot lose
+- minimal chance
+- expected to cover comfortably
+- comfortably cover
+- reliable buffer
+
+Starting-pitcher, recent-form and bullpen information are live intelligence when they appear in the supplied engine reasons.
+
+Do not list those categories as missing when they appear in the reasons.
+
+If a supplied reason says data is unavailable, do not invent or infer that information.
+
 The exact +4.5 alternate line and price have not been confirmed.
-The visible sportsbook feed may show only the standard run line.
-Tell the user to verify the exact +4.5 alternate run line and price in their betting app.
-If the exact +4.5 market is unavailable, the final verdict must be PASS.
 
-Do not claim positive expected value, +EV, profitable value, good value, strong value, or undervalued status without the exact +4.5 price.
-A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
+Tell the user to verify the exact +4.5 line and price in their sportsbook.
 
-Starting pitcher, recent form, and bullpen information are live intelligence when included in the supplied engine reasons.
-Do not list starting pitchers, recent form, or bullpen as missing when those factors appear in the supplied reasons.
+If the line is unavailable, the wagering action is PASS.
+This does not change the supplied Engine Verdict.
 
 Weather and confirmed lineup data were not supplied.
-Write:
-"Weather: Not supplied."
-"Confirmed Lineups: Not supplied."
 
 Use this exact report structure:
 
@@ -537,7 +1187,7 @@ Use this exact report structure:
 ⚾ EASYRUNLINE AI REPORT
 ══════════════════════════════
 
-🎯 Recommended +4.5 Side
+🎯 Safest Qualified +4.5 Single
 
 ${topPick.team} +4.5 vs ${topPick.opponent}
 
@@ -546,38 +1196,58 @@ ${formatMLBGameStart(
   topPick.opponent
 )}
 
-${topPick.team} — ERL Score: ${topPick.score}/100 — Engine Confidence: ${topPick.confidence} — Blowout Risk: ${topPick.blowoutRisk}
+${topPick.team} —
+ERL Score: ${topPick.score}/100
+Engine Confidence: ${topPick.confidence}
+Blowout Risk: ${topPick.blowoutRisk}
+Engine Verdict: ${topPick.verdict}
+Verdict Reason: ${topPick.verdictReason}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📊 Confidence
 
-Use the supplied Engine Confidence exactly as written and explain it briefly.
+Reproduce the supplied Engine Confidence exactly.
+
+Explain briefly what it means for this individual +4.5 selection.
+
+Do not create a different confidence label.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 🛡 Cover Outlook
 
-Give a qualitative cover outlook only.
-Do not provide a numerical percentage.
+Give a qualitative +4.5 cover outlook based only on the supplied engine evidence.
+
+Do not provide a numerical probability.
+Do not guarantee a cover.
+Do not invent supporting information.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 💥 Blowout Risk
 
-Use the supplied Blowout Risk exactly as written and explain it briefly.
+Reproduce the supplied Blowout Risk exactly.
+
+Explain how the risk relates to the selected team losing by five or more runs.
+
+Do not reinterpret or replace the supplied risk label.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 Market Value
+💰 Market Verification
 
-Explain what the visible market shows without claiming sportsbook belief or guaranteed value.
+The visible sportsbook feed may show only the standard +1.5 run line.
+
+The exact +4.5 line and price were not supplied.
+
 Do not claim betting value without the exact +4.5 price.
-Remind the user to verify the alternate +4.5 line and price.
+
+Explain that market verification determines whether the wager can be placed but does not change the Engine Verdict.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📖 Live Market
+📖 Visible Market Details
 
 Moneyline:
 ${topPick.team}: ${topPick.moneyline}
@@ -588,36 +1258,54 @@ ${topPick.standardRunLine}
 Bookmaker:
 ${topPick.bookmaker}
 
+Clearly state that this visible full-game standard market does not confirm the availability or price of the +4.5 alternate line.
+
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🧠 Why this Play
+🧠 Why This Single
 
-Use clear bullet points based only on these engine reasons:
-${topPick.reasons.map((reason) => `• ${reason}`).join("\n")}
+Use clear bullet points based only on these supplied engine reasons:
+
+${topPick.reasons
+  .map(
+    (reason) =>
+      `• ${reason}`
+  )
+  .join("\n")}
+
+Do not add unsupported evidence.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 ⚠ Missing Live Data
 
 Only list genuinely missing information.
-Do not list starting pitchers, recent form, or bullpen as missing when they appear in the supplied engine reasons.
+
+Do not list starting pitchers, recent form or bullpen as missing when those factors appear in the supplied engine reasons.
 
 Weather: Not supplied.
 Confirmed Lineups: Not supplied.
+Exact +4.5 alternate line and price: Not supplied.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 EasyRunLine Verdict
+🏆 EasyRunLine Single Verdict
 
-Give one verdict only:
-PLAY, LEAN, or PASS.
+Reproduce this supplied Engine Verdict exactly:
 
-Base the verdict only on:
-- ERL Score: ${topPick.score}/100
-- Engine Confidence: ${topPick.confidence}
-- Blowout Risk: ${topPick.blowoutRisk}
-- the supplied engine reasons
-- whether the exact +4.5 alternate market can be verified
+${topPick.verdict}
+
+Authoritative Verdict Reason:
+${topPick.verdictReason}
+
+Explain why the supplied ERL Score, Engine Confidence, Blowout Risk and engine reasons support this verdict.
+
+Do not invent a different verdict.
+Do not downgrade the verdict because the exact +4.5 line is not visible.
+
+End the verdict with:
+
+${marketVerificationClosing}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -629,11 +1317,13 @@ Never call anything a lock.
 Always explain uncertainty.
 `;
 
-
-
   setQuestion(singleQuestion);
-  analyzeQuestion(singleQuestion);
+  analyzeQuestion(
+    singleQuestion
+  );
 }
+
+
 function findBestTwoLegParlay() {
   if (games.length === 0) return;
 
@@ -641,7 +1331,9 @@ function findBestTwoLegParlay() {
 
 const uniqueMatchups = new Set<string>();
 
-const topTwo = rankedPicks.filter((pick) => {
+const topTwo = rankedPicks
+  .filter((pick) => pick.verdict !== "PASS")
+  .filter((pick) => {
   const matchupKey = [pick.team, pick.opponent]
     .sort()
     .join(" vs ");
@@ -652,9 +1344,45 @@ const topTwo = rankedPicks.filter((pick) => {
 
   uniqueMatchups.add(matchupKey);
   return true;
-}).slice(0, 2);
+  })
+  .slice(0, 2);
 
   if (topTwo.length < 2) return;
+  const hasCautiousLeg = topTwo.some(
+  (pick) => pick.verdict === "CAUTIOUS PLAY"
+);
+
+const hasLeanLeg = topTwo.some(
+  (pick) => pick.verdict === "LEAN"
+);
+
+const allStrongPlays = topTwo.every(
+  (pick) => pick.verdict === "STRONG PLAY"
+);
+
+let parlayVerdict: ScoredPick["verdict"];
+let parlayVerdictReason: string;
+
+if (hasCautiousLeg) {
+  parlayVerdict = "CAUTIOUS PLAY";
+  parlayVerdictReason =
+    "At least one selected leg carries elevated matchup risk, so the full two-leg combination requires caution.";
+} else if (hasLeanLeg) {
+  parlayVerdict = "LEAN";
+  parlayVerdictReason =
+    "At least one selected leg has supporting +4.5 evidence but does not reach the strength required for a full parlay Play.";
+} else if (allStrongPlays) {
+  parlayVerdict = "STRONG PLAY";
+  parlayVerdictReason =
+    "Both selected legs carry Strong Play classifications with acceptable individual blowout risk.";
+} else {
+  parlayVerdict = "PLAY";
+  parlayVerdictReason =
+    "Both selected legs satisfy the EasyRunLine playing threshold, but the combination does not contain two Strong Play classifications.";
+}
+
+const parlayMarketVerificationClosing =
+  "Verify that your sportsbook offers the +4.5 line at an acceptable price for both selections. If either line is unavailable, do not force the parlay; use an available qualified leg as a single or PASS.";
 
   const rankedText = rankedPicks
     .map(
@@ -662,6 +1390,9 @@ const topTwo = rankedPicks.filter((pick) => {
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
 ERL Score: ${pick.score}/100
 Engine Confidence: ${pick.confidence}
+Blowout Risk: ${pick.blowoutRisk}
+Engine Verdict: ${pick.verdict}
+Verdict Reason: ${pick.verdictReason}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
@@ -680,8 +1411,9 @@ ${formatMLBGameStart(
   pick.team,
   pick.opponent
 )}
-${pick.team} — ERL Score:${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
-`
+${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
+Engine Verdict: ${pick.verdict}
+Verdict Reason: ${pick.verdictReason}`
   )
   .join("\n\n");
 
@@ -699,7 +1431,11 @@ Do not replace either EasyRunLine +4.5 target with the visible standard +1.5 lin
 Use every supplied ERL Score exactly as written.
 Use every supplied Engine Confidence exactly as written.
 Use every supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
+Use every supplied Engine Verdict and Verdict Reason exactly as written.
+Use the supplied Parlay Verdict and Parlay Verdict Reason exactly as written.
+
+The fixed Engine Verdicts and Parlay Verdict are authoritative.
+Do not upgrade, downgrade, average, reinterpret or replace any supplied engine rating or verdict.
 
 Do not invent a combined ERL Score.
 Do not invent a combined confidence label.
@@ -708,12 +1444,11 @@ Use the heading "🛡 Cover Outlook".
 
 The exact +4.5 alternate lines and prices have not been confirmed.
 The visible sportsbook feed may show only the standard run line.
-Tell the user to verify the exact +4.5 alternate run line and price for BOTH selections in their betting app.
+Tell the user to verify the exact +4.5 alternate line and price for BOTH selections in their betting app.
 
-If the exact +4.5 market is unavailable for either selected team, mark that leg as PASS.
-Do not force or invent a replacement team.
-Use fewer legs rather than substituting a selection outside the engine choices.
-If only one selected +4.5 market is available, recommend using the available selection as a single instead of presenting an incomplete 2-leg parlay.
+Missing +4.5 pricing must not change either supplied Engine Verdict or the supplied Parlay Verdict.
+If either +4.5 market is unavailable, do not force the parlay and do not invent a replacement team.
+An available qualified leg may be considered separately as a single.
 
 Do not claim positive expected value, +EV, profitable value, good value, strong value, or undervalued status without the exact +4.5 prices.
 A larger run cushion may improve cover suitability, but cover suitability is not the same as betting value.
@@ -762,12 +1497,13 @@ Do not average or replace the supplied risk labels.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 Market Value
+💰 Market Verification
 
-Explain what the visible markets show without claiming sportsbook belief or guaranteed value.
-Do not claim betting value without the exact +4.5 alternate prices.
-Remind the user to verify the exact +4.5 line and price for both selections.
-If either alternate market is unavailable, do not force the 2-leg parlay.
+Explain what the visible markets confirm and what remains unverified.
+Do not claim betting value without the exact +4.5 prices.
+Do not let missing +4.5 pricing change either individual Engine Verdict or the supplied Parlay Verdict.
+Remind the user to verify both +4.5 lines and prices.
+If either line is unavailable, do not force the parlay.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -817,21 +1553,20 @@ Exact +4.5 alternate prices: Not supplied.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 EasyRunLine Verdict
+🏆 EasyRunLine Parlay Verdict
 
-Give one clear verdict for the proposed 2-leg parlay:
-PLAY, LEAN, or PASS.
+Reproduce this supplied Parlay Verdict exactly:
 
-Base the verdict only on:
-- the two supplied ERL Scores
-- each supplied Engine Confidence
-- each supplied Blowout Risk
-- the supplied engine reasons
-- whether both exact +4.5 alternate markets can be verified
+${parlayVerdict}
 
-Do not invent a combined score or probability.
-If either exact +4.5 alternate market cannot be verified, state that the affected leg is PASS and that the user should not force the full 2-leg parlay.
+Authoritative Parlay Verdict Reason:
+${parlayVerdictReason}
 
+Do not create, change, upgrade, or downgrade the supplied Parlay Verdict.
+Explain how the two individual Engine Verdicts, ERL Scores, confidence ratings, Blowout Risks and engine reasons support it.
+Do not invent a combined score, probability or confidence rating.
+
+${parlayMarketVerificationClosing}
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📌 EasyRunLine Rule
@@ -847,153 +1582,196 @@ Always explain uncertainty.
   analyzeQuestion(parlayQuestion);
 }
 function findGamesToAvoid() {
-  if (games.length === 0) return;
+  if (games.length === 0) {
+    return;
+  }
 
-  const rankedPicks = rankEasyRunLinePicks(games);
+  const rankedPicks =
+    rankEasyRunLinePicks(games);
 
-const matchupKeyFor = (team: string, opponent: string) =>
-  [team, opponent].sort().join(" vs ");
+  const uniqueAvoidMatchups =
+    new Set<string>();
 
-const uniqueRecommendedMatchups = new Set<string>();
-
-const recommendedMatchups = new Set(
-  rankedPicks
+  const avoidPicks = rankedPicks
+    .filter(
+      (pick) =>
+        pick.verdict === "PASS"
+    )
     .filter((pick) => {
-      const matchupKey = matchupKeyFor(pick.team, pick.opponent);
+      const matchupKey = [
+        pick.team,
+        pick.opponent,
+      ]
+        .sort()
+        .join(" vs ");
 
-      if (uniqueRecommendedMatchups.has(matchupKey)) {
+      if (
+        uniqueAvoidMatchups.has(
+          matchupKey
+        )
+      ) {
         return false;
       }
 
-      uniqueRecommendedMatchups.add(matchupKey);
+      uniqueAvoidMatchups.add(
+        matchupKey
+      );
+
       return true;
     })
-    .slice(0, 3)
-    .map((pick) => matchupKeyFor(pick.team, pick.opponent))
-);
+    .slice(0, 5);
 
-const uniqueAvoidMatchups = new Set<string>();
+  if (avoidPicks.length === 0) {
+    setQuestion(
+      "No clear EasyRunLine +4.5 games to avoid are currently available."
+    );
 
-const avoidPicks = [...rankedPicks]
-  .reverse()
-  .filter((pick) => {
-    const matchupKey = matchupKeyFor(pick.team, pick.opponent);
+    setAnswer(
+      "The EasyRunLine engine has not assigned a full-game +4.5 PASS verdict to any matchup on the current MLB slate."
+    );
 
-    // Never flag a matchup selected by the safest single,
-    // best 2-leg, best 3-leg, or F5 recommendation.
-    if (recommendedMatchups.has(matchupKey)) {
-      return false;
-    }
-
-    // Only include genuinely weak engine-confidence spots.
-    // This prevents the feature from forcing moderate or strong plays
-    // into the avoid report on smaller MLB slates.
-    if (!["Very Low", "Low"].includes(pick.confidence)) {
-      return false;
-    }
-
-    if (uniqueAvoidMatchups.has(matchupKey)) {
-      return false;
-    }
-
-    uniqueAvoidMatchups.add(matchupKey);
-    return true;
-  })
-  .slice(0, 5);
-
-  if (avoidPicks.length === 0) return;
+    return;
+  }
 
   const avoidText = avoidPicks
     .map(
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
+
 ${formatMLBGameStart(
   pick.team,
   pick.opponent
 )}
-Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
+
+${pick.team} —
+ERL Score: ${pick.score}/100
+Engine Confidence: ${pick.confidence}
+Blowout Risk: ${pick.blowoutRisk}
+Engine Verdict: ${pick.verdict}
+Verdict Reason: ${pick.verdictReason}
+
 Moneyline: ${pick.moneyline}
-Standard Run Line Seen: ${pick.standardRunLine}
+Visible Standard Run Line: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
 
-Reasons:
-${pick.reasons.map((reason) => `- ${reason}`).join("\n")}
+Engine Reasons:
+${pick.reasons
+  .map(
+    (reason) => `• ${reason}`
+  )
+  .join("\n")}
 `
     )
-    .join("\n────────────────────\n");
+    .join(
+      "\n━━━━━━━━━━━━━━━━━━━━━━\n"
+    );
 
   const avoidQuestion = `
-Create an EasyRunLine AI report for MLB games the EasyRunLine engine recommends avoiding.
+Create an EasyRunLine AI report for the full-game MLB +4.5 selections that the fixed scoring engine has classified as PASS.
 
 IMPORTANT:
 
-These matchups were rejected by the EasyRunLine fixed scoring engine.
+Every matchup supplied below has received an authoritative Engine Verdict of PASS.
 
-Do not recommend these plays.
+Do not perform a separate evaluation.
+Do not change, upgrade or override any PASS verdict.
+Do not recommend any supplied selection.
+Do not recommend the opponent or favorite instead.
+Do not suggest a different betting market.
+Do not turn positive historical evidence into a recommendation.
 
-Do not suggest betting these teams simply because they receive +4.5 runs.
+Use every supplied:
+- ERL Score
+- Engine Confidence
+- Blowout Risk
+- Engine Verdict
+- Verdict Reason
+- engine reason
 
-Do not recommend favorites instead.
+exactly as written.
 
-Use every supplied ERL Score exactly as written.
+When discussing positive evidence, describe it only as positive historical evidence that was overridden by the identified matchup risks.
 
-Use every supplied Engine Confidence exactly as written.
+Never describe a passed selection as:
+- playable
+- recommended
+- suitable for wagering
+- a positive play
+- having a favorable cover outlook
+- worth considering
 
-Use every supplied Blowout Risk exactly as written.
+Do not invent:
+- cover probabilities
+- unsupported percentages
+- expected value
+- positive EV
+- sportsbook opinion
+- statistics not included in the supplied engine reasons
 
-Do not upgrade, downgrade, average or reinterpret any engine ratings.
+Market availability does not control these PASS verdicts.
+These matchups remain EasyRunLine full-game +4.5 passes even if the sportsbook offers the exact alternate line.
 
-Do not invent cover probabilities.
+Starting-pitcher, recent-form, H2H and bullpen information are live intelligence whenever they appear in the supplied engine reasons.
+Do not list those factors as missing when they have been supplied.
 
-Do not invent expected value.
+The Games to Avoid report applies only to the full-game +4.5 market.
+Do not make claims about an F5 market from these full-game verdicts.
 
-Do not claim sportsbook opinion.
-
-Starting pitcher, recent form and bullpen information are live intelligence whenever they appear in the supplied reasons.
-
-Do not list those categories as missing if they already appear.
-
-Weather and confirmed lineups were not supplied.
+Use this exact report structure:
 
 ══════════════════════════════
 ⚠ EASYRUNLINE AI REPORT
 ══════════════════════════════
 
-🚫 Games To Avoid
+🚫 Full-Game +4.5 Selections To Avoid
 
 ${avoidText}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📊 Why These Games Failed
+📊 Why These Selections Failed
 
-Explain why these matchups fall below the EasyRunLine recommendation threshold.
+Explain each PASS separately.
 
-Discuss:
+For every selection, reproduce:
+- its ERL Score
+- its Engine Confidence
+- its Blowout Risk
+- its authoritative Verdict Reason
 
-• lower ERL Scores
+Clearly explain which risks overrode any positive historical evidence.
 
-• weaker Engine Confidence
-
-• elevated Blowout Risk
-
-Do not invent new statistics.
+Do not create a combined score or combined confidence rating.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 💥 Blowout Risk Summary
 
-Reproduce every supplied Blowout Risk exactly as written.
+Reproduce each supplied Blowout Risk exactly as written.
 
-Briefly explain why elevated blowout risk reduces confidence in these +4.5 plays.
+Explain how the identified pitching, market-gap, recent-form, H2H or bullpen concerns affect the possibility of losing beyond the +4.5 cushion.
+
+Only discuss factors that appear in the supplied engine reasons.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📉 Risk Factors
+📉 Main Risk Factors
 
-Using only the supplied engine reasons, explain the biggest concerns for each avoided matchup.
+Explain each avoided matchup separately using only its supplied engine reasons.
 
-Do not recommend betting any of these games.
+Positive recent or H2H records may be acknowledged, but clearly state why those positive indicators were insufficient to overcome the identified risks.
+
+Do not recommend any wager.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📖 Visible Market Context
+
+Explain that the visible moneyline and standard run line provide market context only.
+
+The exact +4.5 market being available would not change any supplied Engine Verdict of PASS.
+
+Do not claim value or expected value.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1002,86 +1780,257 @@ Do not recommend betting any of these games.
 Only list genuinely missing information.
 
 Weather: Not supplied.
-
 Confirmed Lineups: Not supplied.
 
-Exact +4.5 alternate prices: Not supplied.
+Do not list recent form, H2H or bullpen as missing when those factors are supplied in the engine reasons.
 
+If an engine reason explicitly says "Starting pitcher data unavailable", list:
+"Starting Pitchers: Not supplied."
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 EasyRunLine Verdict
+🏆 EasyRunLine Avoid Verdict
 
-State clearly that these matchups currently fall below the EasyRunLine recommendation threshold.
+State clearly that every listed full-game +4.5 selection remains an EasyRunLine PASS.
 
-Do not suggest replacing them with different teams.
+Reproduce each authoritative Verdict Reason.
 
-Do not recommend any wager from this list.
+Do not recommend the opponent.
+Do not provide replacement selections.
+Do not suggest forcing a wager because the +4.5 line is available.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📌 EasyRunLine Rule
 
-Passing on weak opportunities is part of long-term bankroll management.
+Passing on weak or unsuitable matchups is part of disciplined bankroll management.
 
 One Unit Only.
-
 Never chase losses.
-
-Never force action when the engine says no.
+Never call anything a lock.
+Never force action when the engine says PASS.
 `;
 
   setQuestion(avoidQuestion);
   analyzeQuestion(avoidQuestion);
 }
+
 function findBestF5() {
-  if (games.length === 0) return;
+  if (games.length === 0) {
+    return;
+  }
 
-  const rankedPicks = rankEasyRunLinePicks(games);
-  const topPick = rankedPicks[0];
+  const rankedF5Picks =
+    rankF5Picks(games);
 
-  if (!topPick) return;
+  const uniqueMatchups =
+    new Set<string>();
+
+  const topF5Picks =
+    rankedF5Picks
+      .filter(
+        (pick) =>
+          pick.verdict !== "PASS"
+      )
+      .filter((pick) => {
+        const matchupKey = [
+          pick.team,
+          pick.opponent,
+        ]
+          .sort()
+          .join(" vs ");
+
+        if (
+          uniqueMatchups.has(
+            matchupKey
+          )
+        ) {
+          return false;
+        }
+
+        uniqueMatchups.add(
+          matchupKey
+        );
+
+        return true;
+      })
+      .slice(0, 2);
+
+  if (
+    topF5Picks.length === 0
+  ) {
+    setQuestion(
+      "No qualified EasyRunLine F5 +2.5 selection is currently available."
+    );
+
+    setAnswer(
+      "No MLB matchup currently satisfies the independent EasyRunLine F5 +2.5 scoring and early-risk requirements."
+    );
+
+    return;
+  }
+
+  const selectionHeading =
+    topF5Picks.length === 2
+      ? "🔥 Best Two F5 Angles"
+      : "🔥 Best F5 Angle";
+
+  const selectedText =
+    topF5Picks
+      .map(
+        (pick, index) => `
+${index + 1}. ${pick.team} F5 +2.5 or safer vs ${pick.opponent}
+
+${formatMLBGameStart(
+  pick.team,
+  pick.opponent
+)}
+
+${pick.team} —
+F5 ERL Score: ${pick.score}/100
+Engine Confidence: ${pick.confidence}
+Early Blowout Risk: ${pick.earlyBlowoutRisk}
+Engine Verdict: ${pick.verdict}
+Verdict Reason: ${pick.verdictReason}
+`
+      )
+      .join(
+        "\n━━━━━━━━━━━━━━━━━━━━━━\n"
+      );
+
+  const selectedMarketDetails =
+    topF5Picks
+      .map(
+        (pick, index) => `
+${index + 1}. ${pick.team} F5 +2.5 or safer vs ${pick.opponent}
+
+Moneyline:
+${pick.moneyline}
+
+Visible Full-Game Standard Run Line:
+${pick.standardRunLine}
+
+Bookmaker:
+${pick.bookmaker}
+`
+      )
+      .join("\n");
+
+  const selectedReasons =
+    topF5Picks
+      .map(
+        (pick, index) => `
+${index + 1}. ${pick.team}
+
+${pick.reasons
+  .map(
+    (reason) =>
+      `• ${reason}`
+  )
+  .join("\n")}
+`
+      )
+      .join("\n");
+
+  const suppliedVerdicts =
+    topF5Picks
+      .map(
+        (pick, index) => `
+${index + 1}. ${pick.team}
+
+Engine Verdict:
+${pick.verdict}
+
+Authoritative Verdict Reason:
+${pick.verdictReason}
+`
+      )
+      .join("\n");
+
+  const marketVerificationClosing =
+    topF5Picks.length === 2
+      ? "Verify that your sportsbook offers the recommended F5 +2.5 or safer alternate line at an acceptable price for both selections. If either line is unavailable, do not force that selection; the wagering action for the unavailable line is PASS. Market availability does not change either supplied Engine Verdict."
+      : "Verify that your sportsbook offers the recommended F5 +2.5 or safer alternate line at an acceptable price. If the line is unavailable, the wagering action is PASS. Market availability does not change the supplied Engine Verdict.";
 
   const f5Question = `
-Create an EasyRunLine AI report for the best First 5 Innings MLB angle.
+Create an EasyRunLine AI report for the strongest qualified First 5 Innings MLB selections.
 
 IMPORTANT:
-This selection was produced by the EasyRunLine fixed scoring engine.
+These selections were produced by the independent EasyRunLine F5 fixed scoring engine.
+
 Do not perform a separate selection process.
-Do not change the selected team.
-Do not recommend the opponent.
-Do not convert this into a full-game +4.5 recommendation.
-Do not replace the EasyRunLine F5 target with the visible full-game standard run line.
+Do not change any selected team.
+Do not recommend an opponent.
+Do not add another selection.
+Do not convert these into full-game +4.5 recommendations.
+Do not replace an F5 +2.5 target with the visible full-game standard run line.
+The supplied Last-10 F5 run differential is the cumulative run differential across the games counted.
+Never call it an average run differential.
 
-This report is for the First 5 Innings only.
+The supplied F5 averages are the per-game averages for runs scored and runs allowed.
+Do not confuse cumulative run differential with per-game scoring averages.
 
-The EasyRunLine target is:
-${topPick.team} F5 +2.5 or a safer F5 alternate line vs ${topPick.opponent}
+Do not describe a selection as an "active wagering decision", "wager still justifiable", or ready to wager before its exact F5 alternate line and price are verified.
+The Engine Verdict evaluates matchup suitability; market verification determines whether the wager can actually be placed.
 
-Use the supplied ERL Score exactly as written.
-Use the supplied Engine Confidence exactly as written.
-Use the supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, reinterpret, or replace any engine rating.
+This report concerns the First 5 Innings only.
 
-Do not invent a separate F5 score.
-Do not invent a separate F5 confidence label.
+Use every supplied F5 ERL Score exactly as written.
+Use every supplied Engine Confidence exactly as written.
+Use every supplied Early Blowout Risk exactly as written.
+Use every supplied Engine Verdict exactly as written.
+Use every supplied Verdict Reason exactly as written.
+
+The fixed F5 engine verdicts are authoritative.
+
+Do not upgrade or downgrade any supplied verdict.
+Do not average the selections.
+Do not invent a combined score.
+Do not invent a combined confidence rating.
+Do not invent a combined Early Blowout Risk.
+Do not produce a combined or parlay verdict.
+
+Market availability controls whether the user can place a wager. It does not change the supplied Engine Verdict.
+
 Do not invent numerical cover probabilities or unsupported percentages.
-Do not call the play a lock.
 
-The exact F5 +2.5 or safer alternate line and price have not been confirmed.
-Tell the user to verify the exact F5 alternate line and price in their betting app.
+Never use:
+- guaranteed
+- certain
+- lock
+- minimal chance
+- expected to cover comfortably
+- comfortably cover
+- reliable buffer
+- cannot lose
 
-If the exact F5 target market is unavailable, the recommendation is PASS.
-Do not invent or force a replacement market.
-Do not replace the F5 target with a full-game +4.5 play.
+Starting-pitcher information is an important F5 factor.
 
-Starting-pitcher information is the most important live factor for this report.
-If starting-pitcher data or pitcher comparisons appear in the supplied engine reasons, do not describe starting-pitcher data as missing.
+If a selection's reasons say:
+"Starting pitcher data unavailable"
 
-Recent form may support the early-game outlook when it appears in the supplied reasons.
+then state:
+"Starting Pitchers: Not supplied. F5 confidence is limited."
 
-Bullpen data is mainly a full-game factor.
-Do not use bullpen strength as the primary reason for this F5 recommendation.
-If bullpen information appears in the supplied reasons, acknowledge that it has less importance before the sixth inning.
+When pitcher data is unavailable:
+- do not describe the pitching matchup as favourable
+- do not describe it as balanced
+- do not describe it as competitive
+- do not claim that other evidence compensates for the missing pitching data
+- do not invent pitcher names, ERAs, handedness, form or matchup history
+- do not mention pitching as support in that selection's Cover Outlook
+
+Use recent F5 evidence and F5 H2H evidence exactly as supplied.
+
+Do not replace F5 statistics with full-game +4.5 statistics.
+
+Bullpen information is not part of this independent F5 score.
+Do not use bullpen strength to support or reject these selections.
+
+The exact F5 +2.5 or safer alternate lines and prices have not been confirmed.
+
+If an exact F5 target is unavailable, state that the wagering action for that selection is PASS.
+
+Do not change its supplied Engine Verdict because of market availability.
 
 Weather and confirmed lineup information were not supplied.
 
@@ -1091,111 +2040,108 @@ Use this exact report structure:
 ⚾ EASYRUNLINE AI REPORT
 ══════════════════════════════
 
-🔥 Best F5 Angle
+${selectionHeading}
 
-${topPick.team} F5 +2.5 or safer F5 alternate line vs ${topPick.opponent}
-
-${formatMLBGameStart(
-  topPick.team,
-  topPick.opponent
-)}
-
-${topPick.team} —
-ERL Score: ${topPick.score}/100
-Engine Confidence: ${topPick.confidence}
-Blowout Risk: ${topPick.blowoutRisk}
+${selectedText}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-📊 Confidence
+📊 Individual Confidence
 
-Reproduce the supplied Engine Confidence exactly as written.
+Discuss each selected team's supplied Engine Confidence separately.
 
-Explain briefly what that confidence level means for the First 5 Innings target.
+Do not create a combined confidence label.
 
-Do not create a different F5 confidence label.
+Explain briefly what each supplied confidence level means for that individual F5 target.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🛡 F5 Cover Outlook
+🛡 Individual F5 Cover Outlook
 
-Give a qualitative outlook for the selected team's ability to remain within the F5 target through five innings.
+Give a separate qualitative F5 +2.5 cover outlook for each selection.
 
-Focus on:
-- starting pitching
-- early offense
-- recent first-half suitability where supported
-- risk of falling behind early
+Use only the supplied F5 evidence.
 
 Do not provide percentages.
-Do not guarantee the cover.
+Do not guarantee a cover.
+Do not describe a PASS wagering action as changing the Engine Verdict.
+
+If starting-pitcher data is unavailable for a selection, do not use pitching as support for its outlook.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-⚾ Starting Pitching Edge
+⚾ Starting Pitching Assessment
 
-Explain the starting-pitching information using only the supplied engine reasons.
+Discuss each selection separately.
 
-If pitcher information is present, use it directly.
+Use only the supplied pitcher reason.
 
-If pitcher information is genuinely absent, state:
+When the reason says starting-pitcher data is unavailable, state:
+
 "Starting Pitchers: Not supplied. F5 confidence is limited."
 
-Do not invent pitcher names, ERAs, handedness, form, or matchup history.
+Do not infer a balanced, favourable or competitive pitching matchup from missing information.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 🚀 Early-Offense Outlook
 
-Explain whether the supplied reasons support the selected team's ability to stay competitive during the first five innings.
+Discuss each selection separately using only:
 
-Do not invent inning splits, first-five records, batting statistics, or scoring trends that were not supplied.
+- supplied F5 runs scored
+- supplied F5 runs allowed
+- supplied F5 run differential
+- supplied recent F5 +2.5 record
+- supplied H2H F5 evidence
 
-━━━━━━━━━━━━━━━━━━━━━━
-
-💥 Early Blowout Risk
-
-Reproduce the supplied Blowout Risk exactly as written.
-
-Explain how that risk applies specifically to the possibility of the selected team falling outside the F5 cushion before the end of the fifth inning.
-
-Do not replace or reinterpret the engine label.
+Do not invent additional batting statistics, inning splits or scoring trends.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 Market Value
+💥 Individual Early Blowout Risk
 
-The exact F5 alternate price was not supplied.
+Reproduce each supplied Early Blowout Risk exactly.
 
-Do not claim positive expected value, +EV, strong value, profitable value, or sportsbook confidence.
+Explain separately how each risk applies to falling outside the +2.5 cushion before the end of the fifth inning.
 
-State that the matchup may be suitable for the EasyRunLine F5 target, subject to confirming the exact alternate line and price.
+Do not average the risk labels.
 
-If the exact target is unavailable, mark the recommendation as PASS.
+━━━━━━━━━━━━━━━━━━━━━━
+
+💰 Market Verification
+
+The exact F5 alternate lines and prices were not supplied.
+
+Do not claim:
+- positive expected value
+- +EV
+- profitable value
+- strong betting value
+- sportsbook confidence
+
+Explain that every selected F5 line and price must be verified independently.
+
+Market verification does not change the supplied Engine Verdicts.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📖 Visible Market Details
 
-Moneyline: ${topPick.moneyline}
+${selectedMarketDetails}
 
-Visible Full-Game Standard Run Line: ${topPick.standardRunLine}
-
-Bookmaker: ${topPick.bookmaker}
-
-Clearly state that this visible full-game market does not confirm the availability or price of the F5 alternate target.
+Clearly state that these visible full-game markets do not confirm the availability or price of the F5 alternate targets.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🧠 Why This F5 Play
+🧠 Why These F5 Selections
 
-Explain the recommendation using only these supplied engine reasons:
+Explain each selection separately using only these engine reasons:
 
-${topPick.reasons.map((reason) => `• ${reason}`).join("\n")}
+${selectedReasons}
 
-Prioritize starting-pitching and early-game factors.
-
-Do not use bullpen strength as the main justification.
+Do not introduce unsupported evidence.
+Do not use bullpen strength.
+Do not claim favourable pitching when pitcher data is unavailable.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1203,86 +2149,114 @@ Do not use bullpen strength as the main justification.
 
 Only list genuinely missing information.
 
-Do not list starting pitchers or recent form as missing when those factors appear in the supplied engine reasons.
-
 Weather: Not supplied.
-
 Confirmed Lineups: Not supplied.
+Exact F5 alternate lines and prices: Not supplied.
 
-Exact F5 alternate line and price: Not supplied.
+List Starting Pitchers as not supplied only for selections whose engine reasons say the pitcher data is unavailable.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 EasyRunLine Verdict
+🏆 EasyRunLine Individual F5 Verdicts
 
-Give one clear verdict:
+Reproduce these supplied verdicts exactly:
 
-PLAY
+${suppliedVerdicts}
 
-LEAN
+Explain separately why each F5 score, confidence, Early Blowout Risk and supplied engine evidence support its verdict.
 
-or
+Do not produce a combined verdict.
+Do not describe these selections as a parlay.
+Do not downgrade a verdict because its exact F5 market is not visible.
 
-PASS.
+End this section with:
 
-Base the verdict only on:
-- the supplied ERL Score
-- the supplied Engine Confidence
-- the supplied Blowout Risk
-- the supplied engine reasons
-- whether the exact F5 target market can be verified
-
-Do not invent a new score, confidence label, or probability.
-
-If the exact F5 target market cannot be verified, state PASS.
+${marketVerificationClosing}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
 📌 EasyRunLine Rule
 
 One Unit Only.
-
 Never chase losses.
-
 Never call anything a lock.
-
 F5 bets cover only the First 5 Innings.
-
-Always verify the exact F5 alternate line and price.
+Verify every exact F5 alternate line and price independently.
 `;
 
   setQuestion(f5Question);
   analyzeQuestion(f5Question);
 }
+
+
 function findBestThreeLegParlay() {
     if (games.length === 0) return;
 
   const rankedPicks = rankEasyRunLinePicks(games);
-  const uniqueGamePicks = rankedPicks.filter((pick, index, allPicks) => {
-  const matchupKey = [pick.team, pick.opponent].sort().join(" vs ");
+  const uniqueMatchups = new Set<string>();
 
-  return (
-    index ===
-    allPicks.findIndex((otherPick) => {
-      const otherMatchupKey = [
-        otherPick.team,
-        otherPick.opponent,
-      ]
-        .sort()
-        .join(" vs ");
+const topThree = rankedPicks
+  .filter((pick) => pick.verdict !== "PASS")
+  .filter((pick) => {
+    const matchupKey = [pick.team, pick.opponent]
+      .sort()
+      .join(" vs ");
 
-      return otherMatchupKey === matchupKey;
-    })
-  );
-});
+    if (uniqueMatchups.has(matchupKey)) {
+      return false;
+    }
 
-const topThree = uniqueGamePicks.slice(0, 3);
+    uniqueMatchups.add(matchupKey);
+    return true;
+  })
+  .slice(0, 3);
+
+if (topThree.length < 3) return;
+const hasCautiousLeg = topThree.some(
+  (pick) => pick.verdict === "CAUTIOUS PLAY"
+);
+
+const hasLeanLeg = topThree.some(
+  (pick) => pick.verdict === "LEAN"
+);
+
+const allStrongPlays = topThree.every(
+  (pick) => pick.verdict === "STRONG PLAY"
+);
+
+let threeLegVerdict: ScoredPick["verdict"];
+let threeLegVerdictReason: string;
+
+if (hasCautiousLeg) {
+  threeLegVerdict = "CAUTIOUS PLAY";
+  threeLegVerdictReason =
+    "At least one selected leg carries elevated matchup risk, so the full three-leg combination requires caution.";
+} else if (hasLeanLeg) {
+  threeLegVerdict = "LEAN";
+  threeLegVerdictReason =
+    "At least one selected leg has supporting +4.5 evidence but does not reach the strength required for a full three-leg Play.";
+} else if (allStrongPlays) {
+  threeLegVerdict = "STRONG PLAY";
+  threeLegVerdictReason =
+    "All three selected legs carry Strong Play classifications with acceptable individual blowout risk.";
+} else {
+  threeLegVerdict = "PLAY";
+  threeLegVerdictReason =
+    "All three selected legs satisfy the EasyRunLine playing threshold, but the combination does not contain three Strong Play classifications.";
+}
+
+const threeLegMarketVerificationClosing =
+  "Verify that your sportsbook offers the +4.5 line at an acceptable price for all three selections. If any line is unavailable, do not force the three-leg parlay; use fewer available qualified legs or PASS.";
 
   const rankedText = rankedPicks
     .map(
       (pick, index) => `
 ${index + 1}. ${pick.team} +4.5 vs ${pick.opponent}
-Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence}
+Engine Rating: ${pick.team} — ERL Score: ${pick.score}/100
+Engine Confidence: ${pick.confidence}
+Blowout Risk: ${pick.blowoutRisk}
+Engine Verdict: ${pick.verdict}
+Verdict Reason: ${pick.verdictReason}
 Moneyline: ${pick.moneyline}
 Standard Run Line Seen: ${pick.standardRunLine}
 Bookmaker: ${pick.bookmaker}
@@ -1301,6 +2275,8 @@ ${formatMLBGameStart(
   pick.opponent
 )}
 ${pick.team} — ERL Score: ${pick.score}/100 — Engine Confidence: ${pick.confidence} — Blowout Risk: ${pick.blowoutRisk}
+Engine Verdict: ${pick.verdict}
+Verdict Reason: ${pick.verdictReason}
 `
   )
   .join("\n\n");
@@ -1319,7 +2295,11 @@ Do not replace the EasyRunLine +4.5 targets with the visible standard +1.5 lines
 Use every supplied ERL Score exactly as written.
 Use every supplied Engine Confidence exactly as written.
 Use every supplied Blowout Risk exactly as written.
-Do not upgrade, downgrade, average, reinterpret, or replace any engine ratings.
+Use every supplied Engine Verdict and Verdict Reason exactly as written.
+Use the supplied Three-Leg Verdict and Three-Leg Verdict Reason exactly as written.
+
+The fixed Engine Verdicts and Three-Leg Verdict are authoritative.
+Do not upgrade, downgrade, average, reinterpret or replace any supplied engine rating or verdict.
 
 Do not invent a combined ERL Score.
 Do not invent a combined confidence label.
@@ -1332,11 +2312,9 @@ The visible sportsbook feed may only show the standard run line.
 
 Tell the user to verify the exact +4.5 alternate run line and price for ALL THREE selections before placing the parlay.
 
-If any exact +4.5 alternate market is unavailable:
-
-- mark that leg as PASS
-- never invent a replacement team
-- recommend using fewer legs instead of forcing the ticket
+Missing +4.5 pricing must not change any supplied Engine Verdict or the supplied Three-Leg Verdict.
+If any +4.5 market is unavailable, do not force the parlay and do not invent a replacement team.
+Use fewer available qualified legs or PASS.
 
 Starting pitcher, recent form and bullpen information are live intelligence whenever they appear in the supplied engine reasons.
 
@@ -1353,6 +2331,8 @@ Use this exact report format:
 🎯 Recommended 3-Leg +4.5 Parlay
 
 ${selectedText}
+Three-Leg Verdict: ${threeLegVerdict}
+Three-Leg Verdict Reason: ${threeLegVerdictReason}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1382,13 +2362,17 @@ Explain briefly how each team's risk affects the parlay.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-💰 Market Value
+💰 Market Verification
 
-Explain what the visible markets show.
+Explain what the visible markets confirm and what remains unverified.
 
-Do not claim betting value without the exact +4.5 alternate prices.
+Do not claim betting value without the exact +4.5 prices.
 
-Remind the user to verify every +4.5 alternate run line before placing the parlay.
+Do not let missing +4.5 pricing change any individual Engine Verdict or the supplied Three-Leg Verdict.
+
+Remind the user to verify all three +4.5 lines and prices.
+
+If any line is unavailable, do not force the three-leg parlay.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
@@ -1442,31 +2426,22 @@ Exact +4.5 alternate prices: Not supplied.
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 EasyRunLine Verdict
+🏆 EasyRunLine Three-Leg Verdict
 
-Give one verdict only:
+Reproduce this supplied Three-Leg Verdict exactly:
 
-PLAY
+${threeLegVerdict}
 
-LEAN
+Authoritative Three-Leg Verdict Reason:
+${threeLegVerdictReason}
 
-or
+Do not create, change, upgrade or downgrade the supplied Three-Leg Verdict.
 
-PASS.
+Explain how the three individual Engine Verdicts, ERL Scores, confidence ratings, Blowout Risks and engine reasons support it.
 
-Base the verdict only on:
+Do not invent a combined score, probability or confidence rating.
 
-• the supplied ERL Scores
-
-• the supplied Engine Confidence labels
-
-• the supplied Blowout Risk labels
-
-• the supplied engine reasons
-
-• whether the three +4.5 alternate markets can be verified
-
-Do not invent combined scores or probabilities.
+${threeLegMarketVerificationClosing}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 

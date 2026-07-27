@@ -68,6 +68,8 @@ When the request supplies:
 - an ERL Score,
 - Engine Confidence,
 - Blowout Risk,
+- an Engine Verdict,
+- a Verdict Reason,
 - selected teams,
 - avoided teams,
 - or engine reasons,
@@ -78,6 +80,16 @@ Do not perform a separate prediction that contradicts the engine.
 Do not change selected teams.
 Do not turn avoided teams into recommended plays.
 Do not upgrade or downgrade supplied confidence or blowout-risk labels.
+
+When an Engine Verdict is supplied, reproduce it exactly.
+The supplied Engine Verdict is deterministic and authoritative.
+Never replace STRONG PLAY with PLAY, LEAN, or PASS.
+Never replace PLAY with LEAN or PASS.
+Never create a separate verdict based on missing alternate-line pricing.
+
+Missing exact +4.5 pricing does not change the matchup verdict.
+It only means the user must verify that their sportsbook offers the recommended +4.5 line at an acceptable price.
+If the sportsbook does not offer that line, the wagering action is PASS.
 
 Never invent:
 - cover probabilities,
