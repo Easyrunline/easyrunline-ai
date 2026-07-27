@@ -1,45 +1,90 @@
 import Link from "next/link";
-
+import GeneralAIBox from "@/components/GeneralAIBox";
 const sports = [
   {
     name: "MLB",
     icon: "⚾",
+    engine:
+      "Run-Line Intelligence",
     description:
-      "Run-line intelligence, pitcher analysis, bullpen form and alternate-market protection.",
+      "Pitcher analysis, bullpen form, recent +4.5 performance, H2H intelligence and alternate-market protection.",
     href: "/mlb",
-    accent: "border-blue-500/30 hover:border-blue-400",
+    accent:
+      "border-blue-500/30 hover:border-blue-400",
+    brand:
+      "border-blue-500/30 bg-gradient-to-br from-blue-500/20 via-blue-950/10 to-black",
+    brandText:
+      "text-blue-300",
+    glow:
+      "group-hover:shadow-[0_20px_60px_rgba(59,130,246,0.12)]",
   },
   {
     name: "NFL",
     icon: "🏈",
+    engine:
+      "Spread Intelligence",
     description:
       "Quarterback intelligence, team form, spread analysis and alternate-line protection.",
     href: "/nfl",
-    accent: "border-orange-500/30 hover:border-orange-400",
+    accent:
+      "border-orange-500/30 hover:border-orange-400",
+    brand:
+      "border-orange-500/30 bg-gradient-to-br from-orange-500/20 via-orange-950/10 to-black",
+    brandText:
+      "text-orange-300",
+    glow:
+      "group-hover:shadow-[0_20px_60px_rgba(249,115,22,0.12)]",
   },
   {
     name: "NBA",
     icon: "🏀",
+    engine:
+      "Alternate-Spread Intelligence",
     description:
       "Spread intelligence, alternate markets and matchup-based basketball analysis.",
     href: "/nba",
-    accent: "border-purple-500/30 hover:border-purple-400",
+    accent:
+      "border-purple-500/30 hover:border-purple-400",
+    brand:
+      "border-purple-500/30 bg-gradient-to-br from-purple-500/20 via-purple-950/10 to-black",
+    brandText:
+      "text-purple-300",
+    glow:
+      "group-hover:shadow-[0_20px_60px_rgba(168,85,247,0.12)]",
   },
   {
     name: "NHL",
     icon: "🏒",
+    engine:
+      "Puck-Line Intelligence",
     description:
       "Goalie intelligence, team form, injury context and safer puck-line analysis.",
     href: "/nhl",
-    accent: "border-cyan-500/30 hover:border-cyan-400",
+    accent:
+      "border-cyan-500/30 hover:border-cyan-400",
+    brand:
+      "border-cyan-500/30 bg-gradient-to-br from-cyan-500/20 via-cyan-950/10 to-black",
+    brandText:
+      "text-cyan-300",
+    glow:
+      "group-hover:shadow-[0_20px_60px_rgba(6,182,212,0.12)]",
   },
   {
     name: "Soccer",
     icon: "⚽",
+    engine:
+      "Football Market Intelligence",
     description:
       "League-specific market intelligence, protected totals and handicap analysis.",
     href: "/soccer",
-    accent: "border-emerald-500/30 hover:border-emerald-400",
+    accent:
+      "border-emerald-500/30 hover:border-emerald-400",
+    brand:
+      "border-emerald-500/30 bg-gradient-to-br from-emerald-500/20 via-emerald-950/10 to-black",
+    brandText:
+      "text-emerald-300",
+    glow:
+      "group-hover:shadow-[0_20px_60px_rgba(16,185,129,0.12)]",
   },
 ];
 
@@ -92,6 +137,12 @@ export default function HomePage() {
             <a href="#sports" className="transition hover:text-white">
               Sports
             </a>
+            <a
+  href="#ask-ai"
+  className="transition hover:text-white"
+>
+  Ask AI
+</a>
             <a href="#method" className="transition hover:text-white">
               How It Works
             </a>
@@ -223,8 +274,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section
-        id="sports"
+    <GeneralAIBox />
+
+<section
+  id="sports"
+        
         className="mx-auto max-w-7xl px-6 py-20 lg:px-8"
       >
         <div className="max-w-3xl">
@@ -242,32 +296,70 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2 lg:grid-cols-5">
-          {sports.map((sport) => (
-            <Link
-              key={sport.name}
-              href={sport.href}
-              className={`group rounded-2xl border bg-zinc-950 p-6 transition duration-300 hover:-translate-y-1 hover:bg-zinc-900 ${sport.accent}`}
+        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+  {sports.map(
+    (sport, index) => (
+      <Link
+        key={sport.name}
+        href={sport.href}
+        className={`group flex h-full flex-col rounded-3xl border bg-zinc-950 p-4 transition duration-300 hover:-translate-y-2 hover:bg-zinc-900 ${sport.accent} ${sport.glow}`}
+      >
+        <div
+          className={`relative overflow-hidden rounded-2xl border p-5 ${sport.brand}`}
+        >
+          <div
+            aria-hidden="true"
+            className="absolute -right-5 -top-6 text-8xl opacity-[0.08] transition duration-500 group-hover:rotate-12 group-hover:scale-110"
+          >
+            {sport.icon}
+          </div>
+
+          <div className="relative flex items-start justify-between">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/10 bg-black/60 text-3xl shadow-xl">
+              {sport.icon}
+            </div>
+
+            <span className="rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-zinc-500">
+              Engine {index + 1}
+            </span>
+          </div>
+
+          <div className="relative mt-8">
+            <p
+              className={`text-3xl font-black tracking-tight ${sport.brandText}`}
             >
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-zinc-800 bg-black text-2xl">
-                {sport.icon}
-              </div>
+              {sport.name}
+            </p>
 
-              <h3 className="mt-6 text-xl font-black">
-                {sport.name}
-              </h3>
-
-              <p className="mt-3 text-sm leading-6 text-zinc-500">
-                {sport.description}
-              </p>
-
-              <p className="mt-6 text-sm font-bold text-yellow-400">
-                Open intelligence
-                <span className="ml-2 transition group-hover:ml-3">→</span>
-              </p>
-            </Link>
-          ))}
+            <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.22em] text-zinc-500">
+              EasyRunLine Intelligence
+            </p>
+          </div>
         </div>
+
+        <div className="flex flex-1 flex-col px-2 pb-2 pt-6">
+          <p className="text-xs font-black uppercase tracking-[0.18em] text-yellow-400">
+            {sport.engine}
+          </p>
+
+          <p className="mt-4 flex-1 text-sm leading-6 text-zinc-500">
+            {sport.description}
+          </p>
+
+          <div className="mt-7 flex items-center justify-between border-t border-zinc-900 pt-5">
+            <span className="text-sm font-black text-white">
+              Open workspace
+            </span>
+
+            <span className="flex h-9 w-9 items-center justify-center rounded-full border border-yellow-500/30 bg-yellow-400/5 text-yellow-400 transition duration-300 group-hover:translate-x-1 group-hover:bg-yellow-400 group-hover:text-black">
+              →
+            </span>
+          </div>
+        </div>
+      </Link>
+    )
+  )}
+</div>
       </section>
 
       <section
@@ -374,11 +466,11 @@ export default function HomePage() {
             </div>
 
             <Link
-              href="/mlb"
-              className="shrink-0 rounded-xl bg-black px-7 py-4 text-center font-black text-white transition hover:bg-zinc-900"
-            >
-              Enter EasyRunLine
-            </Link>
+  href="#sports"
+  className="shrink-0 rounded-xl bg-black px-7 py-4 text-center font-black text-white transition hover:bg-zinc-900"
+>
+  Choose Your Sport
+</Link>
           </div>
         </div>
       </section>
