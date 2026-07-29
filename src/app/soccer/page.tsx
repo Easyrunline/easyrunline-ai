@@ -1418,6 +1418,19 @@ function formatSpread(outcome?: SoccerOutcome) {
   rankedGames,
   game.id
 );
+
+const homeImpliedProbability =
+  intelligence?.preferredTeam === game.home_team
+    ? intelligence.preferredProbability
+    : intelligence?.opponentProbability;
+
+const awayImpliedProbability =
+  intelligence?.preferredTeam === game.away_team
+    ? intelligence.preferredProbability
+    : intelligence?.opponentProbability;
+
+const drawImpliedProbability =
+  intelligence?.drawProbability;
 const homeVisual = getClubVisual(
   clubVisuals,
   selectedCompetition,
@@ -1572,10 +1585,60 @@ const awayVisual = getClubVisual(
         {formatPrice(under?.price)}
       </span>
     </p>
+  
   </div>
 </div>
+
+{intelligence && (
+  <div className="mt-4 rounded-lg border border-blue-900 bg-blue-950/20 p-4">
+    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
+      Market-Implied Probability
+    </p>
+
+    <div className="mt-4 grid gap-3 sm:grid-cols-3">
+      <div className="rounded-lg border border-blue-950 bg-black p-3">
+        <p className="text-xs text-gray-500">
+          {game.home_team}
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {homeImpliedProbability?.toFixed(1) ?? "N/A"}%
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-blue-950 bg-black p-3">
+        <p className="text-xs text-gray-500">
+          Draw
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {drawImpliedProbability?.toFixed(1) ?? "N/A"}%
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-blue-950 bg-black p-3">
+        <p className="text-xs text-gray-500">
+          {game.away_team}
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {awayImpliedProbability?.toFixed(1) ?? "N/A"}%
+        </p>
+      </div>
+    </div>
+
+    <p className="mt-3 text-xs leading-5 text-gray-500">
+      Normalized from the selected bookmaker&apos;s 1X2 prices.
+      These figures reflect market-implied probability, not an
+      EasyRunLine prediction or guarantee.
+    </p>
+  </div>
+)}
+
 {intelligence && (
   <div className="mt-4 rounded-lg border border-yellow-900 bg-yellow-950/20 p-4">
+
+
     <p className="text-xs font-bold uppercase tracking-widest text-yellow-400">
       EasyRunLine Intelligence
     </p>
