@@ -1,11 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 import GameCard from "@/components/GameCard";
 import LeagueHeader from "@/components/LeagueHeader";
 import MarketCard from "@/components/MarketCard";
 import { getWNBALogoUrl } from "@/lib/wnba/wnbaLogos";
+import {
+  buildWNBAIntelligence,
+  type RankedWNBAGame,
+} from "@/lib/wnba/wnbaIntelligence";
+
 
 import type {
   WNBAGame,
@@ -63,12 +72,49 @@ function findOutcome(
     (outcome) => outcome.name === outcomeName
   );
 }
+function calculateImpliedProbabilities(
+  homePrice?: number,
+  awayPrice?: number
+) {
+  if (
+    !Number.isFinite(homePrice) ||
+    !Number.isFinite(awayPrice) ||
+    homePrice! <= 1 ||
+    awayPrice! <= 1
+  ) {
+    return null;
+  }
+
+  const rawHomeProbability = 1 / homePrice!;
+  const rawAwayProbability = 1 / awayPrice!;
+
+  const marketTotal =
+    rawHomeProbability + rawAwayProbability;
+
+  if (marketTotal <= 0) {
+    return null;
+  }
+
+  return {
+    home:
+      (rawHomeProbability / marketTotal) * 100,
+    away:
+      (rawAwayProbability / marketTotal) * 100,
+  };
+}
 
 export default function WNBAPage() {
   const [games, setGames] = useState<WNBAGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
+  const rankedGames =
+    useMemo<RankedWNBAGame[]>(
+      () =>
+        buildWNBAIntelligence(
+          games
+        ),
+      [games]
+    );
   async function loadGames() {
     setLoading(true);
     setError("");
@@ -192,6 +238,12 @@ export default function WNBAPage() {
           games.length > 0 && (
             <div className="mt-10 grid gap-6 lg:grid-cols-2">
               {games.map((game) => {
+                                const intelligence =
+                  rankedGames.find(
+                    (rankedGame) =>
+                      rankedGame.eventId ===
+                      game.id
+                  );
                 const h2h = findMarket(
                   game,
                   "h2h"
@@ -218,6 +270,11 @@ export default function WNBAPage() {
                     h2h?.market.outcomes ?? [],
                     game.away_team
                   );
+                  const impliedProbabilities =
+  calculateImpliedProbabilities(
+    homeMoneyline?.price,
+    awayMoneyline?.price
+  );
 
                 const homeSpread =
                   findOutcome(
@@ -322,6 +379,143 @@ awayLogo={getWNBALogoUrl(game.away_team)}
                         </p>
                       </MarketCard>
                     </div>
+                    
+
+                    {impliedProbabilities && (
+                      <div className="mt-4 rounded-xl border border-blue-900 bg-blue-950/20 p-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
+                          Market-Implied Probability
+                        </p>
+
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div className="rounded-lg border border-blue-950 bg-black p-3">
+                            <p className="text-xs text-zinc-500">
+                              {game.home_team}
+                            </p>
+
+                            <p className="mt-1 font-bold text-white">
+                              {impliedProbabilities.home.toFixed(1)}%
+                            </p>
+                          </div>
+
+                          <div className="rounded-lg border border-blue-950 bg-black p-3">
+                            <p className="text-xs text-zinc-500">
+                              {game.away_team}
+                            </p>
+
+                            <p className="mt-1 font-bold text-white">
+                              {impliedProbabilities.away.toFixed(1)}%
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="mt-3 text-xs leading-5 text-zinc-500">
+                          Normalized from the selected bookmaker&apos;s
+                          moneyline prices. These figures reflect
+                          market-implied probability, not an EasyRunLine
+                          prediction or guarantee.
+                        </p>
+                      </div>
+                    )}
+
+                                        {intelligence && (
+                      <div className="mt-4 rounded-xl border border-orange-900 bg-orange-950/20 p-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-orange-400">
+                          EasyRunLine WNBA Intelligence
+                        </p>
+
+                        <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              Preferred Team
+                            </p>
+
+                            <p className="mt-1 font-bold text-white">
+                              {intelligence.preferredTeam}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              ERL Score
+                            </p>
+
+                            <p className="mt-1 font-bold text-orange-400">
+                              {intelligence.erlScore}/100
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              Confidence
+                            </p>
+
+                            <p className="mt-1 font-bold text-white">
+                              {intelligence.confidence}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              Matchup Grade
+                            </p>
+
+                            <p className="mt-1 font-bold text-white">
+                              {intelligence.grade}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="mt-4 grid gap-3 border-t border-orange-900 pt-4 sm:grid-cols-3">
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              Market Edge
+                            </p>
+
+                            <p className="mt-1 font-semibold text-white">
+                              {intelligence.probabilityEdge.toFixed(1)}
+                              points
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              Bookmakers Verified
+                            </p>
+
+                            <p className="mt-1 font-semibold text-white">
+                              {intelligence.bookmakerCount}
+                            </p>
+                          </div>
+
+                          <div>
+                            <p className="text-xs text-zinc-500">
+                              Engine Status
+                            </p>
+
+                            <p
+                              className={`mt-1 font-bold ${
+                                intelligence.avoid
+                                  ? "text-red-400"
+                                  : "text-emerald-400"
+                              }`}
+                            >
+                              {intelligence.avoid
+                                ? "PASS"
+                                : "QUALIFIED"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <p className="mt-4 border-t border-orange-900 pt-4 text-xs leading-5 text-zinc-500">
+                          This initial WNBA score is based on
+                          normalized market probability and verified
+                          bookmaker coverage. Confidence remains
+                          restricted until team form, injuries and
+                          rest data are connected.
+                        </p>
+                      </div>
+                    )}
 
                     <div className="mt-4 space-y-1 text-xs text-zinc-500">
                       <p>
