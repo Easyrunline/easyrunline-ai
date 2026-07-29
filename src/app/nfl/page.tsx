@@ -800,33 +800,74 @@ function analyzeSelectedNFLGame(game: NFLGame) {
     true
   );
 
-  const homeIsPreferred =
-    homeScore.score >= awayScore.score;
+    const intelligence =
+    buildNFLIntelligence(
+      games,
+      teamForm,
+      teamQuarterbacks
+    ).find(
+      (candidate) =>
+        candidate.eventId === game.id
+    );
 
-  const preferredTeam = homeIsPreferred
-    ? game.home_team
-    : game.away_team;
+  if (!intelligence) {
+    setAnswer(
+      "EasyRunLine could not build a deterministic NFL report for this matchup."
+    );
+    return;
+  }
 
-  const preferredScore = homeIsPreferred
-    ? homeScore
-    : awayScore;
+  const preferredTeam =
+    intelligence.preferredTeam;
 
-  const opponentScore = homeIsPreferred
-    ? awayScore
-    : homeScore;
+  const scoreGap =
+    intelligence.scoreGap;
 
-  const scoreGap = Math.abs(
-    preferredScore.score -
-      opponentScore.score
-  );
+  const marketPricesAreValid =
+    Number.isFinite(homeMoneyline?.price) &&
+    Number.isFinite(awayMoneyline?.price) &&
+    (homeMoneyline?.price ?? 0) > 1 &&
+    (awayMoneyline?.price ?? 0) > 1;
+
+  const homeIsMarketFavorite =
+    marketPricesAreValid &&
+    (homeMoneyline?.price ?? Infinity) <
+      (awayMoneyline?.price ?? Infinity);
+
+  const awayIsMarketFavorite =
+    marketPricesAreValid &&
+    (awayMoneyline?.price ?? Infinity) <
+      (homeMoneyline?.price ?? Infinity);
+
+  const marketFavorite =
+    homeIsMarketFavorite
+      ? game.home_team
+      : awayIsMarketFavorite
+        ? game.away_team
+        : "No clear market favorite";
+
+  const marketUnderdog =
+    homeIsMarketFavorite
+      ? game.away_team
+      : awayIsMarketFavorite
+        ? game.home_team
+        : "No clear market underdog";
+
+  const erlPrefersMarketUnderdog =
+    marketPricesAreValid &&
+    preferredTeam === marketUnderdog;
 
   const verdict =
-    preferredScore.score >= 70 &&
-    scoreGap >= 10 &&
-    preferredScore.confidence !== "Low"
+    !intelligence.avoid &&
+    (
+      intelligence.confidence ===
+        "Very High" ||
+      intelligence.confidence === "High"
+    )
       ? "PLAY"
-      : preferredScore.score >= 60 &&
-          scoreGap >= 6
+      : !intelligence.avoid &&
+          intelligence.confidence ===
+            "Moderate"
         ? "LEAN"
         : "PASS";
 
@@ -874,17 +915,38 @@ ${new Date(game.commence_time).toISOString()}
 Preferred Team:
 ${preferredTeam}
 
-${game.away_team} ERL Score:
+${game.away_team} Team-Form Score:
 ${awayScore.score}/100
 
-${game.home_team} ERL Score:
+${game.home_team} Team-Form Score:
 ${homeScore.score}/100
+
+Complete ERL Matchup Score:
+${intelligence.preferredScore}/100
 
 Score Gap:
 ${scoreGap.toFixed(1)}
 
 Engine Confidence:
-${preferredScore.confidence}
+${intelligence.confidence}
+
+Data Completeness:
+${intelligence.dataCompleteness.toFixed(1)}/100
+
+Market Favorite:
+${marketFavorite}
+
+Market Underdog:
+${marketUnderdog}
+
+ERL Market Position:
+${
+  erlPrefersMarketUnderdog
+    ? "EasyRunLine currently prefers the market underdog."
+    : preferredTeam === marketFavorite
+      ? "EasyRunLine agrees with the market favorite."
+      : "No clear favorite-versus-underdog comparison is available."
+}
 
 ━━━━━━━━━━━━━━━━━━━━━━
 
