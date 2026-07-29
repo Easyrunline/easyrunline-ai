@@ -15,6 +15,11 @@ import {
   type RankedWNBAGame,
 } from "@/lib/wnba/wnbaIntelligence";
 
+ import {
+  findSafestWNBAAvailableSpread,
+  type WNBAAlternateSpreadBookmaker,
+  type WNBAAlternateSpreadSelection,
+} from "@/lib/wnba/wnbaAlternateSpread";
 
 import type {
   WNBAGame,
@@ -102,11 +107,50 @@ function calculateImpliedProbabilities(
       (rawAwayProbability / marketTotal) * 100,
   };
 }
+type WNBAAlternateSpreadResponse = {
+  available?: boolean;
+  eventId?: string;
+
+  bookmakers?: WNBAAlternateSpreadBookmaker[];
+
+  error?: string;
+  details?: unknown;
+  message?: string;
+};
+type WNBAAlternateSpreadPick =
+  WNBAAlternateSpreadSelection & {
+    eventId: string;
+    homeTeam: string;
+    awayTeam: string;
+    commenceTime: string;
+
+    erlScore: number;
+    probabilityEdge: number;
+    confidence: RankedWNBAGame["confidence"];
+    dataCompleteness: number;
+  };
 
 export default function WNBAPage() {
   const [games, setGames] = useState<WNBAGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [
+  safestAlternateSpread,
+  setSafestAlternateSpread,
+] =
+  useState<WNBAAlternateSpreadPick | null>(
+    null
+  );
+
+const [
+  safestAlternateSpreadMessage,
+  setSafestAlternateSpreadMessage,
+] = useState("");
+
+const [
+  safestAlternateSpreadLoading,
+  setSafestAlternateSpreadLoading,
+] = useState(false);
   const rankedGames =
     useMemo<RankedWNBAGame[]>(
       () =>
@@ -173,6 +217,178 @@ export default function WNBAPage() {
   useEffect(() => {
     void loadGames();
   }, []);
+  async function findSafestAlternateSpread() {
+  setSafestAlternateSpread(null);
+  setSafestAlternateSpreadMessage("");
+
+  if (
+    games.length === 0 ||
+    rankedGames.length === 0
+  ) {
+    setSafestAlternateSpreadMessage(
+      "No WNBA games are currently available for alternate-spread analysis."
+    );
+    return;
+  }
+
+  setSafestAlternateSpreadLoading(true);
+
+  try {
+    const candidates = await Promise.all(
+      games.map(async (game) => {
+        const intelligence =
+          rankedGames.find(
+            (rankedGame) =>
+              rankedGame.eventId === game.id
+          );
+
+        if (!intelligence) {
+          return null;
+        }
+
+        const params =
+          new URLSearchParams({
+            eventId: game.id,
+          });
+
+        const response = await fetch(
+          `/api/wnba-alternate-spreads?${params.toString()}`,
+          {
+            cache: "no-store",
+          }
+        );
+
+        const data =
+          (await response.json()) as
+            WNBAAlternateSpreadResponse;
+
+        if (
+          !response.ok ||
+          !data.available ||
+          !data.bookmakers
+        ) {
+          return null;
+        }
+
+        const selection =
+          findSafestWNBAAvailableSpread(
+            data.bookmakers,
+            {
+              homeTeam: game.home_team,
+              awayTeam: game.away_team,
+
+              preferredTeam:
+                intelligence.preferredTeam,
+
+              erlScore:
+                intelligence.erlScore,
+
+              probabilityEdge:
+                intelligence.probabilityEdge,
+
+              confidence:
+                intelligence.confidence,
+
+              dataCompleteness:
+                intelligence.dataCompleteness,
+
+              bookmakerCount:
+                intelligence.bookmakerCount,
+
+              avoid:
+                intelligence.avoid,
+            }
+          );
+
+        if (!selection) {
+          return null;
+        }
+
+        return {
+          ...selection,
+
+          eventId: game.id,
+          homeTeam: game.home_team,
+          awayTeam: game.away_team,
+          commenceTime:
+            game.commence_time,
+
+          erlScore:
+            intelligence.erlScore,
+
+          probabilityEdge:
+            intelligence.probabilityEdge,
+
+          confidence:
+            intelligence.confidence,
+
+          dataCompleteness:
+            intelligence.dataCompleteness,
+        } satisfies WNBAAlternateSpreadPick;
+      })
+    );
+
+    const availableCandidates =
+      candidates.filter(
+        (
+          candidate
+        ): candidate is WNBAAlternateSpreadPick =>
+          candidate !== null
+      );
+
+    availableCandidates.sort(
+      (first, second) => {
+        if (
+          second.safetyScore !==
+          first.safetyScore
+        ) {
+          return (
+            second.safetyScore -
+            first.safetyScore
+          );
+        }
+
+        return (
+          second.price -
+          first.price
+        );
+      }
+    );
+
+    const safest =
+      availableCandidates[0];
+
+    if (!safest) {
+      setSafestAlternateSpreadMessage(
+        "No verified WNBA alternate spread satisfied the current price and safety requirements."
+      );
+      return;
+    }
+
+    setSafestAlternateSpread(
+      safest
+    );
+
+    setSafestAlternateSpreadMessage(
+      `${safest.team} ${formatPoint(
+        safest.point
+      )} at ${formatPrice(
+        safest.price
+      )} is the highest-ranked verified WNBA alternate spread currently available.`
+    );
+  } catch (error) {
+    console.error(
+      "WNBA alternate-spread analysis error:",
+      error
+    );
+
+    setSafestAlternateSpreadMessage(
+      "Could not complete the WNBA alternate-spread analysis."
+    );
+  } finally {
+    setSafestAlternateSpreadLoading(false);
+  }
+}
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -210,6 +426,224 @@ export default function WNBAPage() {
               : "Refresh WNBA Games"}
           </button>
         </div>
+        <div className="mt-6 flex flex-wrap gap-3">
+  <button
+    type="button"
+    onClick={() =>
+      void findSafestAlternateSpread()
+    }
+    disabled={
+      loading ||
+      safestAlternateSpreadLoading ||
+      games.length === 0
+    }
+    className="rounded-xl bg-blue-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-blue-300 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {safestAlternateSpreadLoading
+      ? "Checking Alternate Spreads..."
+      : "Safest Alternate Spread"}
+  </button>
+</div>
+{safestAlternateSpread && (
+  <div className="mt-6 rounded-2xl border border-blue-800 bg-blue-950/20 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
+      EasyRunLine — Safest Verified WNBA Alternate Spread
+    </p>
+
+    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateSpread.team}{" "}
+          {formatPoint(
+            safestAlternateSpread.point
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Matchup
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateSpread.awayTeam} at{" "}
+          {safestAlternateSpread.homeTeam}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price
+        </p>
+
+        <p className="mt-1 font-bold text-blue-400">
+          {formatPrice(
+            safestAlternateSpread.price
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Bookmaker
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateSpread.bookmaker}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-blue-900 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Start Time
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {new Date(
+            safestAlternateSpread.commenceTime
+          ).toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Safety Rank
+        </p>
+
+        <p className="mt-1 font-bold text-blue-400">
+          {safestAlternateSpread.safetyScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          ERL Matchup Score
+        </p>
+
+        <p className="mt-1 font-bold text-orange-400">
+          {safestAlternateSpread.erlScore}/100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Matchup Confidence
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateSpread.confidence}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-3 border-t border-blue-900 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Line Protection
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateSpread.protectionScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Alignment
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateSpread.marketAlignmentScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price Quality
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateSpread.priceQualityScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price Profile
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateSpread.priceProfile}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 border-t border-blue-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-blue-400">
+        EasyRunLine Market Classification:{" "}
+        {safestAlternateSpread.safetyScore >= 85
+          ? "Strong Verified Protection"
+          : safestAlternateSpread.safetyScore >= 70
+            ? "Moderate Verified Protection"
+            : "Limited Verified Protection"}
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-zinc-300">
+        EasyRunLine ranks{" "}
+        {safestAlternateSpread.team}{" "}
+        {formatPoint(
+          safestAlternateSpread.point
+        )} as the highest-ranked verified WNBA
+        alternate spread currently available. The
+        exact market is available at{" "}
+        {formatPrice(
+          safestAlternateSpread.price
+        )} with{" "}
+        {safestAlternateSpread.bookmaker}.
+      </p>
+
+      <ul className="mt-3 space-y-1 text-sm text-zinc-400">
+        {safestAlternateSpread.reasons.map(
+          (reason) => (
+            <li key={reason}>• {reason}</li>
+          )
+        )}
+      </ul>
+
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
+        The Market Safety Rank is a comparative
+        EasyRunLine ranking, not a predicted cover
+        probability, guarantee or claim of positive
+        betting value. Confirm the displayed alternate
+        line and price before placing a wager.
+      </p>
+    </div>
+  </div>
+)}
+
+{safestAlternateSpreadMessage && (
+  <div className="mt-4 rounded-xl border border-blue-900 bg-blue-950/20 p-4 text-sm text-blue-200">
+    {safestAlternateSpreadMessage}
+  </div>
+)}
 
         {loading && (
           <div className="mt-10 rounded-2xl border border-zinc-800 bg-zinc-950 p-10 text-center text-zinc-400">
