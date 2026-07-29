@@ -20,6 +20,11 @@ const sports = [
     path: "/nba",
   },
   {
+    name: "WNBA",
+    icon: "🏀",
+    path: "/wnba",
+  },
+  {
     name: "NHL",
     icon: "🏒",
     path: "/nhl",

@@ -30,12 +30,17 @@ export default function TeamLogo({
       </div>
     );
   }
-
+  const needsLightBackground =
+    team === "Toronto Tempo";
   return (
     <img
       src={logoUrl}
       alt={`${team} logo`}
-      className={`${sizeClasses[size]} object-contain`}
+      className={`${sizeClasses[size]} rounded-lg object-contain ${
+  needsLightBackground
+    ? "bg-white/90 p-1"
+    : ""
+}`}
       loading="lazy"
     />
   );
