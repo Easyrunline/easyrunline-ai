@@ -26,6 +26,12 @@ import {
   type WNBAAlternateTotalSelection,
 } from "@/lib/wnba/wnbaAlternateTotal";
 
+import {
+  findSafestWNBAFirstHalfTotal,
+  type WNBAFirstHalfTotalBookmaker,
+  type WNBAFirstHalfTotalSelection,
+} from "@/lib/wnba/wnbaFirstHalfTotal";
+
 import type {
   WNBAGame,
   WNBAMarket,
@@ -154,6 +160,24 @@ type WNBAAlternateTotalPick =
     commenceTime: string;
   };
 
+  type WNBAFirstHalfTotalResponse = {
+  available?: boolean;
+  eventId?: string;
+
+  bookmakers?: WNBAFirstHalfTotalBookmaker[];
+
+  error?: string;
+  details?: unknown;
+  message?: string;
+};
+
+type WNBAFirstHalfTotalPick =
+  WNBAFirstHalfTotalSelection & {
+    eventId: string;
+    homeTeam: string;
+    awayTeam: string;
+    commenceTime: string;
+  };
 export default function WNBAPage() {
   const [games, setGames] = useState<WNBAGame[]>([]);
   const [loading, setLoading] = useState(true);
@@ -192,6 +216,24 @@ const [
   safestAlternateTotalLoading,
   setSafestAlternateTotalLoading,
 ] = useState(false);
+
+const [
+  safestFirstHalfTotal,
+  setSafestFirstHalfTotal,
+] =
+  useState<WNBAFirstHalfTotalPick | null>(
+    null
+  );
+
+const [
+  safestFirstHalfTotalMessage,
+  setSafestFirstHalfTotalMessage,
+] = useState("");
+
+const [
+  safestFirstHalfTotalLoading,
+  setSafestFirstHalfTotalLoading,
+] = useState(false);
   const rankedGames =
     useMemo<RankedWNBAGame[]>(
       () =>
@@ -206,6 +248,8 @@ setSafestAlternateSpreadMessage("");
 
 setSafestAlternateTotal(null);
 setSafestAlternateTotalMessage("");
+setSafestFirstHalfTotal(null);
+setSafestFirstHalfTotalMessage("");
     setLoading(true);
     setError("");
 
@@ -268,6 +312,8 @@ setSafestAlternateTotalMessage("");
   setSafestAlternateSpreadMessage("");
   setSafestAlternateTotal(null);
 setSafestAlternateTotalMessage("");
+setSafestFirstHalfTotal(null);
+setSafestFirstHalfTotalMessage("");
 
   if (
     games.length === 0 ||
@@ -443,6 +489,7 @@ async function findSafestAlternateTotal() {
 
   setSafestAlternateSpread(null);
   setSafestAlternateSpreadMessage("");
+  
 
   if (games.length === 0) {
     setSafestAlternateTotalMessage(
@@ -637,7 +684,155 @@ async function findSafestAlternateTotal() {
     setSafestAlternateTotalLoading(false);
   }
 }
+async function findSafestFirstHalfTotal() {
+  setSafestFirstHalfTotal(null);
+  setSafestFirstHalfTotalMessage("");
 
+  setSafestAlternateSpread(null);
+  setSafestAlternateSpreadMessage("");
+
+  setSafestAlternateTotal(null);
+  setSafestAlternateTotalMessage("");
+
+  if (games.length === 0) {
+    setSafestFirstHalfTotalMessage(
+      "No WNBA games are currently available for first-half-total analysis."
+    );
+    return;
+  }
+
+  setSafestFirstHalfTotalLoading(true);
+
+  try {
+    const candidates =
+      await Promise.all(
+        games.map(async (game) => {
+          const params =
+            new URLSearchParams({
+              eventId: game.id,
+            });
+
+          const response = await fetch(
+            `/api/wnba-first-half-totals?${params.toString()}`,
+            {
+              cache: "no-store",
+            }
+          );
+
+          const data =
+            (await response.json()) as
+              WNBAFirstHalfTotalResponse;
+
+          if (
+            !response.ok ||
+            !data.available ||
+            !data.bookmakers
+          ) {
+            return null;
+          }
+
+          const selection =
+            findSafestWNBAFirstHalfTotal(
+              data.bookmakers
+            );
+
+          if (!selection) {
+            return null;
+          }
+
+          return {
+            ...selection,
+
+            eventId: game.id,
+            homeTeam:
+              game.home_team,
+            awayTeam:
+              game.away_team,
+            commenceTime:
+              game.commence_time,
+          } satisfies WNBAFirstHalfTotalPick;
+        })
+      );
+
+    const availableCandidates =
+      candidates.filter(
+        (
+          candidate
+        ): candidate is WNBAFirstHalfTotalPick =>
+          candidate !== null
+      );
+
+    availableCandidates.sort(
+      (first, second) => {
+        if (
+          second.safetyScore !==
+          first.safetyScore
+        ) {
+          return (
+            second.safetyScore -
+            first.safetyScore
+          );
+        }
+
+        if (
+          second.consensusScore !==
+          first.consensusScore
+        ) {
+          return (
+            second.consensusScore -
+            first.consensusScore
+          );
+        }
+
+        if (
+          second.supportingBookmakers !==
+          first.supportingBookmakers
+        ) {
+          return (
+            second.supportingBookmakers -
+            first.supportingBookmakers
+          );
+        }
+
+        return (
+          second.price -
+          first.price
+        );
+      }
+    );
+
+    const safest =
+      availableCandidates[0];
+
+    if (!safest) {
+      setSafestFirstHalfTotalMessage(
+        "No verified WNBA first-half total satisfied the current market-alignment, price and bookmaker-consensus requirements."
+      );
+      return;
+    }
+
+    setSafestFirstHalfTotal(
+      safest
+    );
+
+    setSafestFirstHalfTotalMessage(
+      `${safest.direction} ${safest.point} at ${formatPrice(
+        safest.price
+      )} is the highest-ranked qualified WNBA first-half total currently available.`
+    );
+  } catch (error) {
+    console.error(
+      "WNBA first-half-total analysis error:",
+      error
+    );
+
+    setSafestFirstHalfTotalMessage(
+      "Could not complete the WNBA first-half-total analysis."
+    );
+  } finally {
+    setSafestFirstHalfTotalLoading(false);
+  }
+}
   return (
     <main className="min-h-screen bg-black text-white">
       <LeagueHeader
@@ -707,6 +902,22 @@ async function findSafestAlternateTotal() {
       ? "Checking Alternate Totals..."
       : "Safest Alternate Total"}
   </button>
+  <button
+  type="button"
+  onClick={() =>
+    void findSafestFirstHalfTotal()
+  }
+  disabled={
+    loading ||
+    safestFirstHalfTotalLoading ||
+    games.length === 0
+  }
+  className="rounded-xl bg-violet-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-violet-300 disabled:cursor-not-allowed disabled:opacity-50"
+>
+  {safestFirstHalfTotalLoading
+    ? "Checking 1st Half Totals..."
+    : "Safest 1st Half Total"}
+</button>
 </div>
 {safestAlternateSpread && (
   <div className="mt-6 rounded-2xl border border-blue-800 bg-blue-950/20 p-6">
@@ -1149,6 +1360,246 @@ async function findSafestAlternateTotal() {
 {safestAlternateTotalMessage && (
   <div className="mt-4 rounded-xl border border-cyan-900 bg-cyan-950/20 p-4 text-sm text-cyan-200">
     {safestAlternateTotalMessage}
+  </div>
+)}
+{safestFirstHalfTotal && (
+  <div className="mt-6 rounded-2xl border border-violet-800 bg-violet-950/20 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-violet-400">
+      EasyRunLine — Highest-Ranked Qualified WNBA 1st Half Total
+    </p>
+
+    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestFirstHalfTotal.direction}{" "}
+          {safestFirstHalfTotal.point}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Matchup
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestFirstHalfTotal.awayTeam} at{" "}
+          {safestFirstHalfTotal.homeTeam}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price
+        </p>
+
+        <p className="mt-1 font-bold text-violet-400">
+          {formatPrice(
+            safestFirstHalfTotal.price
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Bookmaker
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestFirstHalfTotal.bookmaker}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-violet-900 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Start Time
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {new Date(
+            safestFirstHalfTotal.commenceTime
+          ).toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Consensus 1st Half Total
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestFirstHalfTotal.consensusPoint}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Safety Rank
+        </p>
+
+        <p className="mt-1 font-bold text-violet-400">
+          {safestFirstHalfTotal.safetyScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Engine Status
+        </p>
+
+        <p className="mt-1 font-bold text-violet-400">
+          {safestFirstHalfTotal.qualification}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-violet-900 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Alignment
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.marketAlignmentScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Consensus
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.consensusScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price Quality
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.priceQualityScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Availability Score
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.availabilityScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Supporting Bookmakers
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.supportingBookmakers}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Line Difference
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.lineDifference.toFixed(
+            1
+          )}{" "}
+          points
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price Profile
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestFirstHalfTotal.priceProfile}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 border-t border-violet-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-violet-400">
+        EasyRunLine Market Classification:{" "}
+        {safestFirstHalfTotal.safetyScore >= 85
+          ? "Strong Verified Market Alignment"
+          : safestFirstHalfTotal.safetyScore >= 78
+            ? "Qualified Verified Market Alignment"
+            : "Limited Verified Market Alignment"}
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-zinc-300">
+        EasyRunLine ranks{" "}
+        {safestFirstHalfTotal.direction}{" "}
+        {safestFirstHalfTotal.point} in{" "}
+        {safestFirstHalfTotal.awayTeam} at{" "}
+        {safestFirstHalfTotal.homeTeam} as the
+        highest-ranked qualified WNBA first-half total
+        currently available. The exact market is
+        available at{" "}
+        {formatPrice(
+          safestFirstHalfTotal.price
+        )}{" "}
+        with {safestFirstHalfTotal.bookmaker}.
+      </p>
+
+      <ul className="mt-3 space-y-1 text-sm text-zinc-400">
+        {safestFirstHalfTotal.reasons.map(
+          (reason) => (
+            <li key={reason}>
+              • {reason}
+            </li>
+          )
+        )}
+      </ul>
+
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
+        The Market Safety Rank compares verified
+        first-half totals currently available to the
+        engine. It measures market alignment, price
+        quality, bookmaker consensus and availability.
+        It is not a predicted win probability,
+        guarantee or claim of positive betting value.
+        Confirm the displayed first-half total and
+        price before placing a wager.
+      </p>
+    </div>
+  </div>
+)}
+
+{safestFirstHalfTotalMessage && (
+  <div className="mt-4 rounded-xl border border-violet-900 bg-violet-950/20 p-4 text-sm text-violet-200">
+    {safestFirstHalfTotalMessage}
   </div>
 )}
 
