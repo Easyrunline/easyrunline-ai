@@ -20,6 +20,11 @@ import {
   type WNBAAlternateSpreadBookmaker,
   type WNBAAlternateSpreadSelection,
 } from "@/lib/wnba/wnbaAlternateSpread";
+import {
+  findSafestWNBAAlternateTotal,
+  type WNBAAlternateTotalBookmaker,
+  type WNBAAlternateTotalSelection,
+} from "@/lib/wnba/wnbaAlternateTotal";
 
 import type {
   WNBAGame,
@@ -130,6 +135,25 @@ type WNBAAlternateSpreadPick =
     dataCompleteness: number;
   };
 
+  type WNBAAlternateTotalResponse = {
+  available?: boolean;
+  eventId?: string;
+
+  bookmakers?: WNBAAlternateTotalBookmaker[];
+
+  error?: string;
+  details?: unknown;
+  message?: string;
+};
+
+type WNBAAlternateTotalPick =
+  WNBAAlternateTotalSelection & {
+    eventId: string;
+    homeTeam: string;
+    awayTeam: string;
+    commenceTime: string;
+  };
+
 export default function WNBAPage() {
   const [games, setGames] = useState<WNBAGame[]>([]);
   const [loading, setLoading] = useState(true);
@@ -151,6 +175,23 @@ const [
   safestAlternateSpreadLoading,
   setSafestAlternateSpreadLoading,
 ] = useState(false);
+const [
+  safestAlternateTotal,
+  setSafestAlternateTotal,
+] =
+  useState<WNBAAlternateTotalPick | null>(
+    null
+  );
+
+const [
+  safestAlternateTotalMessage,
+  setSafestAlternateTotalMessage,
+] = useState("");
+
+const [
+  safestAlternateTotalLoading,
+  setSafestAlternateTotalLoading,
+] = useState(false);
   const rankedGames =
     useMemo<RankedWNBAGame[]>(
       () =>
@@ -160,6 +201,11 @@ const [
       [games]
     );
   async function loadGames() {
+    setSafestAlternateSpread(null);
+setSafestAlternateSpreadMessage("");
+
+setSafestAlternateTotal(null);
+setSafestAlternateTotalMessage("");
     setLoading(true);
     setError("");
 
@@ -220,6 +266,8 @@ const [
   async function findSafestAlternateSpread() {
   setSafestAlternateSpread(null);
   setSafestAlternateSpreadMessage("");
+  setSafestAlternateTotal(null);
+setSafestAlternateTotalMessage("");
 
   if (
     games.length === 0 ||
@@ -389,6 +437,206 @@ const [
     setSafestAlternateSpreadLoading(false);
   }
 }
+async function findSafestAlternateTotal() {
+  setSafestAlternateTotal(null);
+  setSafestAlternateTotalMessage("");
+
+  setSafestAlternateSpread(null);
+  setSafestAlternateSpreadMessage("");
+
+  if (games.length === 0) {
+    setSafestAlternateTotalMessage(
+      "No WNBA games are currently available for alternate-total analysis."
+    );
+    return;
+  }
+
+  setSafestAlternateTotalLoading(true);
+
+  try {
+    const candidates =
+      await Promise.all(
+        games.map(async (game) => {
+          const standardTotalPoints =
+            game.bookmakers.flatMap(
+              (bookmaker) =>
+                bookmaker.markets
+                  .filter(
+                    (market) =>
+                      market.key ===
+                      "totals"
+                  )
+                  .flatMap((market) =>
+                    market.outcomes
+                      .filter(
+                        (outcome) =>
+                          outcome.name ===
+                            "Over" &&
+                          Number.isFinite(
+                            outcome.point
+                          )
+                      )
+                      .map(
+                        (outcome) =>
+                          outcome.point as number
+                      )
+                  )
+            );
+
+          if (
+            standardTotalPoints.length ===
+            0
+          ) {
+            return null;
+          }
+
+          const sortedStandardTotals = [
+            ...standardTotalPoints,
+          ].sort(
+            (first, second) =>
+              first - second
+          );
+
+          const middleIndex =
+            Math.floor(
+              sortedStandardTotals.length /
+                2
+            );
+
+          const standardTotalPoint =
+            sortedStandardTotals.length %
+              2 ===
+            0
+              ? (sortedStandardTotals[
+                  middleIndex - 1
+                ] +
+                  sortedStandardTotals[
+                    middleIndex
+                  ]) /
+                2
+              : sortedStandardTotals[
+                  middleIndex
+                ];
+
+          const params =
+            new URLSearchParams({
+              eventId: game.id,
+            });
+
+          const response = await fetch(
+            `/api/wnba-alternate-totals?${params.toString()}`,
+            {
+              cache: "no-store",
+            }
+          );
+
+          const data =
+            (await response.json()) as
+              WNBAAlternateTotalResponse;
+
+          if (
+            !response.ok ||
+            !data.available ||
+            !data.bookmakers
+          ) {
+            return null;
+          }
+
+          const selection =
+            findSafestWNBAAlternateTotal(
+              data.bookmakers,
+              {
+                standardTotalPoint,
+              }
+            );
+
+          if (!selection) {
+            return null;
+          }
+
+          return {
+            ...selection,
+
+            eventId: game.id,
+            homeTeam:
+              game.home_team,
+            awayTeam:
+              game.away_team,
+            commenceTime:
+              game.commence_time,
+          } satisfies WNBAAlternateTotalPick;
+        })
+      );
+
+    const availableCandidates =
+      candidates.filter(
+        (
+          candidate
+        ): candidate is WNBAAlternateTotalPick =>
+          candidate !== null
+      );
+
+    availableCandidates.sort(
+      (first, second) => {
+        if (
+          second.safetyScore !==
+          first.safetyScore
+        ) {
+          return (
+            second.safetyScore -
+            first.safetyScore
+          );
+        }
+
+        if (
+          second.protectionPoints !==
+          first.protectionPoints
+        ) {
+          return (
+            second.protectionPoints -
+            first.protectionPoints
+          );
+        }
+
+        return (
+          second.price -
+          first.price
+        );
+      }
+    );
+
+    const safest =
+      availableCandidates[0];
+
+    if (!safest) {
+      setSafestAlternateTotalMessage(
+        "No verified WNBA alternate total satisfied the current protection, price and bookmaker-consensus requirements."
+      );
+      return;
+    }
+
+    setSafestAlternateTotal(
+      safest
+    );
+
+    setSafestAlternateTotalMessage(
+      `${safest.direction} ${safest.point} at ${formatPrice(
+        safest.price
+      )} is the highest-ranked qualified WNBA alternate total currently available.`
+    );
+  } catch (error) {
+    console.error(
+      "WNBA alternate-total analysis error:",
+      error
+    );
+
+    setSafestAlternateTotalMessage(
+      "Could not complete the WNBA alternate-total analysis."
+    );
+  } finally {
+    setSafestAlternateTotalLoading(false);
+  }
+}
 
   return (
     <main className="min-h-screen bg-black text-white">
@@ -442,6 +690,22 @@ const [
     {safestAlternateSpreadLoading
       ? "Checking Alternate Spreads..."
       : "Safest Alternate Spread"}
+  </button>
+    <button
+    type="button"
+    onClick={() =>
+      void findSafestAlternateTotal()
+    }
+    disabled={
+      loading ||
+      safestAlternateTotalLoading ||
+      games.length === 0
+    }
+    className="rounded-xl bg-cyan-400 px-5 py-3 text-sm font-bold text-black transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+  >
+    {safestAlternateTotalLoading
+      ? "Checking Alternate Totals..."
+      : "Safest Alternate Total"}
   </button>
 </div>
 {safestAlternateSpread && (
@@ -642,6 +906,249 @@ const [
 {safestAlternateSpreadMessage && (
   <div className="mt-4 rounded-xl border border-blue-900 bg-blue-950/20 p-4 text-sm text-blue-200">
     {safestAlternateSpreadMessage}
+  </div>
+)}
+{safestAlternateTotal && (
+  <div className="mt-6 rounded-2xl border border-cyan-800 bg-cyan-950/20 p-6">
+    <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+      EasyRunLine — Highest-Ranked Qualified WNBA Alternate Total
+    </p>
+
+    <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateTotal.direction}{" "}
+          {safestAlternateTotal.point}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Matchup
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateTotal.awayTeam} at{" "}
+          {safestAlternateTotal.homeTeam}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price
+        </p>
+
+        <p className="mt-1 font-bold text-cyan-400">
+          {formatPrice(
+            safestAlternateTotal.price
+          )}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Bookmaker
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateTotal.bookmaker}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-4 border-t border-cyan-900 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Start Time
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {new Date(
+            safestAlternateTotal.commenceTime
+          ).toLocaleString()}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Standard Total
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.standardTotalPoint}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Protection
+        </p>
+
+        <p className="mt-1 font-bold text-cyan-400">
+          {safestAlternateTotal.protectionPoints.toFixed(
+            1
+          )}{" "}
+          points
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Engine Status
+        </p>
+
+        <p
+          className={`mt-1 font-bold ${
+            safestAlternateTotal.qualification ===
+            "LEAN"
+              ? "text-cyan-400"
+              : "text-red-400"
+          }`}
+        >
+          {safestAlternateTotal.qualification}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 grid gap-3 border-t border-cyan-900 pt-5 sm:grid-cols-2 lg:grid-cols-4">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Safety Rank
+        </p>
+
+        <p className="mt-1 font-bold text-cyan-400">
+          {safestAlternateTotal.safetyScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Protection Score
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.protectionScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Market Consensus
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.consensusScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price Quality
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.priceQualityScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Availability Score
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.availabilityScore.toFixed(
+            1
+          )}
+          /100
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Supporting Bookmakers
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.supportingBookmakers}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Price Profile
+        </p>
+
+        <p className="mt-1 font-semibold text-white">
+          {safestAlternateTotal.priceProfile}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-5 border-t border-cyan-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-cyan-400">
+        EasyRunLine Market Classification:{" "}
+        {safestAlternateTotal.safetyScore >= 85
+          ? "Strong Verified Protection"
+          : safestAlternateTotal.safetyScore >= 70
+            ? "Moderate Verified Protection"
+            : "Limited Verified Protection"}
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-zinc-300">
+        EasyRunLine ranks{" "}
+        {safestAlternateTotal.direction}{" "}
+        {safestAlternateTotal.point} in{" "}
+        {safestAlternateTotal.awayTeam} at{" "}
+        {safestAlternateTotal.homeTeam} as the
+        highest-ranked qualified WNBA alternate total
+        currently available. The exact market is
+        available at{" "}
+        {formatPrice(
+          safestAlternateTotal.price
+        )} with{" "}
+        {safestAlternateTotal.bookmaker}.
+      </p>
+
+      <ul className="mt-3 space-y-1 text-sm text-zinc-400">
+        {safestAlternateTotal.reasons.map(
+          (reason) => (
+            <li key={reason}>• {reason}</li>
+          )
+        )}
+      </ul>
+
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
+        The Market Safety Rank compares qualified
+        alternate totals currently available to the
+        engine. It is not a predicted win probability,
+        guarantee or claim of positive betting value.
+        Confirm the displayed total and price before
+        placing a wager.
+      </p>
+    </div>
+  </div>
+)}
+
+{safestAlternateTotalMessage && (
+  <div className="mt-4 rounded-xl border border-cyan-900 bg-cyan-950/20 p-4 text-sm text-cyan-200">
+    {safestAlternateTotalMessage}
   </div>
 )}
 
