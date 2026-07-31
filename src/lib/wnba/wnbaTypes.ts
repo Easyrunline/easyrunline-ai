@@ -47,3 +47,39 @@ export type WNBABlowoutRisk =
   | "Moderate"
   | "High"
   | "Very High";
+  export type WNBAHistoricalGame = {
+  eventId: string;
+  commenceTime: string;
+
+  seasonYear: number;
+  seasonType: number | null;
+  seasonTypeName: string;
+
+  homeTeamId: string;
+  homeTeam: string;
+  homeTeamAbbreviation: string;
+  homeScore: number;
+
+  awayTeamId: string;
+  awayTeam: string;
+  awayTeamAbbreviation: string;
+  awayScore: number;
+
+  winner: string;
+  loser: string;
+  pointMargin: number;
+
+  neutralSite: boolean;
+  completed: true;
+};
+
+export type WNBAHistoryResponse = {
+  seasonYear?: number;
+  gameCount?: number;
+  games?: WNBAHistoricalGame[];
+  source?: string;
+  cacheMinutes?: number;
+  fetchedAt?: string;
+  error?: string;
+  details?: string;
+};
