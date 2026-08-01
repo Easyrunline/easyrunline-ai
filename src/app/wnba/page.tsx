@@ -20,6 +20,10 @@ import {
   type WNBATeamForm,
 } from "@/lib/wnba/wnbaForm";
 
+import {
+  buildWNBASpreadHistoricalAnalysis,
+} from "@/lib/wnba/wnbaSpreadHistory";
+
  import {
   findSafestWNBAAvailableSpread,
   type WNBAAlternateSpreadBookmaker,
@@ -45,9 +49,9 @@ import {
 
 import type {
   WNBAGame,
-   WNBAHistoryResponse,
+  WNBAHistoricalGame,
+  WNBAHistoryResponse,
   WNBAMarket,
-  
   WNBAOddsResponse,
   WNBAOutcome,
 } from "@/lib/wnba/wnbaTypes";
@@ -221,6 +225,11 @@ export default function WNBAPage() {
   const [teamForms, setTeamForms] =
   useState<WNBATeamForm[]>([]);
 
+const [
+  historicalGames,
+  setHistoricalGames,
+] = useState<WNBAHistoricalGame[]>([]);
+
 const [historyMessage, setHistoryMessage] =
   useState("");
   const [
@@ -300,6 +309,46 @@ const [
         ),
       [games]
     );
+
+    const safestAlternateSpreadHistory =
+  useMemo(() => {
+    if (
+      !safestAlternateSpread ||
+      historicalGames.length === 0
+    ) {
+      return null;
+    }
+
+    const selectedTeamIsHome =
+      safestAlternateSpread.team ===
+      safestAlternateSpread.homeTeam;
+
+    const opponent =
+      selectedTeamIsHome
+        ? safestAlternateSpread.awayTeam
+        : safestAlternateSpread.homeTeam;
+
+    return buildWNBASpreadHistoricalAnalysis({
+      selectedTeam:
+        safestAlternateSpread.team,
+
+      opponent,
+
+      selectedLine:
+        safestAlternateSpread.point,
+
+      homeTeam:
+        safestAlternateSpread.homeTeam,
+
+      commenceTime:
+        safestAlternateSpread.commenceTime,
+
+      historicalGames,
+    });
+  }, [
+    safestAlternateSpread,
+    historicalGames,
+  ]);
   async function loadGames() {
     setSafestAlternateSpread(null);
 setSafestAlternateSpreadMessage("");
@@ -310,9 +359,11 @@ setSafestFirstHalfTotal(null);
 setSafestFirstHalfTotalMessage("");
 setSafestFirstQuarterTotal(null);
 setSafestFirstQuarterTotalMessage("");
-    setLoading(true);
+    
+setLoading(true);
 setError("");
 setHistoryMessage("");
+setHistoricalGames([]);
 
     try {
       const [
@@ -352,8 +403,13 @@ const historyData =
   setTeamForms(
     historyData.teams ?? []
   );
+
+  setHistoricalGames(
+    historyData.games ?? []
+  );
 } else {
   setTeamForms([]);
+  setHistoricalGames([]);
 
   setHistoryMessage(
     historyData.error ||
@@ -384,6 +440,8 @@ const historyData =
         "WNBA game loading error:",
         error
       );
+      setTeamForms([]);
+  setHistoricalGames([]);
 
       setError(
         "Could not load WNBA games."
@@ -554,13 +612,20 @@ setSafestFirstHalfTotalMessage("");
       safest
     );
 
-    setSafestAlternateSpreadMessage(
-      `${safest.team} ${formatPoint(
-        safest.point
-      )} at ${formatPrice(
-        safest.price
-      )} is the highest-ranked verified WNBA alternate spread currently available.`
-    );
+    const verdictMessage =
+  safest.qualification === "PLAY"
+    ? "STRONG PLAY — the selection satisfies the current market, protection, price and matchup requirements."
+    : safest.qualification === "LEAN"
+      ? "LEAN — the selection has useful protection, but one or more confidence requirements remain below the strong-play standard."
+      : "PASS — this is the highest-ranked verified option available, but it does not satisfy enough requirements for an EasyRunLine recommendation.";
+
+setSafestAlternateSpreadMessage(
+  `${safest.team} ${formatPoint(
+    safest.point
+  )} at ${formatPrice(
+    safest.price
+  )}. ${verdictMessage}`
+);
   } catch (error) {
     console.error(
       "WNBA alternate-spread analysis error:",
@@ -1186,6 +1251,27 @@ async function findSafestFirstQuarterTotal() {
       EasyRunLine — Safest Verified WNBA Alternate Spread
     </p>
 
+    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
+  EasyRunLine — Safest Verified WNBA Alternate Spread
+</p>
+
+<p
+  className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+    safestAlternateSpread.qualification === "PLAY"
+      ? "bg-emerald-950 text-emerald-300"
+      : safestAlternateSpread.qualification === "LEAN"
+        ? "bg-amber-950 text-amber-300"
+        : "bg-red-950 text-red-300"
+  }`}
+>
+  Engine Verdict:{" "}
+  {safestAlternateSpread.qualification === "PLAY"
+    ? "STRONG PLAY"
+    : safestAlternateSpread.qualification}
+</p>
+
+<div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+
     <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div>
         <p className="text-xs text-zinc-500">
@@ -1373,7 +1459,429 @@ async function findSafestFirstQuarterTotal() {
       </p>
     </div>
   </div>
+  )}
+  {safestAlternateSpread &&
+  safestAlternateSpreadHistory && (
+  <div className="mt-6 rounded-2xl border border-amber-800 bg-amber-950/10 p-6">
+    <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">
+      Why This Play
+    </p>
+
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateSpread.team}{" "}
+          {formatPoint(safestAlternateSpread.point)}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Engine Verdict
+        </p>
+
+        <p
+          className={
+            safestAlternateSpread.qualification === "PLAY"
+              ? "mt-1 font-bold text-emerald-400"
+              : safestAlternateSpread.qualification === "LEAN"
+                ? "mt-1 font-bold text-amber-400"
+                : "mt-1 font-bold text-red-400"
+          }
+        >
+          {safestAlternateSpread.qualification}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Line Protection
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-zinc-300">
+        {safestAlternateSpread.point > 0
+          ? `${safestAlternateSpread.team} receives ${formatPoint(
+              safestAlternateSpread.point
+            )} points of protection. The selection can still cover when the team loses by fewer than ${safestAlternateSpread.point} points.`
+          : `${safestAlternateSpread.team} must overcome the ${formatPoint(
+              safestAlternateSpread.point
+            )} handicap for the selection to cover.`}
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-400">
+        Current Line Protection:{" "}
+        <span className="font-bold text-white">
+          {safestAlternateSpread.protectionScore.toFixed(1)}
+          /100
+        </span>
+      </p>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Recent Form Against Today&apos;s{" "}
+        {formatPoint(safestAlternateSpread.point)}
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-2">
+        <div className="rounded-lg border border-zinc-800 bg-black p-4">
+          <p className="font-bold text-white">
+            Last 5
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-300">
+            {safestAlternateSpreadHistory.last5.covers} Covers –{" "}
+            {safestAlternateSpreadHistory.last5.misses} Misses
+            {safestAlternateSpreadHistory.last5.pushes > 0
+              ? ` – ${safestAlternateSpreadHistory.last5.pushes} Pushes`
+              : ""}
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Cover Rate:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.last5.coverRate.toFixed(1)}%
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Actual Margin:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.last5.averageActualMargin > 0
+                ? "+"
+                : ""}
+              {safestAlternateSpreadHistory.last5.averageActualMargin.toFixed(
+                1
+              )}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Adjusted Margin:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.last5.averageAdjustedMargin > 0
+                ? "+"
+                : ""}
+              {safestAlternateSpreadHistory.last5.averageAdjustedMargin.toFixed(
+                1
+              )}
+            </span>
+          </p>
+        </div>
+
+        <div className="rounded-lg border border-zinc-800 bg-black p-4">
+          <p className="font-bold text-white">
+            Last 10
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-300">
+            {safestAlternateSpreadHistory.last10.covers} Covers –{" "}
+            {safestAlternateSpreadHistory.last10.misses} Misses
+            {safestAlternateSpreadHistory.last10.pushes > 0
+              ? ` – ${safestAlternateSpreadHistory.last10.pushes} Pushes`
+              : ""}
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Cover Rate:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.last10.coverRate.toFixed(1)}%
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Actual Margin:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.last10.averageActualMargin > 0
+                ? "+"
+                : ""}
+              {safestAlternateSpreadHistory.last10.averageActualMargin.toFixed(
+                1
+              )}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Adjusted Margin:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.last10.averageAdjustedMargin > 0
+                ? "+"
+                : ""}
+              {safestAlternateSpreadHistory.last10.averageAdjustedMargin.toFixed(
+                1
+              )}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        {safestAlternateSpreadHistory.venueLabel} Performance Against{" "}
+        {formatPoint(safestAlternateSpread.point)}
+      </p>
+
+      <p className="mt-3 text-sm text-zinc-300">
+        {safestAlternateSpreadHistory.venue.covers} Covers –{" "}
+        {safestAlternateSpreadHistory.venue.misses} Misses from{" "}
+        {safestAlternateSpreadHistory.venue.gamesPlayed} available games.
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Simulated Cover Rate:{" "}
+        <span className="font-bold text-white">
+          {safestAlternateSpreadHistory.venue.coverRate.toFixed(1)}%
+        </span>
+      </p>
+
+      <p className="mt-1 text-sm text-zinc-400">
+        Average Adjusted Margin:{" "}
+        <span className="font-bold text-white">
+          {safestAlternateSpreadHistory.venue.averageAdjustedMargin > 0
+            ? "+"
+            : ""}
+          {safestAlternateSpreadHistory.venue.averageAdjustedMargin.toFixed(1)}
+        </span>
+      </p>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Head-to-Head Against {safestAlternateSpreadHistory.opponent}
+      </p>
+
+      {safestAlternateSpreadHistory.headToHead.gamesPlayed > 0 ? (
+        <>
+          <p className="mt-3 text-sm text-zinc-300">
+            Available Meetings:{" "}
+            {safestAlternateSpreadHistory.headToHead.gamesPlayed}
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            {safestAlternateSpreadHistory.headToHead.covers} Covers –{" "}
+            {safestAlternateSpreadHistory.headToHead.misses} Misses
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Cover Rate:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.headToHead.coverRate.toFixed(1)}%
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Actual Margin:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.headToHead.averageActualMargin > 0
+                ? "+"
+                : ""}
+              {safestAlternateSpreadHistory.headToHead.averageActualMargin.toFixed(
+                1
+              )}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Adjusted Margin:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.headToHead.averageAdjustedMargin > 0
+                ? "+"
+                : ""}
+              {safestAlternateSpreadHistory.headToHead.averageAdjustedMargin.toFixed(
+                1
+              )}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Largest Defeat:{" "}
+            <span className="font-bold text-white">
+              {safestAlternateSpreadHistory.headToHead.largestDefeat} points
+            </span>
+          </p>
+
+          {safestAlternateSpreadHistory.headToHead.gamesPlayed < 3 && (
+            <p className="mt-2 text-xs text-amber-300">
+              The available head-to-head sample is limited and should not
+              independently determine the verdict.
+            </p>
+          )}
+        </>
+      ) : (
+        <p className="mt-3 text-sm text-zinc-400">
+          No completed regular-season head-to-head meetings were available
+          before this matchup.
+        </p>
+      )}
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Opponent Blowout Test
+      </p>
+
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <p className="text-sm text-zinc-400">
+          Opponent Last 5 Average Margin:{" "}
+          <span className="font-bold text-white">
+            {safestAlternateSpreadHistory.opponentLast5AverageMargin > 0
+              ? "+"
+              : ""}
+            {safestAlternateSpreadHistory.opponentLast5AverageMargin.toFixed(1)}
+          </span>
+        </p>
+
+        <p className="text-sm text-zinc-400">
+          Opponent Last 10 Average Margin:{" "}
+          <span className="font-bold text-white">
+            {safestAlternateSpreadHistory.opponentLast10AverageMargin > 0
+              ? "+"
+              : ""}
+            {safestAlternateSpreadHistory.opponentLast10AverageMargin.toFixed(1)}
+          </span>
+        </p>
+
+        <p className="text-sm text-zinc-400">
+          Blowout Wins:{" "}
+          <span className="font-bold text-white">
+            {safestAlternateSpreadHistory.opponentBlowoutWins} of{" "}
+            {safestAlternateSpreadHistory.opponentGamesChecked}
+          </span>
+        </p>
+
+        <p className="text-sm text-zinc-400">
+          Blowout Risk:{" "}
+          <span
+            className={
+              safestAlternateSpreadHistory.blowoutRisk === "High"
+                ? "font-bold text-red-400"
+                : safestAlternateSpreadHistory.blowoutRisk === "Moderate"
+                  ? "font-bold text-amber-400"
+                  : "font-bold text-emerald-400"
+            }
+          >
+            {safestAlternateSpreadHistory.blowoutRisk}
+          </span>
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-5 border-t border-amber-900 pt-5 lg:grid-cols-2">
+      <div className="rounded-lg border border-emerald-900 bg-emerald-950/10 p-4">
+        <p className="text-sm font-bold uppercase tracking-wide text-emerald-400">
+          Why the Play Can Cover
+        </p>
+
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-zinc-300">
+          <li>
+            • The selection receives{" "}
+            {formatPoint(safestAlternateSpread.point)} of line protection.
+          </li>
+
+          <li>
+            • It covered the simulated line in{" "}
+            {safestAlternateSpreadHistory.last5.covers} of its last{" "}
+            {safestAlternateSpreadHistory.last5.gamesPlayed} games.
+          </li>
+
+          <li>
+            • It covered in{" "}
+            {safestAlternateSpreadHistory.last10.covers} of the last{" "}
+            {safestAlternateSpreadHistory.last10.gamesPlayed} games.
+          </li>
+
+          <li>
+            • The adjusted Last 5 margin is{" "}
+            {safestAlternateSpreadHistory.last5.averageAdjustedMargin > 0
+              ? "+"
+              : ""}
+            {safestAlternateSpreadHistory.last5.averageAdjustedMargin.toFixed(
+              1
+            )}.
+          </li>
+
+          <li>
+            • The verified price is{" "}
+            {formatPrice(safestAlternateSpread.price)} with{" "}
+            {safestAlternateSpread.bookmaker}.
+          </li>
+        </ul>
+      </div>
+
+      <div className="rounded-lg border border-red-900 bg-red-950/10 p-4">
+        <p className="text-sm font-bold uppercase tracking-wide text-red-400">
+          Why the Play May Not Cover
+        </p>
+
+        <ul className="mt-3 space-y-2 text-sm leading-6 text-zinc-300">
+          {!safestAlternateSpread.alignedWithPreferredTeam && (
+            <li>
+              • The selection is not the current EasyRunLine preferred team.
+            </li>
+          )}
+
+          <li>
+            • Market alignment is only{" "}
+            {safestAlternateSpread.marketAlignmentScore.toFixed(1)}/100.
+          </li>
+
+          <li>
+            • Opponent blowout risk is{" "}
+            {safestAlternateSpreadHistory.blowoutRisk}.
+          </li>
+
+          {safestAlternateSpreadHistory.headToHead.misses > 0 && (
+            <li>
+              • The selection failed this simulated line in{" "}
+              {safestAlternateSpreadHistory.headToHead.misses} available
+              head-to-head meetings.
+            </li>
+          )}
+
+          <li>
+            • Historical simulations apply today&apos;s line to previous
+            results and do not use each game&apos;s original closing spread.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Final EasyRunLine Assessment
+      </p>
+
+      <p className="mt-3 text-sm leading-6 text-zinc-300">
+        <span className="font-bold text-white">
+          {safestAlternateSpread.qualification}
+        </span>
+        {" — "}
+        {safestAlternateSpread.team}{" "}
+        {formatPoint(safestAlternateSpread.point)} provides meaningful line
+        protection. Historical support is classified as{" "}
+        <span className="font-bold text-white">
+          {safestAlternateSpreadHistory.historicalSupport}
+        </span>
+        . The final verdict also considers market alignment, price quality,
+        matchup confidence and opponent blowout risk.
+      </p>
+
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
+        Historical line simulation is not an official historical ATS record.
+        It applies today&apos;s selected handicap retrospectively to completed
+        regular-season scores and does not guarantee that the selection will
+        cover.
+      </p>
+    </div>
+  </div>
 )}
+
 
 {safestAlternateSpreadMessage && (
   <div className="mt-4 rounded-xl border border-blue-900 bg-blue-950/20 p-4 text-sm text-blue-200">

@@ -248,13 +248,12 @@ export function findSafestWNBAAvailableSpread(
             completenessScore >= 70;
 
           const qualifiesAsLean =
-            !context.avoid &&
-            context.confidence !== "Low" &&
-            finalSafetyScore >= 75 &&
-            protectionScore >= 70 &&
-            marketAlignmentScore >= 45 &&
-            priceQualityScore >= 50 &&
-            completenessScore >= 60;
+  context.confidence !== "Low" &&
+  finalSafetyScore >= 75 &&
+  protectionScore >= 75 &&
+  marketAlignmentScore >= 38 &&
+  priceQualityScore >= 50 &&
+  completenessScore >= 60;
 
           const qualification:
             WNBAAlternateSpreadSelection["qualification"] =
@@ -288,6 +287,17 @@ export function findSafestWNBAAvailableSpread(
               "Current matchup confidence is Low, so the selection remains safety-oriented rather than a high-confidence recommendation."
             );
           }
+          if (qualification === "LEAN") {
+  reasons.push(
+    "The available handicap provides meaningful line protection, but matchup alignment is not strong enough for a full EasyRunLine play."
+  );
+}
+
+if (qualification === "PASS") {
+  reasons.push(
+    "The selection does not currently satisfy enough combined protection, alignment and confidence requirements for an EasyRunLine play."
+  );
+}
 
           return {
             team: outcome.name,
@@ -327,50 +337,44 @@ export function findSafestWNBAAvailableSpread(
         })
     );
 
-    const qualifiedSelections =
-    selections.filter(
-      (selection) =>
-        selection.qualification !== "PASS"
-    );
+   if (selections.length === 0) {
+  return null;
+}
 
-  if (
-    qualifiedSelections.length === 0
-  ) {
-    return null;
+const qualificationRank: Record<
+  WNBAAlternateSpreadSelection["qualification"],
+  number
+> = {
+  PLAY: 3,
+  LEAN: 2,
+  PASS: 1,
+};
+
+selections.sort((a, b) => {
+  const qualificationDifference =
+    qualificationRank[b.qualification] -
+    qualificationRank[a.qualification];
+
+  if (qualificationDifference !== 0) {
+    return qualificationDifference;
   }
 
-  qualifiedSelections.sort((a, b) => {
-    if (
-      a.qualification !==
-      b.qualification
-    ) {
-      return a.qualification === "PLAY"
-        ? -1
-        : 1;
-    }
+  if (b.safetyScore !== a.safetyScore) {
+    return b.safetyScore - a.safetyScore;
+  }
 
-    if (
-      b.safetyScore !==
-      a.safetyScore
-    ) {
-      return (
-        b.safetyScore -
-        a.safetyScore
-      );
-    }
-
-    if (
-      b.protectionScore !==
+  if (
+    b.protectionScore !==
+    a.protectionScore
+  ) {
+    return (
+      b.protectionScore -
       a.protectionScore
-    ) {
-      return (
-        b.protectionScore -
-        a.protectionScore
-      );
-    }
+    );
+  }
 
-    return b.price - a.price;
-  });
+  return b.price - a.price;
+});
 
-  return qualifiedSelections[0];
+return selections[0];
 }
