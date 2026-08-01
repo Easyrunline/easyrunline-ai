@@ -74,7 +74,23 @@ type NormalizedWNBAGame = {
   neutralSite: boolean;
   completed: true;
 };
-
+const officialWNBAFranchises = new Set([
+  "Atlanta Dream",
+  "Chicago Sky",
+  "Connecticut Sun",
+  "Dallas Wings",
+  "Golden State Valkyries",
+  "Indiana Fever",
+  "Las Vegas Aces",
+  "Los Angeles Sparks",
+  "Minnesota Lynx",
+  "New York Liberty",
+  "Phoenix Mercury",
+  "Portland Fire",
+  "Seattle Storm",
+  "Toronto Tempo",
+  "Washington Mystics",
+]);
 function getDefaultSeasonYear() {
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -224,6 +240,28 @@ export async function GET(
           continue;
         }
 
+        const homeTeamName =
+  home.team.displayName.trim();
+
+const awayTeamName =
+  away.team.displayName.trim();
+
+/*
+ * Exclude All-Star teams, national teams,
+ * exhibition opponents and any other
+ * non-franchise records from WNBA form.
+ */
+if (
+  !officialWNBAFranchises.has(
+    homeTeamName
+  ) ||
+  !officialWNBAFranchises.has(
+    awayTeamName
+  )
+) {
+  continue;
+}
+
         const homeScore = Number(
           home.score
         );
@@ -277,8 +315,7 @@ export async function GET(
 
           homeTeamId: home.team.id,
 
-          homeTeam:
-            home.team.displayName,
+          homeTeam: homeTeamName,
 
           homeTeamAbbreviation:
             home.team.abbreviation ??
@@ -288,8 +325,7 @@ export async function GET(
 
           awayTeamId: away.team.id,
 
-          awayTeam:
-            away.team.displayName,
+          awayTeam: awayTeamName,
 
           awayTeamAbbreviation:
             away.team.abbreviation ??

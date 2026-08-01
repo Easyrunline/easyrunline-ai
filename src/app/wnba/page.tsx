@@ -15,6 +15,11 @@ import {
   type RankedWNBAGame,
 } from "@/lib/wnba/wnbaIntelligence";
 
+import {
+  findWNBATeamForm,
+  type WNBATeamForm,
+} from "@/lib/wnba/wnbaForm";
+
  import {
   findSafestWNBAAvailableSpread,
   type WNBAAlternateSpreadBookmaker,
@@ -40,10 +45,13 @@ import {
 
 import type {
   WNBAGame,
+   WNBAHistoryResponse,
   WNBAMarket,
+  
   WNBAOddsResponse,
   WNBAOutcome,
 } from "@/lib/wnba/wnbaTypes";
+
 
 function formatPrice(price?: number) {
   if (!Number.isFinite(price)) {
@@ -202,10 +210,19 @@ type WNBAFirstQuarterTotalPick =
     awayTeam: string;
     commenceTime: string;
   };
+  type WNBAHistoryWithFormsResponse =
+  WNBAHistoryResponse & {
+    teams?: WNBATeamForm[];
+  };
 export default function WNBAPage() {
   const [games, setGames] = useState<WNBAGame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [teamForms, setTeamForms] =
+  useState<WNBATeamForm[]>([]);
+
+const [historyMessage, setHistoryMessage] =
+  useState("");
   const [
   safestAlternateSpread,
   setSafestAlternateSpread,
@@ -294,26 +311,55 @@ setSafestFirstHalfTotalMessage("");
 setSafestFirstQuarterTotal(null);
 setSafestFirstQuarterTotalMessage("");
     setLoading(true);
-    setError("");
+setError("");
+setHistoryMessage("");
 
     try {
-      const response = await fetch(
-        "/api/wnba-odds",
-        {
-          cache: "no-store",
-        }
-      );
+      const [
+  oddsResponse,
+  historyResponse,
+] = await Promise.all([
+  fetch("/api/wnba-odds", {
+    cache: "no-store",
+  }),
 
-      const data =
-        (await response.json()) as WNBAOddsResponse;
+  fetch(
+    "/api/wnba-history?season=2026",
+    {
+      cache: "no-store",
+    }
+  ),
+]);
 
-      if (!response.ok) {
+const data =
+  (await oddsResponse.json()) as
+    WNBAOddsResponse;
+
+const historyData =
+  (await historyResponse.json()) as
+    WNBAHistoryWithFormsResponse;
+
+      if (!oddsResponse.ok) {
         setError(
           data.error ||
             "Could not load WNBA games."
         );
         return;
       }
+
+
+      if (historyResponse.ok) {
+  setTeamForms(
+    historyData.teams ?? []
+  );
+} else {
+  setTeamForms([]);
+
+  setHistoryMessage(
+    historyData.error ||
+      "Historical WNBA form is temporarily unavailable."
+  );
+}
 
       const uniqueGames = Array.from(
         new Map(
@@ -2070,6 +2116,11 @@ async function findSafestFirstQuarterTotal() {
             {error}
           </div>
         )}
+        {historyMessage && (
+  <div className="mt-6 rounded-xl border border-amber-900 bg-amber-950/20 p-4 text-sm text-amber-300">
+    {historyMessage}
+  </div>
+)}
 
         {!loading &&
           !error &&
@@ -2092,6 +2143,18 @@ async function findSafestFirstQuarterTotal() {
                       rankedGame.eventId ===
                       game.id
                   );
+
+                 const homeForm =
+  findWNBATeamForm(
+    teamForms,
+    game.home_team
+  );
+
+const awayForm =
+  findWNBATeamForm(
+    teamForms,
+    game.away_team
+  );
                 const h2h = findMarket(
                   game,
                   "h2h"
@@ -2265,6 +2328,141 @@ awayLogo={getWNBALogoUrl(game.away_team)}
                         </p>
                       </div>
                     )}
+                    {homeForm && awayForm && (
+  <div className="mt-4 rounded-xl border border-cyan-900 bg-cyan-950/10 p-4">
+    <p className="text-xs font-bold uppercase tracking-widest text-cyan-400">
+      Historical WNBA Form
+    </p>
+
+    <p className="mt-2 text-xs leading-5 text-zinc-500">
+      Completed 2026 regular-season results.
+      Historical form is informational and is not
+      currently included in the independent win
+      probability.
+    </p>
+
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      {[
+        {
+          form: awayForm,
+          venue: awayForm.away,
+          venueLabel: "Away Form",
+        },
+        {
+          form: homeForm,
+          venue: homeForm.home,
+          venueLabel: "Home Form",
+        },
+      ].map(
+        ({
+          form,
+          venue,
+          venueLabel,
+        }) => (
+          <div
+            key={form.team}
+            className="rounded-lg border border-zinc-800 bg-black p-4"
+          >
+            <p className="font-bold text-white">
+              {form.team}
+            </p>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs text-zinc-500">
+                  Last 5
+                </p>
+
+                <p className="font-semibold text-white">
+                  {form.last5.wins}-
+                  {form.last5.losses}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-zinc-500">
+                  Last 10
+                </p>
+
+                <p className="font-semibold text-white">
+                  {form.last10.wins}-
+                  {form.last10.losses}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-zinc-500">
+                  {venueLabel}
+                </p>
+
+                <p className="font-semibold text-white">
+                  {venue.wins}-{venue.losses}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs text-zinc-500">
+                  Season
+                </p>
+
+                <p className="font-semibold text-white">
+                  {form.season.wins}-
+                  {form.season.losses}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 border-t border-zinc-800 pt-3 text-xs text-zinc-400">
+              <p>
+                Last 5 scoring:{" "}
+                <span className="font-semibold text-white">
+                  {form.last5.averagePointsFor}
+                </span>{" "}
+                for /{" "}
+                <span className="font-semibold text-white">
+                  {form.last5.averagePointsAgainst}
+                </span>{" "}
+                against
+              </p>
+
+              <p className="mt-1">
+                Last 5 average margin:{" "}
+                <span
+                  className={
+                    form.last5.averagePointMargin >= 0
+                      ? "font-bold text-emerald-400"
+                      : "font-bold text-red-400"
+                  }
+                >
+                  {form.last5.averagePointMargin > 0
+                    ? "+"
+                    : ""}
+                  {form.last5.averagePointMargin}
+                </span>
+              </p>
+
+              <p className="mt-1">
+                {venueLabel} average margin:{" "}
+                <span
+                  className={
+                    venue.averagePointMargin >= 0
+                      ? "font-bold text-emerald-400"
+                      : "font-bold text-red-400"
+                  }
+                >
+                  {venue.averagePointMargin > 0
+                    ? "+"
+                    : ""}
+                  {venue.averagePointMargin}
+                </span>
+              </p>
+            </div>
+          </div>
+        )
+      )}
+    </div>
+  </div>
+)}
 
                                         {intelligence && (
                       <div className="mt-4 rounded-xl border border-orange-900 bg-orange-950/20 p-4">
