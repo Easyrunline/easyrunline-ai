@@ -37,9 +37,10 @@ export type WNBAAlternateSpreadSelection = {
     safetyScore: number;
 
   qualification:
-    | "PLAY"
-    | "LEAN"
-    | "PASS";
+  | "STRONG PLAY"
+  | "PLAY"
+  | "LEAN"
+  | "PASS";
 
   alignedWithPreferredTeam: boolean;
   priceProfile:
@@ -238,16 +239,26 @@ export function findSafestWNBAAvailableSpread(
               ).toFixed(1)
             );
 
-          const qualifiesAsPlay =
-            !context.avoid &&
-            context.confidence === "High" &&
-            finalSafetyScore >= 85 &&
-            protectionScore >= 75 &&
-            marketAlignmentScore >= 55 &&
-            priceQualityScore >= 70 &&
-            completenessScore >= 70;
+          const qualifiesAsStrongPlay =
+  !context.avoid &&
+  context.confidence === "High" &&
+  finalSafetyScore >= 88 &&
+  protectionScore >= 80 &&
+  marketAlignmentScore >= 60 &&
+  priceQualityScore >= 75 &&
+  completenessScore >= 75;
 
-          const qualifiesAsLean =
+const qualifiesAsPlay =
+  !context.avoid &&
+  context.confidence !== "Low" &&
+  finalSafetyScore >= 82 &&
+  protectionScore >= 75 &&
+  marketAlignmentScore >= 50 &&
+  priceQualityScore >= 65 &&
+  completenessScore >= 65;
+
+const qualifiesAsLean =
+  !context.avoid &&
   context.confidence !== "Low" &&
   finalSafetyScore >= 75 &&
   protectionScore >= 75 &&
@@ -255,13 +266,15 @@ export function findSafestWNBAAvailableSpread(
   priceQualityScore >= 50 &&
   completenessScore >= 60;
 
-          const qualification:
-            WNBAAlternateSpreadSelection["qualification"] =
-              qualifiesAsPlay
-                ? "PLAY"
-                : qualifiesAsLean
-                  ? "LEAN"
-                  : "PASS";
+const qualification:
+  WNBAAlternateSpreadSelection["qualification"] =
+    qualifiesAsStrongPlay
+      ? "STRONG PLAY"
+      : qualifiesAsPlay
+        ? "PLAY"
+        : qualifiesAsLean
+          ? "LEAN"
+          : "PASS";
 
           const reasons = [
             `${outcome.name} is available at ${formatWNBASpread(
@@ -287,6 +300,28 @@ export function findSafestWNBAAvailableSpread(
               "Current matchup confidence is Low, so the selection remains safety-oriented rather than a high-confidence recommendation."
             );
           }
+          if (qualification === "STRONG PLAY") {
+  reasons.push(
+    "The selection satisfies the strongest current line-protection, market-alignment, price-quality and matchup-confidence requirements."
+  );
+}
+
+if (qualification === "PLAY") {
+  reasons.push(
+    "The selection satisfies the full EasyRunLine play requirements, although it remains below the strongest-play standard."
+  );
+}
+if (qualification === "STRONG PLAY") {
+  reasons.push(
+    "The selection satisfies the strongest current line-protection, market-alignment, price-quality and matchup-confidence requirements."
+  );
+}
+
+if (qualification === "PLAY") {
+  reasons.push(
+    "The selection satisfies the full EasyRunLine play requirements, although it remains below the strongest-play standard."
+  );
+}
           if (qualification === "LEAN") {
   reasons.push(
     "The available handicap provides meaningful line protection, but matchup alignment is not strong enough for a full EasyRunLine play."
@@ -345,28 +380,26 @@ const qualificationRank: Record<
   WNBAAlternateSpreadSelection["qualification"],
   number
 > = {
+  "STRONG PLAY": 4,
   PLAY: 3,
   LEAN: 2,
   PASS: 1,
 };
 
 selections.sort((a, b) => {
-  const qualificationDifference =
+  const verdictDifference =
     qualificationRank[b.qualification] -
     qualificationRank[a.qualification];
 
-  if (qualificationDifference !== 0) {
-    return qualificationDifference;
+  if (verdictDifference !== 0) {
+    return verdictDifference;
   }
 
   if (b.safetyScore !== a.safetyScore) {
     return b.safetyScore - a.safetyScore;
   }
 
-  if (
-    b.protectionScore !==
-    a.protectionScore
-  ) {
+  if (b.protectionScore !== a.protectionScore) {
     return (
       b.protectionScore -
       a.protectionScore

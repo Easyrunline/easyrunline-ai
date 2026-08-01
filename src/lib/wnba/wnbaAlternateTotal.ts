@@ -31,7 +31,11 @@ export type WNBAAlternateTotalSelection = {
   safetyScore: number;
 
   supportingBookmakers: number;
-  qualification: "LEAN" | "PASS";
+  qualification:
+  | "STRONG PLAY"
+  | "PLAY"
+  | "LEAN"
+  | "PASS";
 
   priceProfile:
     | "Very Low Return"
@@ -223,16 +227,39 @@ export function findSafestWNBAAlternateTotal(
               ).toFixed(1)
             );
 
-          const qualification:
-            WNBAAlternateTotalSelection["qualification"] =
-              safetyScore >= 80 &&
-              protectionPoints >= 5 &&
-              protectionScore >= 67 &&
-              priceQualityScore >= 70 &&
-              supportingBookmakers >= 3 &&
-              consensusScore >= 45
-                ? "LEAN"
-                : "PASS";
+          const qualifiesAsStrongPlay =
+  safetyScore >= 90 &&
+  protectionPoints >= 7 &&
+  protectionScore >= 80 &&
+  priceQualityScore >= 75 &&
+  supportingBookmakers >= 4 &&
+  consensusScore >= 65;
+
+const qualifiesAsPlay =
+  safetyScore >= 84 &&
+  protectionPoints >= 5 &&
+  protectionScore >= 67 &&
+  priceQualityScore >= 70 &&
+  supportingBookmakers >= 3 &&
+  consensusScore >= 50;
+
+const qualifiesAsLean =
+  safetyScore >= 74 &&
+  protectionPoints >= 3 &&
+  protectionScore >= 54 &&
+  priceQualityScore >= 50 &&
+  supportingBookmakers >= 2 &&
+  consensusScore >= 35;
+
+const qualification:
+  WNBAAlternateTotalSelection["qualification"] =
+    qualifiesAsStrongPlay
+      ? "STRONG PLAY"
+      : qualifiesAsPlay
+        ? "PLAY"
+        : qualifiesAsLean
+          ? "LEAN"
+          : "PASS";
 
           const reasons = [
             `The visible standard total is ${context.standardTotalPoint}.`,
@@ -308,42 +335,45 @@ export function findSafestWNBAAlternateTotal(
         )
     );
 
-  const qualifiedSelections =
-    selections.filter(
-      (selection) =>
-        selection.qualification ===
-        "LEAN"
-    );
+  if (selections.length === 0) {
+  return null;
+}
 
-  if (
-    qualifiedSelections.length === 0
-  ) {
-    return null;
+const qualificationRank: Record<
+  WNBAAlternateTotalSelection["qualification"],
+  number
+> = {
+  "STRONG PLAY": 4,
+  PLAY: 3,
+  LEAN: 2,
+  PASS: 1,
+};
+
+selections.sort((a, b) => {
+  const verdictDifference =
+    qualificationRank[b.qualification] -
+    qualificationRank[a.qualification];
+
+  if (verdictDifference !== 0) {
+    return verdictDifference;
   }
 
-  qualifiedSelections.sort((a, b) => {
-    if (
-      b.safetyScore !==
-      a.safetyScore
-    ) {
-      return (
-        b.safetyScore -
-        a.safetyScore
-      );
-    }
+  if (b.safetyScore !== a.safetyScore) {
+    return b.safetyScore - a.safetyScore;
+  }
 
-    if (
-      b.protectionPoints !==
+  if (
+    b.protectionPoints !==
+    a.protectionPoints
+  ) {
+    return (
+      b.protectionPoints -
       a.protectionPoints
-    ) {
-      return (
-        b.protectionPoints -
-        a.protectionPoints
-      );
-    }
+    );
+  }
 
-    return b.price - a.price;
-  });
+  return b.price - a.price;
+});
 
-  return qualifiedSelections[0];
+return selections[0];
 }

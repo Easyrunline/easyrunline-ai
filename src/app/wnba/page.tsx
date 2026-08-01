@@ -55,6 +55,11 @@ import type {
   WNBAOddsResponse,
   WNBAOutcome,
 } from "@/lib/wnba/wnbaTypes";
+import {
+  buildWNBATotalHistoricalAnalysis,
+  getWNBATotalFinalVerdict,
+} from "@/lib/wnba/wnbaTotalHistory";
+  
 
 
 function formatPrice(price?: number) {
@@ -348,6 +353,52 @@ const [
   }, [
     safestAlternateSpread,
     historicalGames,
+  ]);
+  const safestAlternateTotalHistory =
+  useMemo(() => {
+    if (
+      !safestAlternateTotal ||
+      historicalGames.length === 0
+    ) {
+      return null;
+    }
+
+    return buildWNBATotalHistoricalAnalysis(
+      historicalGames,
+      {
+        direction:
+          safestAlternateTotal.direction,
+
+        selectedTotal:
+          safestAlternateTotal.point,
+
+        homeTeam:
+          safestAlternateTotal.homeTeam,
+
+        awayTeam:
+          safestAlternateTotal.awayTeam,
+      }
+    );
+  }, [
+    safestAlternateTotal,
+    historicalGames,
+  ]);
+  const safestAlternateTotalFinalVerdict =
+  useMemo(() => {
+    if (
+      !safestAlternateTotal ||
+      !safestAlternateTotalHistory
+    ) {
+      return null;
+    }
+
+    return getWNBATotalFinalVerdict(
+      safestAlternateTotal.qualification,
+      safestAlternateTotalHistory
+    );
+  }, [
+    safestAlternateTotal,
+    safestAlternateTotalHistory,
   ]);
   async function loadGames() {
     setSafestAlternateSpread(null);
@@ -1978,19 +2029,22 @@ async function findSafestFirstQuarterTotal() {
 
       <div>
         <p className="text-xs text-zinc-500">
-          Engine Status
-        </p>
+  Market Qualification
+</p>
 
         <p
-          className={`mt-1 font-bold ${
-            safestAlternateTotal.qualification ===
-            "LEAN"
-              ? "text-cyan-400"
-              : "text-red-400"
-          }`}
-        >
-          {safestAlternateTotal.qualification}
-        </p>
+  className={
+    safestAlternateTotal.qualification === "STRONG PLAY"
+      ? "mt-1 font-bold text-emerald-400"
+      : safestAlternateTotal.qualification === "PLAY"
+        ? "mt-1 font-bold text-green-400"
+        : safestAlternateTotal.qualification === "LEAN"
+          ? "mt-1 font-bold text-amber-400"
+          : "mt-1 font-bold text-red-400"
+  }
+>
+  {safestAlternateTotal.qualification}
+</p>
       </div>
     </div>
 
@@ -2121,6 +2175,616 @@ async function findSafestFirstQuarterTotal() {
         guarantee or claim of positive betting value.
         Confirm the displayed total and price before
         placing a wager.
+      </p>
+    </div>
+  </div>
+)}
+{safestAlternateTotal &&
+  safestAlternateTotalHistory && (
+  <div className="mt-6 rounded-2xl border border-amber-800 bg-amber-950/10 p-6">
+    <p className="text-xs font-bold uppercase tracking-[0.25em] text-amber-400">
+      Why This Total
+    </p>
+
+    <div className="mt-4 grid gap-4 sm:grid-cols-2">
+      <div>
+        <p className="text-xs text-zinc-500">
+          Selection
+        </p>
+
+        <p className="mt-1 font-bold text-white">
+          {safestAlternateTotal.direction}{" "}
+          {safestAlternateTotal.point}
+        </p>
+      </div>
+
+      <div>
+        <p className="text-xs text-zinc-500">
+          Engine Verdict
+        </p>
+
+        <p
+          className={
+            safestAlternateTotal.qualification ===
+            "STRONG PLAY"
+              ? "mt-1 font-bold text-emerald-400"
+              : safestAlternateTotal.qualification ===
+                  "PLAY"
+                ? "mt-1 font-bold text-green-400"
+                : safestAlternateTotal.qualification ===
+                    "LEAN"
+                  ? "mt-1 font-bold text-amber-400"
+                  : "mt-1 font-bold text-red-400"
+          }
+        >
+          {safestAlternateTotalFinalVerdict}
+        </p>
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Total Protection
+      </p>
+
+      <p className="mt-2 text-sm leading-6 text-zinc-300">
+        The visible standard total is{" "}
+        {safestAlternateTotal.standardTotalPoint}.
+        EasyRunLine selected{" "}
+        {safestAlternateTotal.direction}{" "}
+        {safestAlternateTotal.point}, providing{" "}
+        {safestAlternateTotal.protectionPoints.toFixed(
+          1
+        )}{" "}
+        points of alternate-line protection.
+      </p>
+
+      <p className="mt-2 text-sm text-zinc-400">
+        Protection Score:{" "}
+        <span className="font-bold text-white">
+          {safestAlternateTotal.protectionScore.toFixed(
+            1
+          )}
+          /100
+        </span>
+      </p>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Recent Scoring Against{" "}
+        {safestAlternateTotal.direction}{" "}
+        {safestAlternateTotal.point}
+      </p>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div className="rounded-lg border border-zinc-800 bg-black p-4">
+          <p className="font-bold text-white">
+            {safestAlternateTotal.awayTeam}
+          </p>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-bold text-zinc-400">
+                Last 5
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-300">
+                {
+                  safestAlternateTotalHistory
+                    .awayLast5.hits
+                }{" "}
+                Hits –{" "}
+                {
+                  safestAlternateTotalHistory
+                    .awayLast5.misses
+                }{" "}
+                Misses
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Simulated Hit Rate:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.awayLast5.hitRate.toFixed(
+                    1
+                  )}
+                  %
+                </span>
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Average Total:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.awayLast5.averageCombinedTotal.toFixed(
+                    1
+                  )}
+                </span>
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Average Line Difference:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.awayLast5.averageDifferenceFromLine >
+                  0
+                    ? "+"
+                    : ""}
+                  {safestAlternateTotalHistory.awayLast5.averageDifferenceFromLine.toFixed(
+                    1
+                  )}
+                </span>
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold text-zinc-400">
+                Last 10
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-300">
+                {
+                  safestAlternateTotalHistory
+                    .awayLast10.hits
+                }{" "}
+                Hits –{" "}
+                {
+                  safestAlternateTotalHistory
+                    .awayLast10.misses
+                }{" "}
+                Misses
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Simulated Hit Rate:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.awayLast10.hitRate.toFixed(
+                    1
+                  )}
+                  %
+                </span>
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Average Total:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.awayLast10.averageCombinedTotal.toFixed(
+                    1
+                  )}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-800 bg-black p-4">
+          <p className="font-bold text-white">
+            {safestAlternateTotal.homeTeam}
+          </p>
+
+          <div className="mt-3 grid gap-4 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-bold text-zinc-400">
+                Last 5
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-300">
+                {
+                  safestAlternateTotalHistory
+                    .homeLast5.hits
+                }{" "}
+                Hits –{" "}
+                {
+                  safestAlternateTotalHistory
+                    .homeLast5.misses
+                }{" "}
+                Misses
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Simulated Hit Rate:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.homeLast5.hitRate.toFixed(
+                    1
+                  )}
+                  %
+                </span>
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Average Total:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.homeLast5.averageCombinedTotal.toFixed(
+                    1
+                  )}
+                </span>
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Average Line Difference:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.homeLast5.averageDifferenceFromLine >
+                  0
+                    ? "+"
+                    : ""}
+                  {safestAlternateTotalHistory.homeLast5.averageDifferenceFromLine.toFixed(
+                    1
+                  )}
+                </span>
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs font-bold text-zinc-400">
+                Last 10
+              </p>
+
+              <p className="mt-2 text-sm text-zinc-300">
+                {
+                  safestAlternateTotalHistory
+                    .homeLast10.hits
+                }{" "}
+                Hits –{" "}
+                {
+                  safestAlternateTotalHistory
+                    .homeLast10.misses
+                }{" "}
+                Misses
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Simulated Hit Rate:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.homeLast10.hitRate.toFixed(
+                    1
+                  )}
+                  %
+                </span>
+              </p>
+
+              <p className="mt-1 text-sm text-zinc-400">
+                Average Total:{" "}
+                <span className="font-bold text-white">
+                  {safestAlternateTotalHistory.homeLast10.averageCombinedTotal.toFixed(
+                    1
+                  )}
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-6 border-t border-amber-900 pt-5 lg:grid-cols-2">
+      <div>
+        <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+          Venue Performance
+        </p>
+
+        <p className="mt-3 text-sm text-zinc-300">
+          {safestAlternateTotal.awayTeam} away:
+          {" "}
+          {
+            safestAlternateTotalHistory
+              .awayVenue.hits
+          }{" "}
+          Hits –{" "}
+          {
+            safestAlternateTotalHistory
+              .awayVenue.misses
+          }{" "}
+          Misses
+        </p>
+
+        <p className="mt-1 text-sm text-zinc-400">
+          Away Hit Rate:{" "}
+          <span className="font-bold text-white">
+            {safestAlternateTotalHistory.awayVenue.hitRate.toFixed(
+              1
+            )}
+            %
+          </span>
+        </p>
+
+        <p className="mt-3 text-sm text-zinc-300">
+          {safestAlternateTotal.homeTeam} home:
+          {" "}
+          {
+            safestAlternateTotalHistory
+              .homeVenue.hits
+          }{" "}
+          Hits –{" "}
+          {
+            safestAlternateTotalHistory
+              .homeVenue.misses
+          }{" "}
+          Misses
+        </p>
+
+        <p className="mt-1 text-sm text-zinc-400">
+          Home Hit Rate:{" "}
+          <span className="font-bold text-white">
+            {safestAlternateTotalHistory.homeVenue.hitRate.toFixed(
+              1
+            )}
+            %
+          </span>
+        </p>
+      </div>
+
+      <div>
+        <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+          Head-to-Head Simulation
+        </p>
+
+        <p className="mt-3 text-sm text-zinc-300">
+          Available Meetings:{" "}
+          {
+            safestAlternateTotalHistory
+              .headToHead.gamesPlayed
+          }
+        </p>
+
+        {safestAlternateTotalHistory.headToHead
+          .gamesPlayed > 0 ? (
+          <>
+            <p className="mt-1 text-sm text-zinc-400">
+              {
+                safestAlternateTotalHistory
+                  .headToHead.hits
+              }{" "}
+              Hits –{" "}
+              {
+                safestAlternateTotalHistory
+                  .headToHead.misses
+              }{" "}
+              Misses
+            </p>
+
+            <p className="mt-1 text-sm text-zinc-400">
+              Simulated Hit Rate:{" "}
+              <span className="font-bold text-white">
+                {safestAlternateTotalHistory.headToHead.hitRate.toFixed(
+                  1
+                )}
+                %
+              </span>
+            </p>
+
+            <p className="mt-1 text-sm text-zinc-400">
+              Average Combined Score:{" "}
+              <span className="font-bold text-white">
+                {safestAlternateTotalHistory.headToHead.averageCombinedTotal.toFixed(
+                  1
+                )}
+              </span>
+            </p>
+          </>
+        ) : (
+          <p className="mt-1 text-sm text-zinc-500">
+            No completed regular-season meetings are
+            available for this simulation.
+          </p>
+        )}
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Scoring Consistency Test
+      </p>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-3">
+        <div>
+          <p className="text-xs text-zinc-500">
+            Combined Recent Hit Rate
+          </p>
+
+          <p className="mt-1 font-bold text-white">
+            {safestAlternateTotalHistory.combinedRecent.hitRate.toFixed(
+              1
+            )}
+            %
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-zinc-500">
+            Scoring Volatility
+          </p>
+
+          <p className="mt-1 font-bold text-white">
+            {safestAlternateTotalHistory.scoringVolatility.toFixed(
+              1
+            )}{" "}
+            points
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-zinc-500">
+            Volatility Risk
+          </p>
+
+          <p
+            className={
+              safestAlternateTotalHistory.volatilityLevel ===
+              "High"
+                ? "mt-1 font-bold text-red-400"
+                : safestAlternateTotalHistory.volatilityLevel ===
+                    "Moderate"
+                  ? "mt-1 font-bold text-amber-400"
+                  : "mt-1 font-bold text-emerald-400"
+            }
+          >
+            {
+              safestAlternateTotalHistory
+                .volatilityLevel
+            }
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="mt-6 grid gap-4 border-t border-amber-900 pt-5 lg:grid-cols-2">
+      <div className="rounded-lg border border-emerald-900 bg-emerald-950/10 p-4">
+        <p className="text-sm font-bold uppercase text-emerald-400">
+          Why the Total Can Hit
+        </p>
+
+        <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+          <li>
+            • The alternate total provides{" "}
+            {safestAlternateTotal.protectionPoints.toFixed(
+              1
+            )}{" "}
+            points of protection from the standard
+            total.
+          </li>
+
+          <li>
+            • Recent combined results produced a{" "}
+            {safestAlternateTotalHistory.combinedRecent.hitRate.toFixed(
+              1
+            )}
+            % simulated hit rate.
+          </li>
+
+          <li>
+            • The exact market is verified at{" "}
+            {formatPrice(
+              safestAlternateTotal.price
+            )}{" "}
+            with{" "}
+            {safestAlternateTotal.bookmaker}.
+          </li>
+
+          <li>
+            •{" "}
+            {
+              safestAlternateTotal
+                .supportingBookmakers
+            }{" "}
+            bookmakers support a comparable market.
+          </li>
+
+          {(
+  safestAlternateTotalHistory.historicalSupport ===
+    "Strong" ||
+  safestAlternateTotalHistory.historicalSupport ===
+    "Moderate"
+) && (
+  <li>
+    • Historical support is classified as{" "}
+    <span className="font-bold text-emerald-300">
+      {
+        safestAlternateTotalHistory
+          .historicalSupport
+      }
+    </span>
+    .
+  </li>
+)}
+        </ul>
+      </div>
+
+      <div className="rounded-lg border border-red-900 bg-red-950/10 p-4">
+        <p className="text-sm font-bold uppercase text-red-400">
+          Why the Total May Not Hit
+        </p>
+
+        <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+          {(
+  safestAlternateTotalHistory.historicalSupport ===
+    "Weak" ||
+  safestAlternateTotalHistory.historicalSupport ===
+    "Mixed"
+) && (
+  <li>
+    • Historical support is classified as{" "}
+    <span className="font-bold text-red-300">
+      {
+        safestAlternateTotalHistory
+          .historicalSupport
+      }
+    </span>
+    .
+  </li>
+)}
+          <li>
+            • Historical simulations apply today&apos;s
+            total retrospectively and do not use each
+            game&apos;s original closing total.
+          </li>
+
+          {safestAlternateTotalHistory.volatilityLevel !==
+            "Low" && (
+            <li>
+              • Recent combined scoring volatility is{" "}
+              {
+                safestAlternateTotalHistory
+                  .volatilityLevel
+              }
+              .
+            </li>
+          )}
+
+          {safestAlternateTotalHistory.headToHead
+            .gamesPlayed < 3 && (
+            <li>
+              • The available head-to-head sample is
+              limited and should not independently
+              determine the verdict.
+            </li>
+          )}
+
+          <li>
+            • An alternate line reduces risk but does
+            not eliminate unexpected pace, shooting or
+            defensive changes.
+          </li>
+
+          <li>
+            • The displayed price and total may change
+            before the wager is placed.
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div className="mt-6 border-t border-amber-900 pt-5">
+      <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+        Final EasyRunLine Assessment
+      </p>
+
+      <p className="mt-3 text-sm leading-6 text-zinc-300">
+        <span className="font-bold text-white">
+          {safestAlternateTotalFinalVerdict}
+        </span>
+        {" — "}
+        {safestAlternateTotal.direction}{" "}
+        {safestAlternateTotal.point} provides{" "}
+        {safestAlternateTotal.protectionPoints.toFixed(
+          1
+        )}{" "}
+        points of protection from the standard total.
+        Historical support is classified as{" "}
+        <span className="font-bold text-white">
+          {
+            safestAlternateTotalHistory
+              .historicalSupport
+          }
+        </span>
+        . The final market verdict also considers
+        protection, price quality, bookmaker consensus
+        and availability.
+      </p>
+
+      <p className="mt-3 text-xs leading-5 text-zinc-500">
+        Historical total simulation is not an official
+        historical over/under record. It applies
+        today&apos;s selected total retrospectively to
+        completed regular-season scores and does not
+        guarantee that the selection will hit.
       </p>
     </div>
   </div>
