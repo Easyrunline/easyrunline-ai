@@ -69,6 +69,37 @@ function formatPrice(price?: number) {
 
   return Number(price).toFixed(2);
 }
+function calculateMedian(
+  values: number[]
+) {
+  if (values.length === 0) {
+    return null;
+  }
+
+  const sortedValues = [
+    ...values,
+  ].sort(
+    (first, second) =>
+      first - second
+  );
+
+  const middleIndex =
+    Math.floor(
+      sortedValues.length / 2
+    );
+
+  if (
+    sortedValues.length % 2 ===
+    0
+  ) {
+    return (
+      sortedValues[middleIndex - 1] +
+      sortedValues[middleIndex]
+    ) / 2;
+  }
+
+  return sortedValues[middleIndex];
+}
 
 function formatPoint(point?: number) {
   if (!Number.isFinite(point)) {
@@ -181,8 +212,12 @@ type WNBAAlternateTotalPick =
     homeTeam: string;
     awayTeam: string;
     commenceTime: string;
-  };
 
+    erlScore: number;
+    probabilityEdge: number;
+    confidence: RankedWNBAGame["confidence"];
+    dataCompleteness: number;
+  };
   type WNBAFirstHalfTotalResponse = {
   available?: boolean;
   eventId?: string;
@@ -200,6 +235,11 @@ type WNBAFirstHalfTotalPick =
     homeTeam: string;
     awayTeam: string;
     commenceTime: string;
+
+    erlScore: number;
+    probabilityEdge: number;
+    confidence: RankedWNBAGame["confidence"];
+    dataCompleteness: number;
   };
   type WNBAFirstQuarterTotalResponse = {
   available?: boolean;
@@ -530,6 +570,7 @@ setSafestFirstHalfTotalMessage("");
   try {
     const candidates = await Promise.all(
       games.map(async (game) => {
+  
         const intelligence =
           rankedGames.find(
             (rankedGame) =>
@@ -693,8 +734,7 @@ setSafestAlternateSpreadMessage(
 async function findSafestAlternateTotal() {
   setSafestAlternateTotal(null);
 setSafestAlternateTotalMessage("");
-  setSafestAlternateTotal(null);
-  setSafestAlternateTotalMessage("");
+  
 
   setSafestAlternateSpread(null);
   setSafestAlternateSpreadMessage("");
@@ -713,6 +753,15 @@ setSafestAlternateTotalMessage("");
     const candidates =
       await Promise.all(
         games.map(async (game) => {
+          const intelligence =
+  rankedGames.find(
+    (rankedGame) =>
+      rankedGame.eventId === game.id
+  );
+
+if (!intelligence) {
+  return null;
+}
           const standardTotalPoints =
             game.bookmakers.flatMap(
               (bookmaker) =>
@@ -738,6 +787,53 @@ setSafestAlternateTotalMessage("");
                       )
                   )
             );
+            const standardOverPrices =
+  game.bookmakers.flatMap(
+    (bookmaker) =>
+      bookmaker.markets
+        .filter(
+          (market) =>
+            market.key === "totals"
+        )
+        .flatMap((market) =>
+          market.outcomes
+            .filter(
+              (outcome) =>
+                outcome.name === "Over" &&
+                Number.isFinite(
+                  outcome.price
+                )
+            )
+            .map(
+              (outcome) =>
+                outcome.price as number
+            )
+        )
+  );
+
+const standardUnderPrices =
+  game.bookmakers.flatMap(
+    (bookmaker) =>
+      bookmaker.markets
+        .filter(
+          (market) =>
+            market.key === "totals"
+        )
+        .flatMap((market) =>
+          market.outcomes
+            .filter(
+              (outcome) =>
+                outcome.name === "Under" &&
+                Number.isFinite(
+                  outcome.price
+                )
+            )
+            .map(
+              (outcome) =>
+                outcome.price as number
+            )
+        )
+  );
 
           if (
             standardTotalPoints.length ===
@@ -773,6 +869,22 @@ setSafestAlternateTotalMessage("");
               : sortedStandardTotals[
                   middleIndex
                 ];
+                const standardOverPrice =
+  calculateMedian(
+    standardOverPrices
+  );
+
+const standardUnderPrice =
+  calculateMedian(
+    standardUnderPrices
+  );
+
+if (
+  standardOverPrice === null ||
+  standardUnderPrice === null
+) {
+  return null;
+}
 
           const params =
             new URLSearchParams({
@@ -802,8 +914,10 @@ setSafestAlternateTotalMessage("");
             findSafestWNBAAlternateTotal(
               data.bookmakers,
               {
-                standardTotalPoint,
-              }
+  standardTotalPoint,
+  standardOverPrice,
+  standardUnderPrice,
+}
             );
 
           if (!selection) {
@@ -820,6 +934,17 @@ setSafestAlternateTotalMessage("");
               game.away_team,
             commenceTime:
               game.commence_time,
+              erlScore:
+  intelligence.erlScore,
+
+probabilityEdge:
+  intelligence.probabilityEdge,
+
+confidence:
+  intelligence.confidence,
+
+dataCompleteness:
+  intelligence.dataCompleteness,
           } satisfies WNBAAlternateTotalPick;
         })
       );
@@ -920,6 +1045,15 @@ setSafestFirstQuarterTotalMessage("");
     const candidates =
       await Promise.all(
         games.map(async (game) => {
+          const intelligence =
+  rankedGames.find(
+    (rankedGame) =>
+      rankedGame.eventId === game.id
+  );
+
+if (!intelligence) {
+  return null;
+}
           const params =
             new URLSearchParams({
               eventId: game.id,
@@ -963,6 +1097,19 @@ setSafestFirstQuarterTotalMessage("");
               game.away_team,
             commenceTime:
               game.commence_time,
+              
+
+erlScore:
+  intelligence.erlScore,
+
+probabilityEdge:
+  intelligence.probabilityEdge,
+
+confidence:
+  intelligence.confidence,
+
+dataCompleteness:
+  intelligence.dataCompleteness,
           } satisfies WNBAFirstHalfTotalPick;
         })
       );
@@ -2074,6 +2221,38 @@ async function findSafestFirstQuarterTotal() {
           /100
         </p>
       </div>
+      <div>
+  <p className="text-xs text-zinc-500">
+    Market Alignment
+  </p>
+
+  <p className="mt-1 font-semibold text-white">
+    {safestAlternateTotal.marketAlignmentScore.toFixed(
+      1
+    )}
+    /100
+  </p>
+</div>
+
+<div>
+  <p className="text-xs text-zinc-500">
+    ERL Matchup Score
+  </p>
+
+  <p className="mt-1 font-semibold text-orange-400">
+    {safestAlternateTotal.erlScore}/100
+  </p>
+</div>
+
+<div>
+  <p className="text-xs text-zinc-500">
+    Matchup Confidence
+  </p>
+
+  <p className="mt-1 font-semibold text-white">
+    {safestAlternateTotal.confidence}
+  </p>
+</div>
 
       <div>
         <p className="text-xs text-zinc-500">
@@ -2907,6 +3086,26 @@ async function findSafestFirstQuarterTotal() {
           /100
         </p>
       </div>
+
+      <div>
+  <p className="text-xs text-zinc-500">
+    ERL Matchup Score
+  </p>
+
+  <p className="mt-1 font-semibold text-amber-400">
+    {safestFirstHalfTotal.erlScore}/100
+  </p>
+</div>
+
+<div>
+  <p className="text-xs text-zinc-500">
+    Matchup Confidence
+  </p>
+
+  <p className="mt-1 font-semibold text-white">
+    {safestFirstHalfTotal.confidence}
+  </p>
+</div>
 
       <div>
         <p className="text-xs text-zinc-500">

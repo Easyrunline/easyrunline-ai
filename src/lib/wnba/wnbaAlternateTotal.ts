@@ -13,6 +13,8 @@ export type WNBAAlternateTotalBookmaker = {
 
 export type WNBAAlternateTotalContext = {
   standardTotalPoint: number;
+  standardOverPrice: number;
+  standardUnderPrice: number;
 };
 
 export type WNBAAlternateTotalSelection = {
@@ -25,6 +27,7 @@ export type WNBAAlternateTotalSelection = {
   protectionPoints: number;
 
   protectionScore: number;
+  marketAlignmentScore: number;
   priceQualityScore: number;
   consensusScore: number;
   availabilityScore: number;
@@ -126,17 +129,68 @@ function calculateProtectionScore(
   );
 }
 
+function calculateMarketAlignment(
+  direction: "Over" | "Under",
+  overPrice: number,
+  underPrice: number
+) {
+  if (
+    !Number.isFinite(overPrice) ||
+    !Number.isFinite(underPrice) ||
+    overPrice <= 1 ||
+    underPrice <= 1
+  ) {
+    return 0;
+  }
+
+  const rawOverProbability =
+    1 / overPrice;
+
+  const rawUnderProbability =
+    1 / underPrice;
+
+  const probabilityTotal =
+    rawOverProbability +
+    rawUnderProbability;
+
+  if (probabilityTotal <= 0) {
+    return 0;
+  }
+
+  const overProbability =
+    (rawOverProbability /
+      probabilityTotal) *
+    100;
+
+  const underProbability =
+    (rawUnderProbability /
+      probabilityTotal) *
+    100;
+
+  return clamp(
+    direction === "Over"
+      ? overProbability
+      : underProbability
+  );
+}
+
 export function findSafestWNBAAlternateTotal(
   bookmakers: WNBAAlternateTotalBookmaker[],
   context: WNBAAlternateTotalContext
 ): WNBAAlternateTotalSelection | null {
   if (
-    !Number.isFinite(
-      context.standardTotalPoint
-    )
-  ) {
-    return null;
-  }
+  !Number.isFinite(
+    context.standardTotalPoint
+  ) ||
+  !Number.isFinite(
+    context.standardOverPrice
+  ) ||
+  !Number.isFinite(
+    context.standardUnderPrice
+  )
+) {
+  return null;
+}
 
   const selections =
     bookmakers.flatMap((bookmaker) =>
@@ -175,6 +229,13 @@ export function findSafestWNBAAlternateTotal(
             calculateProtectionScore(
               protectionPoints
             );
+
+            const marketAlignmentScore =
+  calculateMarketAlignment(
+    direction,
+    context.standardOverPrice,
+    context.standardUnderPrice
+  );
 
           const priceQualityScore =
             calculatePriceQuality(
@@ -295,6 +356,12 @@ const qualification:
                   1
                 )
               ),
+              marketAlignmentScore:
+  Number(
+    marketAlignmentScore.toFixed(
+      1
+    )
+  ),
 
             priceQualityScore:
               Number(
