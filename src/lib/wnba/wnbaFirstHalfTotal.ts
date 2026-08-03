@@ -27,7 +27,11 @@ export type WNBAFirstHalfTotalSelection = {
   safetyScore: number;
 
   supportingBookmakers: number;
-  qualification: "LEAN" | "PASS";
+  qualification:
+  | "STRONG PLAY"
+  | "PLAY"
+  | "LEAN"
+  | "PASS";
 
   priceProfile:
     | "Very Low Return"
@@ -284,17 +288,26 @@ export function findSafestWNBAFirstHalfTotal(
               );
 
             const qualification:
-              WNBAFirstHalfTotalSelection["qualification"] =
-                safetyScore >= 78 &&
-                marketAlignmentScore >=
-                  72 &&
-                priceQualityScore >=
-                  72 &&
-                supportingBookmakers >=
-                  3 &&
-                consensusScore >= 45
-                  ? "LEAN"
-                  : "PASS";
+  WNBAFirstHalfTotalSelection["qualification"] =
+    safetyScore >= 88 &&
+    marketAlignmentScore >= 88 &&
+    priceQualityScore >= 82 &&
+    supportingBookmakers >= 4 &&
+    consensusScore >= 60
+      ? "STRONG PLAY"
+      : safetyScore >= 83 &&
+          marketAlignmentScore >= 88 &&
+          priceQualityScore >= 72 &&
+          supportingBookmakers >= 3 &&
+          consensusScore >= 55
+        ? "PLAY"
+        : safetyScore >= 78 &&
+            marketAlignmentScore >= 72 &&
+            priceQualityScore >= 72 &&
+            supportingBookmakers >= 3 &&
+            consensusScore >= 45
+          ? "LEAN"
+          : "PASS";
 
             const reasons = [
               `The market consensus first-half total is ${consensusPoint.toFixed(
@@ -373,49 +386,38 @@ export function findSafestWNBAFirstHalfTotal(
             };
           })
     );
+if (selections.length === 0) {
+  return null;
+}
 
-  const qualifiedSelections =
-    selections.filter(
-      (selection) =>
-        selection.qualification ===
-        "LEAN"
-    );
-
-  if (
-    qualifiedSelections.length ===
-    0
-  ) {
-    return null;
-  }
-
-  qualifiedSelections.sort(
-    (first, second) => {
-      if (
-        second.safetyScore !==
-        first.safetyScore
-      ) {
-        return (
-          second.safetyScore -
-          first.safetyScore
-        );
-      }
-
-      if (
-        second.consensusScore !==
-        first.consensusScore
-      ) {
-        return (
-          second.consensusScore -
-          first.consensusScore
-        );
-      }
-
+selections.sort(
+  (first, second) => {
+    if (
+      second.safetyScore !==
+      first.safetyScore
+    ) {
       return (
-  first.price -
-  second.price
-);
+        second.safetyScore -
+        first.safetyScore
+      );
     }
-  );
 
-  return qualifiedSelections[0];
+    if (
+      second.consensusScore !==
+      first.consensusScore
+    ) {
+      return (
+        second.consensusScore -
+        first.consensusScore
+      );
+    }
+
+    return (
+      first.price -
+      second.price
+    );
+  }
+);
+
+return selections[0];
 }

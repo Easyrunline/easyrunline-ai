@@ -9,10 +9,16 @@ type ESPNTeam = {
   shortDisplayName?: string;
   abbreviation?: string;
 };
+type ESPNLineScore = {
+  value?: number;
+  displayValue?: string;
+  period?: number;
+};
 
 type ESPNCompetitor = {
   homeAway?: "home" | "away";
   score?: string;
+  linescores?: ESPNLineScore[];
   winner?: boolean;
   team?: ESPNTeam;
 };
@@ -61,11 +67,14 @@ type NormalizedWNBAGame = {
   homeTeam: string;
   homeTeamAbbreviation: string;
   homeScore: number;
+  homeFirstHalfScore: number | null;
+  
 
   awayTeamId: string;
   awayTeam: string;
   awayTeamAbbreviation: string;
   awayScore: number;
+  awayFirstHalfScore: number | null;
 
   winner: string;
   loser: string;
@@ -123,6 +132,33 @@ function getSeasonTypeName(
   }
 
   return "Unknown";
+}
+function getFirstHalfScore(
+  competitor: ESPNCompetitor
+) {
+  const firstQuarter =
+    competitor.linescores?.find(
+      (lineScore) =>
+        lineScore.period === 1
+    )?.value;
+
+  const secondQuarter =
+    competitor.linescores?.find(
+      (lineScore) =>
+        lineScore.period === 2
+    )?.value;
+
+  if (
+    !Number.isFinite(firstQuarter) ||
+    !Number.isFinite(secondQuarter)
+  ) {
+    return null;
+  }
+
+  return (
+    Number(firstQuarter) +
+    Number(secondQuarter)
+  );
 }
 
 export async function GET(
@@ -269,6 +305,11 @@ if (
         const awayScore = Number(
           away.score
         );
+        const homeFirstHalfScore =
+  getFirstHalfScore(home);
+
+const awayFirstHalfScore =
+  getFirstHalfScore(away);
 
         if (
           !Number.isFinite(homeScore) ||
@@ -322,6 +363,8 @@ if (
             "",
 
           homeScore,
+          homeFirstHalfScore,
+          
 
           awayTeamId: away.team.id,
 
@@ -332,6 +375,7 @@ if (
             "",
 
           awayScore,
+          awayFirstHalfScore,
 
           winner: homeWon
             ? home.team.displayName

@@ -47,6 +47,10 @@ import {
   type WNBAFirstHalfTotalSelection,
 } from "@/lib/wnba/wnbaFirstHalfTotal";
 
+import {
+  buildWNBAFirstHalfTotalHistoricalAnalysis,
+} from "@/lib/wnba/wnbaFirstHalfTotalHistory";
+
 import type {
   WNBAGame,
   WNBAHistoricalGame,
@@ -69,6 +73,23 @@ function formatPrice(price?: number) {
 
   return Number(price).toFixed(2);
 }
+function formatMarketImpliedProbability(
+  price?: number
+) {
+  if (
+    !Number.isFinite(price) ||
+    price! <= 1
+  ) {
+    return "N/A";
+  }
+
+  return `${(
+    (1 / price!) *
+    100
+  ).toFixed(1)}%`;
+}
+
+
 function calculateMedian(
   values: number[]
 ) {
@@ -423,6 +444,57 @@ const [
     safestAlternateTotal,
     historicalGames,
   ]);
+    
+
+  const safestFirstHalfTotalHistory =
+    useMemo(() => {
+      if (
+        !safestFirstHalfTotal ||
+        historicalGames.length === 0
+      ) {
+        return null;
+      }
+
+      return buildWNBAFirstHalfTotalHistoricalAnalysis(
+        historicalGames,
+        {
+          direction:
+            safestFirstHalfTotal.direction,
+
+          selectedTotal:
+            safestFirstHalfTotal.point,
+
+          homeTeam:
+            safestFirstHalfTotal.homeTeam,
+
+          awayTeam:
+            safestFirstHalfTotal.awayTeam,
+        }
+      );
+    }, [
+      safestFirstHalfTotal,
+      historicalGames,
+    ]);
+
+    const safestFirstHalfTotalFinalVerdict =
+  useMemo(() => {
+    if (
+      !safestFirstHalfTotal ||
+      !safestFirstHalfTotalHistory
+    ) {
+      return null;
+    }
+
+    return getWNBATotalFinalVerdict(
+      safestFirstHalfTotal.qualification,
+      safestFirstHalfTotalHistory
+    );
+  }, [
+    safestFirstHalfTotal,
+    safestFirstHalfTotalHistory,
+  ]);
+
+  
   const safestAlternateTotalFinalVerdict =
   useMemo(() => {
     if (
@@ -1449,26 +1521,20 @@ async function findSafestFirstQuarterTotal() {
       EasyRunLine — Safest Verified WNBA Alternate Spread
     </p>
 
-    <p className="text-xs font-bold uppercase tracking-widest text-blue-400">
-  EasyRunLine — Safest Verified WNBA Alternate Spread
-</p>
-
-<p
-  className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
-    safestAlternateSpread.qualification === "PLAY"
-      ? "bg-emerald-950 text-emerald-300"
-      : safestAlternateSpread.qualification === "LEAN"
-        ? "bg-amber-950 text-amber-300"
-        : "bg-red-950 text-red-300"
-  }`}
->
-  Engine Verdict:{" "}
-  {safestAlternateSpread.qualification === "PLAY"
-    ? "STRONG PLAY"
-    : safestAlternateSpread.qualification}
-</p>
-
-<div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"></div>
+        <p
+      className={`mt-3 inline-flex rounded-full px-3 py-1 text-xs font-bold ${
+        safestAlternateSpread.qualification ===
+          "STRONG PLAY" ||
+        safestAlternateSpread.qualification === "PLAY"
+          ? "bg-emerald-950 text-emerald-300"
+          : safestAlternateSpread.qualification === "LEAN"
+            ? "bg-amber-950 text-amber-300"
+            : "bg-red-950 text-red-300"
+      }`}
+    >
+      Market Qualification:{" "}
+      {safestAlternateSpread.qualification}
+    </p>
 
     <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div>
@@ -1647,6 +1713,7 @@ async function findSafestFirstQuarterTotal() {
           )
         )}
       </ul>
+      
 
       <p className="mt-3 text-xs leading-5 text-zinc-500">
         The Market Safety Rank is a comparative
@@ -1679,7 +1746,7 @@ async function findSafestFirstQuarterTotal() {
 
       <div>
         <p className="text-xs text-zinc-500">
-          Engine Verdict
+          Final Engine Verdict
         </p>
 
         <p
@@ -2634,6 +2701,7 @@ async function findSafestFirstQuarterTotal() {
     </div>
 
     <div className="mt-6 grid gap-6 border-t border-amber-900 pt-5 lg:grid-cols-2">
+      
       <div>
         <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
           Venue Performance
@@ -3064,12 +3132,24 @@ async function findSafestFirstQuarterTotal() {
 
       <div>
         <p className="text-xs text-zinc-500">
-          Engine Status
+          Market Qualification
         </p>
 
-        <p className="mt-1 font-bold text-violet-400">
-          {safestFirstHalfTotal.qualification}
-        </p>
+        <p
+  className={
+    safestFirstHalfTotal.qualification ===
+      "STRONG PLAY" ||
+    safestFirstHalfTotal.qualification ===
+      "PLAY"
+      ? "mt-1 font-bold text-emerald-400"
+      : safestFirstHalfTotal.qualification ===
+          "LEAN"
+        ? "mt-1 font-bold text-amber-400"
+        : "mt-1 font-bold text-red-400"
+  }
+>
+  {safestFirstHalfTotal.qualification}
+</p>
       </div>
     </div>
 
@@ -3181,58 +3261,719 @@ async function findSafestFirstQuarterTotal() {
     </div>
 
     <div className="mt-5 border-t border-violet-900 pt-5">
-      <p className="text-sm font-bold uppercase tracking-wide text-violet-400">
-        EasyRunLine Market Classification:{" "}
-        {safestFirstHalfTotal.safetyScore >= 85
-          ? "Strong Verified Market Alignment"
-          : safestFirstHalfTotal.safetyScore >= 78
-            ? "Qualified Verified Market Alignment"
-            : "Limited Verified Market Alignment"}
+  <p className="text-sm font-bold uppercase tracking-wide text-violet-400">
+  EasyRunLine Market Classification:{" "}
+  <span
+    className={
+      safestFirstHalfTotal.qualification ===
+        "STRONG PLAY" ||
+      safestFirstHalfTotal.qualification ===
+        "PLAY"
+        ? "text-emerald-400"
+        : safestFirstHalfTotal.qualification ===
+            "LEAN"
+          ? "text-amber-400"
+          : "text-red-400"
+    }
+  >
+    {safestFirstHalfTotal.qualification}
+  </span>
+</p>
+
+  <p className="mt-2 text-sm leading-6 text-zinc-300">
+    EasyRunLine ranks{" "}
+    {safestFirstHalfTotal.direction}{" "}
+    {safestFirstHalfTotal.point} in{" "}
+    {safestFirstHalfTotal.awayTeam} at{" "}
+    {safestFirstHalfTotal.homeTeam} as the
+    highest-ranked available WNBA first-half total.
+    The exact market is available at{" "}
+    {formatPrice(
+      safestFirstHalfTotal.price
+    )}{" "}
+    with {safestFirstHalfTotal.bookmaker}.
+  </p>
+
+  <ul className="mt-3 space-y-1 text-sm text-zinc-400">
+    {safestFirstHalfTotal.reasons.map(
+      (reason) => (
+        <li key={reason}>
+          • {reason}
+        </li>
+      )
+    )}
+  </ul>
+
+  <p className="mt-3 text-xs leading-5 text-zinc-500">
+    The Market Safety Rank measures market alignment,
+    price quality, bookmaker consensus and
+    availability. It is not a predicted win
+    probability, guarantee or claim of positive
+    betting value. The separate orange report applies
+    verified historical first-half scoring to the
+    final EasyRunLine assessment.
+  </p>
+</div>
+    </div>
+  
+)}
+
+
+  {safestFirstHalfTotal &&
+  safestFirstHalfTotalHistory &&
+  safestFirstHalfTotalFinalVerdict && (
+    <div className="mt-6 rounded-2xl border border-amber-700 bg-amber-950/10 p-6">
+      <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-400">
+        Why This First-Half Total
       </p>
 
-      <p className="mt-2 text-sm leading-6 text-zinc-300">
-        EasyRunLine ranks{" "}
-        {safestFirstHalfTotal.direction}{" "}
-        {safestFirstHalfTotal.point} in{" "}
-        {safestFirstHalfTotal.awayTeam} at{" "}
-        {safestFirstHalfTotal.homeTeam} as the
-        highest-ranked qualified WNBA first-half total
-        currently available. The exact market is
-        available at{" "}
-        {formatPrice(
-          safestFirstHalfTotal.price
-        )}{" "}
-        with {safestFirstHalfTotal.bookmaker}.
+      <div className="mt-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="text-xs text-zinc-500">
+            Selection
+          </p>
+
+          <p className="mt-1 font-bold text-white">
+            {safestFirstHalfTotal.direction}{" "}
+            {safestFirstHalfTotal.point}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs text-zinc-500">
+            Final Engine Verdict
+          </p>
+
+          <p
+            className={
+              safestFirstHalfTotalFinalVerdict ===
+              "STRONG PLAY"
+                ? "mt-1 font-bold text-emerald-400"
+                : safestFirstHalfTotalFinalVerdict ===
+                    "PLAY"
+                  ? "mt-1 font-bold text-emerald-400"
+                  : safestFirstHalfTotalFinalVerdict ===
+                      "LEAN"
+                    ? "mt-1 font-bold text-amber-400"
+                    : "mt-1 font-bold text-red-400"
+            }
+          >
+            {safestFirstHalfTotalFinalVerdict}
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-amber-900 pt-5">
+        <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+          First-Half Market Position
+        </p>
+
+        <p className="mt-3 text-sm leading-6 text-zinc-300">
+          The visible market consensus first-half total
+          is{" "}
+          {safestFirstHalfTotal.consensusPoint}.
+          EasyRunLine selected{" "}
+          {safestFirstHalfTotal.direction}{" "}
+          {safestFirstHalfTotal.point}, which is{" "}
+          {safestFirstHalfTotal.lineDifference.toFixed(
+            1
+          )}{" "}
+          points from the consensus line.
+        </p>
+
+        <div className="mt-3 grid gap-4 sm:grid-cols-3">
+          <div>
+            <p className="text-xs text-zinc-500">
+              Market Alignment
+            </p>
+
+            <p className="mt-1 font-bold text-white">
+              {safestFirstHalfTotal.marketAlignmentScore.toFixed(
+                1
+              )}
+              /100
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-500">
+              Supporting Bookmakers
+            </p>
+
+            <p className="mt-1 font-bold text-white">
+              {
+                safestFirstHalfTotal
+                  .supportingBookmakers
+              }
+            </p>
+          </div>
+
+          <div>
+            <p className="text-xs text-zinc-500">
+              Verified Price
+            </p>
+
+            <p className="mt-1 font-bold text-white">
+              {formatPrice(
+                safestFirstHalfTotal.price
+              )}{" "}
+              with{" "}
+              {safestFirstHalfTotal.bookmaker}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="mt-6 grid gap-6 border-t border-amber-900 pt-5 lg:grid-cols-2">
+  <div className="lg:col-span-2">
+
+  <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+    Recent First-Half Scoring Against{" "}
+    {safestFirstHalfTotal.direction}{" "}
+    {safestFirstHalfTotal.point}
+  </p>
+
+  <p className="mt-2 text-xs leading-5 text-zinc-500">
+    The selected first-half total is applied
+    retrospectively to verified historical first-half
+    scores.
+  </p>
+
+  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+    <div className="rounded-lg border border-zinc-800 bg-black p-4">
+      <p className="font-bold text-white">
+        {safestFirstHalfTotal.awayTeam}
       </p>
 
-      <ul className="mt-3 space-y-1 text-sm text-zinc-400">
-        {safestFirstHalfTotal.reasons.map(
-          (reason) => (
-            <li key={reason}>
-              • {reason}
-            </li>
-          )
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-bold text-zinc-400">
+            Last 5
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-300">
+            {
+              safestFirstHalfTotalHistory
+                .awayLast5.hits
+            }{" "}
+            Hits –{" "}
+            {
+              safestFirstHalfTotalHistory
+                .awayLast5.misses
+            }{" "}
+            Misses
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Hit Rate:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.awayLast5.hitRate.toFixed(
+                1
+              )}
+              %
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average First-Half Total:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.awayLast5.averageCombinedTotal.toFixed(
+                1
+              )}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Line Difference:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.awayLast5.averageDifferenceFromLine >
+              0
+                ? "+"
+                : ""}
+              {safestFirstHalfTotalHistory.awayLast5.averageDifferenceFromLine.toFixed(
+                1
+              )}
+            </span>
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold text-zinc-400">
+            Last 10
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-300">
+            {
+              safestFirstHalfTotalHistory
+                .awayLast10.hits
+            }{" "}
+            Hits –{" "}
+            {
+              safestFirstHalfTotalHistory
+                .awayLast10.misses
+            }{" "}
+            Misses
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Hit Rate:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.awayLast10.hitRate.toFixed(
+                1
+              )}
+              %
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average First-Half Total:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.awayLast10.averageCombinedTotal.toFixed(
+                1
+              )}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div className="rounded-lg border border-zinc-800 bg-black p-4">
+      <p className="font-bold text-white">
+        {safestFirstHalfTotal.homeTeam}
+      </p>
+
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-bold text-zinc-400">
+            Last 5
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-300">
+            {
+              safestFirstHalfTotalHistory
+                .homeLast5.hits
+            }{" "}
+            Hits –{" "}
+            {
+              safestFirstHalfTotalHistory
+                .homeLast5.misses
+            }{" "}
+            Misses
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Hit Rate:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.homeLast5.hitRate.toFixed(
+                1
+              )}
+              %
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average First-Half Total:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.homeLast5.averageCombinedTotal.toFixed(
+                1
+              )}
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average Line Difference:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.homeLast5.averageDifferenceFromLine >
+              0
+                ? "+"
+                : ""}
+              {safestFirstHalfTotalHistory.homeLast5.averageDifferenceFromLine.toFixed(
+                1
+              )}
+            </span>
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold text-zinc-400">
+            Last 10
+          </p>
+
+          <p className="mt-2 text-sm text-zinc-300">
+            {
+              safestFirstHalfTotalHistory
+                .homeLast10.hits
+            }{" "}
+            Hits –{" "}
+            {
+              safestFirstHalfTotalHistory
+                .homeLast10.misses
+            }{" "}
+            Misses
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Simulated Hit Rate:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.homeLast10.hitRate.toFixed(
+                1
+              )}
+              %
+            </span>
+          </p>
+
+          <p className="mt-1 text-sm text-zinc-400">
+            Average First-Half Total:{" "}
+            <span className="font-bold text-white">
+              {safestFirstHalfTotalHistory.homeLast10.averageCombinedTotal.toFixed(
+                1
+              )}
+            </span>
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<div className="border-t border-amber-900 lg:col-span-2" />
+  <div>
+    <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+      Venue Performance
+    </p>
+
+    <p className="mt-3 text-sm text-zinc-300">
+      {safestFirstHalfTotal.awayTeam} away:{" "}
+      {safestFirstHalfTotalHistory.awayVenue.hits}{" "}
+      Hits –{" "}
+      {safestFirstHalfTotalHistory.awayVenue.misses}{" "}
+      Misses
+    </p>
+
+    <p className="mt-1 text-sm text-zinc-400">
+      Away Hit Rate:{" "}
+      <span className="font-bold text-white">
+        {safestFirstHalfTotalHistory.awayVenue.hitRate.toFixed(
+          1
         )}
-      </ul>
+        %
+      </span>
+    </p>
 
-      <p className="mt-3 text-xs leading-5 text-zinc-500">
-        The Market Safety Rank compares verified
-        first-half totals currently available to the
-        engine. It measures market alignment, price
-        quality, bookmaker consensus and availability.
-        It is not a predicted win probability,
-        guarantee or claim of positive betting value.
-        Confirm the displayed first-half total and
-        price before placing a wager.
+    <p className="mt-3 text-sm text-zinc-300">
+      {safestFirstHalfTotal.homeTeam} home:{" "}
+      {safestFirstHalfTotalHistory.homeVenue.hits}{" "}
+      Hits –{" "}
+      {safestFirstHalfTotalHistory.homeVenue.misses}{" "}
+      Misses
+    </p>
+
+    <p className="mt-1 text-sm text-zinc-400">
+      Home Hit Rate:{" "}
+      <span className="font-bold text-white">
+        {safestFirstHalfTotalHistory.homeVenue.hitRate.toFixed(
+          1
+        )}
+        %
+      </span>
+    </p>
+  </div>
+
+  <div>
+    <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+      Head-to-Head Simulation
+    </p>
+
+    <p className="mt-3 text-sm text-zinc-300">
+      Available Meetings:{" "}
+      {
+        safestFirstHalfTotalHistory
+          .headToHead.gamesPlayed
+      }
+    </p>
+
+    {safestFirstHalfTotalHistory.headToHead
+      .gamesPlayed > 0 ? (
+      <>
+        <p className="mt-1 text-sm text-zinc-400">
+          {
+            safestFirstHalfTotalHistory
+              .headToHead.hits
+          }{" "}
+          Hits –{" "}
+          {
+            safestFirstHalfTotalHistory
+              .headToHead.misses
+          }{" "}
+          Misses
+        </p>
+
+        <p className="mt-1 text-sm text-zinc-400">
+          Simulated Hit Rate:{" "}
+          <span className="font-bold text-white">
+            {safestFirstHalfTotalHistory.headToHead.hitRate.toFixed(
+              1
+            )}
+            %
+          </span>
+        </p>
+
+        <p className="mt-1 text-sm text-zinc-400">
+          Average Combined First-Half Score:{" "}
+          <span className="font-bold text-white">
+            {safestFirstHalfTotalHistory.headToHead.averageCombinedTotal.toFixed(
+              1
+            )}
+          </span>
+        </p>
+      </>
+    ) : (
+      <p className="mt-1 text-sm text-zinc-500">
+        No completed regular-season meetings are
+        available for this first-half simulation.
+      </p>
+    )}
+  </div>
+</div>
+
+<div className="mt-6 border-t border-amber-900 pt-5">
+  <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+    First-Half Scoring Consistency Test
+  </p>
+
+  <div className="mt-3 grid gap-4 sm:grid-cols-3">
+    <div>
+      <p className="text-xs text-zinc-500">
+        Combined Recent Hit Rate
+      </p>
+
+      <p className="mt-1 font-bold text-white">
+        {safestFirstHalfTotalHistory.combinedRecent.hitRate.toFixed(
+          1
+        )}
+        %
+      </p>
+    </div>
+
+    <div>
+      <p className="text-xs text-zinc-500">
+        First-Half Scoring Volatility
+      </p>
+
+      <p className="mt-1 font-bold text-white">
+        {safestFirstHalfTotalHistory.scoringVolatility.toFixed(
+          1
+        )}{" "}
+        points
+      </p>
+    </div>
+
+    <div>
+      <p className="text-xs text-zinc-500">
+        Volatility Risk
+      </p>
+
+      <p
+        className={
+          safestFirstHalfTotalHistory.volatilityLevel ===
+          "High"
+            ? "mt-1 font-bold text-red-400"
+            : safestFirstHalfTotalHistory.volatilityLevel ===
+                "Moderate"
+              ? "mt-1 font-bold text-amber-400"
+              : "mt-1 font-bold text-emerald-400"
+        }
+      >
+        {
+          safestFirstHalfTotalHistory
+            .volatilityLevel
+        }
       </p>
     </div>
   </div>
-)}
+</div>
+<div className="mt-6 grid gap-4 border-t border-amber-900 pt-5 lg:grid-cols-2">
+  <div className="rounded-lg border border-emerald-900 bg-emerald-950/10 p-4">
+    <p className="text-sm font-bold uppercase text-emerald-400">
+      Why the First-Half Total Can Hit
+    </p>
 
-{safestFirstHalfTotalMessage && (
+    <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+      <li>
+        • The selected first-half line is{" "}
+        {safestFirstHalfTotal.lineDifference.toFixed(
+          1
+        )}{" "}
+        points from the verified market consensus.
+      </li>
+
+      <li>
+        • Recent combined first-half results produced
+        a{" "}
+        {safestFirstHalfTotalHistory.combinedRecent.hitRate.toFixed(
+          1
+        )}
+        % simulated hit rate.
+      </li>
+
+      <li>
+        • The exact first-half market is verified at{" "}
+        {formatPrice(
+          safestFirstHalfTotal.price
+        )}{" "}
+        with{" "}
+        {safestFirstHalfTotal.bookmaker}.
+      </li>
+
+      <li>
+        •{" "}
+        {
+          safestFirstHalfTotal
+            .supportingBookmakers
+        }{" "}
+        bookmakers support a comparable{" "}
+        {safestFirstHalfTotal.direction} first-half
+        total.
+      </li>
+
+      {(safestFirstHalfTotalHistory.historicalSupport ===
+        "Strong" ||
+        safestFirstHalfTotalHistory.historicalSupport ===
+          "Moderate") && (
+        <li>
+          • Historical first-half support is classified
+          as{" "}
+          <span className="font-bold text-emerald-300">
+            {
+              safestFirstHalfTotalHistory
+                .historicalSupport
+            }
+          </span>
+          .
+        </li>
+      )}
+    </ul>
+  </div>
+
+  <div className="rounded-lg border border-red-900 bg-red-950/10 p-4">
+    <p className="text-sm font-bold uppercase text-red-400">
+      Why the First-Half Total May Not Hit
+    </p>
+
+    <ul className="mt-3 space-y-2 text-sm text-zinc-300">
+      {(safestFirstHalfTotalHistory.historicalSupport ===
+        "Weak" ||
+        safestFirstHalfTotalHistory.historicalSupport ===
+          "Mixed") && (
+        <li>
+          • Historical first-half support is classified
+          as{" "}
+          <span className="font-bold text-red-300">
+            {
+              safestFirstHalfTotalHistory
+                .historicalSupport
+            }
+          </span>
+          .
+        </li>
+      )}
+
+      <li>
+        • Historical simulations apply today&apos;s
+        first-half total retrospectively and do not use
+        each game&apos;s original closing first-half
+        total.
+      </li>
+
+      {safestFirstHalfTotalHistory.volatilityLevel !==
+        "Low" && (
+        <li>
+          • Recent combined first-half scoring
+          volatility is{" "}
+          {
+            safestFirstHalfTotalHistory
+              .volatilityLevel
+          }
+          .
+        </li>
+      )}
+
+      {safestFirstHalfTotalHistory.headToHead
+        .gamesPlayed < 3 && (
+        <li>
+          • The available head-to-head first-half
+          sample is limited and should not
+          independently determine the verdict.
+        </li>
+      )}
+
+      {safestFirstHalfTotal.supportingBookmakers <
+        3 && (
+        <li>
+          • Fewer than three bookmakers support a
+          comparable first-half market, limiting market
+          availability.
+        </li>
+      )}
+
+      <li>
+        • First-half scoring can change unexpectedly
+        because of pace, shooting, fouls and player
+        rotations.
+      </li>
+
+      <li>
+        • The displayed price and first-half total may
+        change before the wager is placed.
+      </li>
+    </ul>
+  </div>
+</div>
+
+<div className="mt-6 border-t border-amber-900 pt-5">
+  <p className="text-sm font-bold uppercase tracking-wide text-amber-400">
+    Final EasyRunLine Assessment
+  </p>
+
+  <p className="mt-3 text-sm leading-6 text-zinc-300">
+    <span className="font-bold text-white">
+      {safestFirstHalfTotalFinalVerdict}
+    </span>
+    {" — "}
+    EasyRunLine selected{" "}
+    {safestFirstHalfTotal.direction}{" "}
+    {safestFirstHalfTotal.point} at{" "}
+    {formatPrice(
+      safestFirstHalfTotal.price
+    )}{" "}
+    with {safestFirstHalfTotal.bookmaker}. Historical
+    first-half support is classified as{" "}
+    <span className="font-bold text-white">
+      {
+        safestFirstHalfTotalHistory
+          .historicalSupport
+      }
+    </span>
+    . The final verdict also considers market
+    alignment, price quality, bookmaker consensus,
+    availability and first-half scoring volatility.
+  </p>
+
+  <p className="mt-3 text-xs leading-5 text-zinc-500">
+    Historical first-half simulation is not an
+    official historical over/under record. It applies
+    today&apos;s selected first-half total
+    retrospectively to completed regular-season
+    first-half scores and does not guarantee that the
+    selection will hit.
+  </p>
+</div>
+
+    </div>
+  )}
+  {safestFirstHalfTotalMessage && (
   <div className="mt-4 rounded-xl border border-violet-900 bg-violet-950/20 p-4 text-sm text-violet-200">
     {safestFirstHalfTotalMessage}
-  </div>
+
+   </div>
 )}
 
 {safestFirstQuarterTotal && (
@@ -3325,7 +4066,7 @@ async function findSafestFirstQuarterTotal() {
 
       <div>
         <p className="text-xs text-zinc-500">
-          Engine Status
+          Market Qualification
         </p>
 
         <p className="mt-1 font-bold text-fuchsia-400">
@@ -3907,7 +4648,7 @@ awayLogo={getWNBALogoUrl(game.away_team)}
 
                           <div>
                             <p className="text-xs text-zinc-500">
-                              Engine Status
+                            Market Qualification
                             </p>
 
                             <p

@@ -59,11 +59,13 @@ export type WNBABlowoutRisk =
   homeTeam: string;
   homeTeamAbbreviation: string;
   homeScore: number;
+  homeFirstHalfScore: number | null;
 
   awayTeamId: string;
   awayTeam: string;
   awayTeamAbbreviation: string;
   awayScore: number;
+  awayFirstHalfScore: number | null;
 
   winner: string;
   loser: string;
