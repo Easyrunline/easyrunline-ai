@@ -27,7 +27,11 @@ export type WNBAFirstQuarterTotalSelection = {
   safetyScore: number;
 
   supportingBookmakers: number;
-  qualification: "LEAN" | "PASS";
+  qualification:
+  | "STRONG PLAY"
+  | "PLAY"
+  | "LEAN"
+  | "PASS";
 
   priceProfile:
     | "Very Low Return"

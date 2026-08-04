@@ -1,11 +1,27 @@
 import OpenAI from "openai";
 
+import {
+  routeSportsQuestion,
+} from "@/lib/ai/sportsRouter";
+
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
 interface GeneralAnalyzeRequest {
   question?: string;
+}
+function requiresLiveEngine(
+  intent: string
+) {
+  return [
+    "best_bet",
+    "compare_games",
+    "games_to_avoid",
+    "schedule",
+    "standings",
+    "injury_update",
+  ].includes(intent);
 }
 
 export async function POST(
@@ -31,15 +47,47 @@ export async function POST(
       );
     }
 
-    const response =
-      await client.responses.create({
+    const route =
+      routeSportsQuestion(question);
+
+    console.log(
+  "Homepage EasyRunLine route:",
+  route
+);
+
+if (requiresLiveEngine(route.intent)) {
+  const sportName =
+    route.sport === "general"
+      ? "relevant sport"
+      : route.sport.toUpperCase();
+
+  return Response.json({
+    answer:
+      `I identified this as a ${sportName} request that requires current data or a fixed EasyRunLine engine result.\n\n` +
+      `The homepage assistant has not yet loaded the live ${sportName} engine context, so I will not invent a team, market, price, ERL Score, confidence rating or verdict.\n\n` +
+      `Please open the ${sportName} workspace for the current analysis while this homepage connection is being developed.`,
+    routing: route,
+    requiresLiveData: true,
+  });
+}
+
+const response =
+  await client.responses.create({
         model: "gpt-4.1-mini",
 
         input: `
 You are the EasyRunLine AI Guide.
 
-Your role is to answer general questions about:
+Your role is to answer broad questions about:
 - EasyRunLine
+- baseball and MLB
+- basketball, NBA and WNBA
+- American football and NFL
+- hockey and NHL
+- soccer
+- sports rules
+- sports terminology
+- player and team statistics
 - sports betting terminology
 - alternate run lines and spreads
 - MLB First 5 Innings markets
@@ -56,10 +104,9 @@ Write in clear, professional and understandable language.
 
 Important rules:
 
-Do not invent:
 Do not define PLAY, STRONG PLAY, LEAN or any other EasyRunLine verdict as positive expected value, profitable value, a market edge or guaranteed betting value.
 
-EasyRunLine verdicts describe the strength of the supplied engine evidence and risk profile. They do not prove that a wager has positive expected value.
+EasyRunLine verdicts describe the strength of supplied engine evidence and the risk profile. They do not prove that a wager has positive expected value.
 
 When explaining EasyRunLine verdicts:
 - STRONG PLAY means the fixed engine found exceptionally strong supporting evidence with acceptable risk.
@@ -67,7 +114,10 @@ When explaining EasyRunLine verdicts:
 - LEAN means some supporting evidence exists, but conviction is limited.
 - PASS means the identified risks or insufficient evidence prevent a recommendation.
 
-Do not use Markdown emphasis symbols such as ** around words. Use clean plain text because the homepage answer panel displays plain text.
+Do not use Markdown emphasis symbols such as ** around words.
+Use clean plain text because the homepage answer panel displays plain text.
+
+Never invent:
 - current games
 - current scores
 - live odds
@@ -75,13 +125,15 @@ Do not use Markdown emphasis symbols such as ** around words. Use clean plain te
 - injuries
 - starting lineups
 - starting pitchers
-- team statistics
+- current team statistics
 - EasyRunLine scores
 - EasyRunLine confidence ratings
 - EasyRunLine verdicts
 - current recommendations
+- unsupported probabilities
+- unavailable markets or prices
 
-The homepage AI Guide does not receive live sport data.
+The homepage AI Guide does not currently receive live sport data or fixed scoring-engine results.
 
 If the user asks for:
 - today's best pick
@@ -91,8 +143,14 @@ If the user asks for:
 - current odds
 - current parlays
 - current games to avoid
+- live injuries
+- today's fixtures or scores
 
-explain that they should open the relevant MLB, NFL, NBA, NHL or Soccer workspace so its live data and fixed scoring engine can evaluate the request.
+do not invent an answer.
+
+Explain that the sport and request were identified correctly, but live engine context has not yet been loaded into the homepage assistant.
+
+Direct the user to the relevant MLB, NFL, NBA, WNBA, NHL or Soccer workspace for current fixed-engine analysis.
 
 Do not claim that any selection is:
 - guaranteed
@@ -108,6 +166,20 @@ When useful, use short bullet points.
 
 End betting-related explanations with a brief reminder that users should verify the exact market and price in their sportsbook.
 
+Detected request:
+
+Sport: ${route.sport}
+Intent: ${route.intent}
+Routing confidence: ${route.confidence}
+
+Use the detected sport and intent only as organisational guidance.
+
+For general knowledge, terminology, rules, strategy, platform help and educational questions:
+answer the question directly.
+
+For requests requiring current fixtures, current odds, live injuries, current team statistics, current recommendations or a fixed EasyRunLine engine result:
+do not invent live data, a team selection, ERL Score, confidence label or verdict.
+
 User question:
 ${question}
 `,
@@ -115,6 +187,7 @@ ${question}
 
     return Response.json({
       answer: response.output_text,
+      routing: route,
     });
   } catch (error) {
     console.error(

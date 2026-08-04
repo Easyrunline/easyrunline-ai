@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 
-import { analyzeGame } from "@/lib/nhl/analyzeGame";
 
+
+import { analyzeGame } from "@/lib/nhl/analyzeGame";
 import type {
   NHLGameAnalysis,
 } from "@/lib/nhl/types";
@@ -42,17 +43,19 @@ export async function POST(request: Request) {
        =========================================================== */
 
     if (!body.question?.trim()) {
-      return Response.json(
-        {
-          answer:
-            "A question or NHL game analysis is required.",
-        },
-        { status: 400 }
-      );
-    }
+  return Response.json(
+    {
+      answer:
+        "A question or NHL game analysis is required.",
+    },
+    { status: 400 }
+  );
+}
 
-    const response =
-      await client.responses.create({
+const question = body.question.trim();
+
+const response =
+  await client.responses.create({
         model: "gpt-4.1-mini",
 
         input: `
@@ -107,13 +110,13 @@ Never recommend the favorite +4.5.
 Follow the report structure, headings, wording rules, and market warnings contained in the supplied request.
 
 Supplied request:
-${body.question}
+${question}
 `,
       });
 
-    return Response.json({
-      answer: response.output_text,
-    });
+   return Response.json({
+  answer: response.output_text,
+});
   } catch (error) {
     console.error(
       "Analyze API error:",
