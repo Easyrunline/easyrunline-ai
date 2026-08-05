@@ -51,13 +51,17 @@ const SPORT_KEYWORDS: Record<
   ],
 
   nba: [
-    "nba",
-    "basketball",
-    "alternate spread",
-    "first half spread",
-    "quarter spread",
-    "team total",
-  ],
+  "nba",
+  "basketball",
+  "offensive rating",
+  "defensive rating",
+  "net rating",
+  "effective field goal",
+  "three pointer",
+  "free throw",
+  "rebound",
+  "assist",
+],
 
   wnba: [
     "wnba",
@@ -208,16 +212,19 @@ export function detectIntent(
   return "best_bet";
 }
 
-  if (
-    includesAny(text, [
-      "compare",
-      "which is safer",
-      "which game is better",
-      "versus the other",
-    ])
-  ) {
-    return "compare_games";
-  }
+ if (
+  includesAny(text, [
+    "compare",
+    "difference between",
+    "matter more",
+    "more important",
+    "which is safer",
+    "which game is better",
+    "versus the other",
+  ])
+) {
+  return "compare_games";
+}
 
   if (
     includesAny(text, [
@@ -243,17 +250,24 @@ export function detectIntent(
   }
 
   if (
-    includesAny(text, [
-      "spread breakdown",
-      "total breakdown",
-      "moneyline breakdown",
-      "market breakdown",
-      "line movement",
-      "implied probability",
-    ])
-  ) {
-    return "market_breakdown";
-  }
+  includesAny(text, [
+    "spread breakdown",
+    "total breakdown",
+    "moneyline breakdown",
+    "market breakdown",
+    "line movement",
+    "implied probability",
+    "alternate spread",
+    "point spread",
+    "moneyline",
+    "game total",
+    "team total",
+    "over under",
+    "over/under",
+  ])
+) {
+  return "market_breakdown";
+}
 
   if (
     includesAny(text, [

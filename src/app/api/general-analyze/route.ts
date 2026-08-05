@@ -3,6 +3,10 @@ import OpenAI from "openai";
 import {
   routeSportsQuestion,
 } from "@/lib/ai/sportsRouter";
+import {
+  findBettingKnowledge,
+  formatKnowledgeContext,
+} from "@/lib/knowledge/knowledgeRouter";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -48,11 +52,29 @@ export async function POST(
     }
 
     const route =
-      routeSportsQuestion(question);
+  routeSportsQuestion(question);
 
-    console.log(
+const knowledgeMatches =
+  findBettingKnowledge(question);
+
+const knowledgeContext =
+  formatKnowledgeContext(
+    knowledgeMatches
+  );
+
+console.log(
   "Homepage EasyRunLine route:",
   route
+);
+
+console.log(
+  "Homepage knowledge matches:",
+  knowledgeMatches.map(
+    ({ entry, score }) => ({
+      id: entry.id,
+      score,
+    })
+  )
 );
 
 if (requiresLiveEngine(route.intent)) {
@@ -165,6 +187,20 @@ Keep ordinary answers concise, but provide enough explanation for a beginner to 
 When useful, use short bullet points.
 
 End betting-related explanations with a brief reminder that users should verify the exact market and price in their sportsbook.
+Retrieved EasyRunLine knowledge:
+
+${
+  knowledgeContext ||
+  "No matching EasyRunLine knowledge entry was found."
+}
+
+Use the retrieved knowledge as the primary reference when it directly answers the user's question.
+
+Do not contradict the supplied knowledge.
+
+Do not invent missing details.
+
+You may explain the supplied knowledge in simpler language, compare matched entries, or provide a brief example supported by the knowledge.
 
 Detected request:
 
@@ -186,9 +222,16 @@ ${question}
       });
 
     return Response.json({
-      answer: response.output_text,
-      routing: route,
-    });
+  answer: response.output_text,
+  routing: route,
+  knowledge: knowledgeMatches.map(
+    ({ entry, score }) => ({
+      id: entry.id,
+      title: entry.title,
+      score,
+    })
+  ),
+});
   } catch (error) {
     console.error(
       "General Analyze API error:",
