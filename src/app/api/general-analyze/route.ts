@@ -7,6 +7,10 @@ import {
   findBettingKnowledge,
   formatKnowledgeContext,
 } from "@/lib/knowledge/knowledgeRouter";
+import {
+  buildReasoningPlan,
+  formatReasoningPlan,
+} from "@/lib/ai/reasoningEngine";
 
 const client = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -16,8 +20,16 @@ interface GeneralAnalyzeRequest {
   question?: string;
 }
 function requiresLiveEngine(
-  intent: string
+  intent: string,
+  knowledgeMatchCount: number
 ) {
+  if (
+    intent === "compare_games" &&
+    knowledgeMatchCount > 0
+  ) {
+    return false;
+  }
+
   return [
     "best_bet",
     "compare_games",
@@ -61,6 +73,16 @@ const knowledgeContext =
   formatKnowledgeContext(
     knowledgeMatches
   );
+  const reasoningPlan =
+  buildReasoningPlan(
+    question,
+    knowledgeMatches
+  );
+
+const reasoningContext =
+  formatReasoningPlan(
+    reasoningPlan
+  );
 
 console.log(
   "Homepage EasyRunLine route:",
@@ -77,7 +99,17 @@ console.log(
   )
 );
 
-if (requiresLiveEngine(route.intent)) {
+console.log(
+  "Homepage reasoning plan:",
+  reasoningPlan
+);
+
+if (
+  requiresLiveEngine(
+    route.intent,
+    knowledgeMatches.length
+  )
+) {
   const sportName =
     route.sport === "general"
       ? "relevant sport"
@@ -187,6 +219,27 @@ Keep ordinary answers concise, but provide enough explanation for a beginner to 
 When useful, use short bullet points.
 
 End betting-related explanations with a brief reminder that users should verify the exact market and price in their sportsbook.
+
+EasyRunLine reasoning plan:
+
+${reasoningContext}
+
+Follow this reasoning plan when organising the answer.
+
+Use every Required Response Section from the reasoning plan as a visible plain-text heading.
+
+Use the headings in the exact order supplied.
+
+Do not rename, merge, skip or rearrange the required headings.
+
+Write a useful explanation beneath every heading.
+
+If a section has limited supporting knowledge, state the limitation briefly instead of inventing information.
+
+Do not use Markdown emphasis symbols such as ** around headings.
+
+The reasoning plan controls response structure only.
+It does not provide live data, calculate an ERL Score, create a verdict or make a current betting recommendation.
 Retrieved EasyRunLine knowledge:
 
 ${
@@ -224,6 +277,14 @@ ${question}
     return Response.json({
   answer: response.output_text,
   routing: route,
+  reasoning: {
+  mode: reasoningPlan.mode,
+  title: reasoningPlan.title,
+  sections:
+    reasoningPlan.sections,
+  knowledgeIds:
+    reasoningPlan.knowledgeIds,
+},
   knowledge: knowledgeMatches.map(
     ({ entry, score }) => ({
       id: entry.id,

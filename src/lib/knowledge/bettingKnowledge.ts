@@ -240,10 +240,11 @@ export const BETTING_KNOWLEDGE: KnowledgeEntry[] =
       explanation:
         "Using units allows bettors with different bankrolls to compare performance without focusing only on currency amounts. One unit should represent a predetermined and affordable percentage of the bankroll.",
       example:
-        "With a R5,000 bankroll, a bettor may define one unit as R50.",
+          "If one unit is defined as 1% of a 5,000 bankroll, the unit size is 50.",
       warnings: [
-        "Do not increase the unit size impulsively after losses.",
-        "Unit size should reflect personal risk tolerance and affordability.",
+  "Do not increase your unit size to chase losses.",
+  "Review your bankroll periodically and adjust the unit size only when the bankroll changes significantly.",
+
       ],
     },
 
@@ -252,10 +253,14 @@ export const BETTING_KNOWLEDGE: KnowledgeEntry[] =
       title: "Bankroll Management",
       category: "bankroll",
       aliases: [
-        "manage bankroll",
-        "bet sizing",
-        "stake management",
-      ],
+  "manage bankroll",
+  "manage my bankroll",
+  "manage betting bankroll",
+  "betting bankroll",
+  "bankroll management",
+  "bet sizing",
+  "stake management",
+],
       summary:
         "Bankroll management is the process of controlling stake sizes to reduce the risk of major financial loss.",
       explanation:
