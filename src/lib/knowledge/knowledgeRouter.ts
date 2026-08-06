@@ -14,6 +14,9 @@ import {
 import {
   FOOTBALL_KNOWLEDGE,
 } from "./footballKnowledge";
+import {
+  SOCCER_KNOWLEDGE,
+} from "./soccerKnowledge";
 
 const ALL_KNOWLEDGE: KnowledgeEntry[] = [
   ...BETTING_KNOWLEDGE,
@@ -21,6 +24,7 @@ const ALL_KNOWLEDGE: KnowledgeEntry[] = [
   ...BASKETBALL_KNOWLEDGE,
   ...HOCKEY_KNOWLEDGE,
   ...FOOTBALL_KNOWLEDGE,
+  ...SOCCER_KNOWLEDGE,
 ];
   
 export type KnowledgeMatch = {
