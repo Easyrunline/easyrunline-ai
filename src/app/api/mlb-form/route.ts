@@ -324,6 +324,22 @@ export async function GET() {
           lossesLast10,
           gamesCounted,
 
+          recentGames: team.games.map(
+  (game) => ({
+    runsScored:
+      game.runsScored,
+    runsAllowed:
+      game.runsAllowed,
+
+    combinedRuns:
+      game.runsScored +
+      game.runsAllowed,
+
+    venue:
+      game.venue,
+  })
+),
+
           trend: team.games
             .map((game) => game.result)
             .join(""),

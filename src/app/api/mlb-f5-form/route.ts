@@ -375,6 +375,22 @@ export async function GET() {
         return {
           team: team.team,
           gamesCounted,
+          recentF5Games: team.games.map(
+  (game) => ({
+    runsScored:
+      game.runsScored,
+
+    runsAllowed:
+      game.runsAllowed,
+
+    combinedRuns:
+      game.runsScored +
+      game.runsAllowed,
+
+    venue:
+      game.venue,
+  })
+),
 
           winsF5Last10,
           lossesF5Last10,

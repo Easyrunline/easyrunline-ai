@@ -16,7 +16,25 @@ import {
   rankF5Picks,
 } from "@/lib/f5Score";
 import Image from "next/image";
-
+import {
+  normalizeMLBAlternateTotals,
+  rankMLBAlternateTotals,
+  getCombinedRunsFromRecentGames,
+  getCombinedRunsFromH2H,
+  type AlternateTotalGame,
+  type NormalizedAlternateTotal,
+  type MLBAlternateTotalContext,
+  type ScoredAlternateTotal,
+} from "@/lib/mlb/mlbAlternateTotal";
+import {
+  normalizeMLBF5Totals,
+  rankMLBF5Totals,
+  getCombinedRunsFromRecentF5Games,
+  getCombinedRunsFromF5H2H,
+  type F5TotalGame,
+  type F5TotalContext,
+  type ScoredF5Total,
+} from "@/lib/mlb/mlbF5Total";
 type Outcome = {
   name: string;
   price: number;
@@ -64,7 +82,14 @@ type TeamForm = {
   streakType: "W" | "L" | null;
   streakLength: number;
   streak: string;
+  recentGames?: {
+  runsScored: number;
+  runsAllowed: number;
+  combinedRuns: number;
+  venue: "Home" | "Away";
+}[];
 };
+
 type H2HTeamSummary = {
   team: string;
   gamesCounted: number;
@@ -92,6 +117,10 @@ type H2HResponse = {
   };
 
   error?: string;
+  meetings?: {
+  awayScore: number;
+  homeScore: number;
+}[];
 };
 type F5TeamForm = {
   team: string;
@@ -108,6 +137,14 @@ type F5TeamForm = {
 
   averageRunsScoredF5: number;
   averageRunsAllowedF5: number;
+
+
+  recentF5Games?: {
+  runsScored: number;
+  runsAllowed: number;
+  combinedRuns: number;
+  venue: "Home" | "Away";
+}[];
 
   plus25CoversF5Last10: number;
   plus25FailuresF5Last10: number;
@@ -150,6 +187,15 @@ type F5H2HTeamSummary = {
 type F5H2HResponse = {
   status?: string;
   meetingsCounted?: number;
+
+  meetings?: {
+    gamePk: number;
+    gameDate: string;
+    awayTeam: string;
+    homeTeam: string;
+    awayF5Score: number;
+    homeF5Score: number;
+  }[];
 
   teams?: {
     home?: F5H2HTeamSummary;
@@ -211,6 +257,10 @@ awayBlowoutLossesLast10?: number;
 homeRecentStreak?: string;
 awayRecentStreak?: string;
 h2hMeetingsCounted?: number;
+
+
+
+
 
 homeH2HPlus45Covers?: number;
 homeH2HPlus45Failures?: number;
@@ -280,6 +330,8 @@ awayF5H2HPlus25CoverRate?: number;
 
 
 
+
+
 homeF5H2HRunDifferential?: number;
 awayF5H2HRunDifferential?: number;
 
@@ -293,7 +345,13 @@ awayBullpenERA?: number;
 homeBullpenRank?: number;
 awayBullpenRank?: number;
   bookmakers?: Bookmaker[];
+
+  h2hMeetings?: {
+  awayScore: number;
+  homeScore: number;
+}[];
 };
+
 
 
 
@@ -363,6 +421,26 @@ useEffect(() => {
   const [gamesLoading, setGamesLoading] = useState(false);
   const [gamesError, setGamesError] = useState("");
 
+const [
+  alternateTotalGames,
+  setAlternateTotalGames,
+] = useState<AlternateTotalGame[]>([]);
+const [
+  rankedAlternateTotals,
+  setRankedAlternateTotals,
+] = useState<ScoredAlternateTotal[]>([]);
+
+const [
+  f5TotalGames,
+  setF5TotalGames,
+] = useState<F5TotalGame[]>([]);
+
+const [
+  rankedF5Totals,
+  setRankedF5Totals,
+] = useState<ScoredF5Total[]>([]);
+
+
 
   useEffect(() => {
   loadMlbGames();
@@ -398,6 +476,104 @@ useEffect(() => {
 
   return (data.probables || []) as ProbablePitcher[];
 }
+async function loadMLBAlternateTotals() {
+  try {
+    const response = await fetch(
+      "/api/mlb-alternate-totals"
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data =
+      await response.json();
+
+    return (
+      data.games || []
+    ) as AlternateTotalGame[];
+  } catch {
+    return [];
+  }
+}
+async function loadMLBF5AlternateTotals() {
+  try {
+    const response = await fetch(
+      "/api/mlb-f5-alternate-totals"
+    );
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data =
+      await response.json();
+
+    return (
+      data.games || []
+    ) as F5TotalGame[];
+  } catch {
+    return [];
+  }
+}
+
+function buildAlternateTotalContext(
+  candidate: NormalizedAlternateTotal,
+  games: Game[],
+  teamForm: TeamForm[]
+): MLBAlternateTotalContext {
+  const game = games.find(
+    (item) =>
+      item.home_team ===
+        candidate.homeTeam &&
+      item.away_team ===
+        candidate.awayTeam
+  );
+
+  const homeForm = teamForm.find(
+    (team) =>
+      team.team ===
+      candidate.homeTeam
+  );
+
+  const awayForm = teamForm.find(
+    (team) =>
+      team.team ===
+      candidate.awayTeam
+  );
+
+  return {
+    recentCombinedRunsHome:
+      getCombinedRunsFromRecentGames(
+        homeForm?.recentGames
+      ),
+
+    recentCombinedRunsAway:
+      getCombinedRunsFromRecentGames(
+        awayForm?.recentGames
+      ),
+
+    h2hCombinedRuns:
+      getCombinedRunsFromH2H(
+        game?.h2hMeetings
+      ),
+
+    homeStarterERA:
+      game?.homeERA ?? null,
+
+    awayStarterERA:
+      game?.awayERA ?? null,
+
+    homeBullpenERA:
+      game?.homeBullpenERA ??
+      null,
+
+    awayBullpenERA:
+      game?.awayBullpenERA ??
+      null,
+  };
+}
+
 async function loadTeamForm() {
   const response = await fetch("/api/mlb-form");
   const data = await response.json();
@@ -501,6 +677,18 @@ const f5TeamForm =
 
 const bullpenData =
   await loadBullpenData();
+const alternateTotals =
+  await loadMLBAlternateTotals();
+
+setAlternateTotalGames(
+  alternateTotals
+);
+const f5AlternateTotals =
+  await loadMLBF5AlternateTotals();
+
+setF5TotalGames(
+  f5AlternateTotals
+);
 
 const gamesWithLiveData = await Promise.all(
   (data.games || []).map(async (game: Game) => {
@@ -508,6 +696,7 @@ const gamesWithLiveData = await Promise.all(
     (p) =>
       p.homeTeam === game.home_team &&
       p.awayTeam === game.away_team
+      
   );
 
   const homeForm = teamForm.find((team) => team.team === game.home_team);
@@ -630,6 +819,10 @@ awayRecentStreak:
   awayForm?.streak,
   h2hMeetingsCounted:
   h2hData?.meetingsCounted,
+  h2hMeetings:
+  h2hData?.meetings ?? [],
+
+  
 
 homeH2HPlus45Covers:
   homeH2H?.plus45Covers,
@@ -747,6 +940,15 @@ awayVenuePlus25CoversF5:
 f5H2HMeetingsCounted:
   f5H2HData?.meetingsCounted,
 
+  f5H2HMeetings:
+  f5H2HData?.meetings ?? [],
+
+
+
+
+
+
+
 homeF5H2HPlus25Covers:
   homeF5H2H?.plus25CoversF5,
 
@@ -795,6 +997,257 @@ awayF5H2HEarlyBlowoutLosses:
     };
   })
 );
+
+const normalizedAlternateTotals =
+  normalizeMLBAlternateTotals(
+    alternateTotals
+  );
+  console.log("Reached ranking engine");
+
+const calculatedAlternateTotals =
+  rankMLBAlternateTotals(
+    normalizedAlternateTotals,
+    (
+      candidate
+    ): MLBAlternateTotalContext => {
+      const matchingGame =
+        gamesWithLiveData.find(
+          (game) =>
+            game.home_team ===
+              candidate.homeTeam &&
+            game.away_team ===
+              candidate.awayTeam
+        );
+
+      const homeForm =
+        teamForm.find(
+          (team) =>
+            team.team ===
+            candidate.homeTeam
+        );
+
+      const awayForm =
+        teamForm.find(
+          (team) =>
+            team.team ===
+            candidate.awayTeam
+        );
+
+      return {
+        recentCombinedRunsHome:
+          getCombinedRunsFromRecentGames(
+            homeForm?.recentGames
+          ),
+
+        recentCombinedRunsAway:
+          getCombinedRunsFromRecentGames(
+            awayForm?.recentGames
+          ),
+
+        h2hCombinedRuns:
+          getCombinedRunsFromH2H(
+            matchingGame?.h2hMeetings
+          ),
+
+        homeStarterERA:
+          matchingGame?.homeERA ??
+          null,
+
+        awayStarterERA:
+          matchingGame?.awayERA ??
+          null,
+
+        homeBullpenERA:
+          matchingGame?.homeBullpenERA ??
+          null,
+
+        awayBullpenERA:
+          matchingGame?.awayBullpenERA ??
+          null,
+      };
+    }
+  );
+
+console.log(
+  "⚾ FULL GAME MLB ALTERNATE TOTALS — TOP 15"
+);
+
+console.table(
+  calculatedAlternateTotals
+    .slice(0, 15)
+    .map((total) => ({
+      Matchup:
+        `${total.awayTeam} @ ${total.homeTeam}`,
+
+      Pick:
+        `${total.direction} ${total.line}`,
+
+      Price:
+        total.bestPrice,
+
+      Score:
+        total.score,
+
+      Verdict:
+        total.verdict,
+
+      HomeRecord:
+        total.recentHome.record,
+
+      AwayRecord:
+        total.recentAway.record,
+
+      H2HRecord:
+        total.h2h.record,
+    }))
+);
+setRankedAlternateTotals(
+  calculatedAlternateTotals
+);
+
+const normalizedF5Totals =
+  normalizeMLBF5Totals(
+    f5AlternateTotals
+  );
+
+const calculatedF5Totals =
+  rankMLBF5Totals(
+    normalizedF5Totals,
+    (
+      candidate
+    ): F5TotalContext => {
+      const matchingGame =
+        gamesWithLiveData.find(
+          (game) =>
+            game.home_team ===
+              candidate.homeTeam &&
+            game.away_team ===
+              candidate.awayTeam
+        );
+
+      const homeF5Form =
+        f5TeamForm.find(
+          (team) =>
+            team.team ===
+            candidate.homeTeam
+        );
+
+      const awayF5Form =
+        f5TeamForm.find(
+          (team) =>
+            team.team ===
+            candidate.awayTeam
+        );
+
+      return {
+        recentCombinedRunsHome:
+          getCombinedRunsFromRecentF5Games(
+            homeF5Form?.recentF5Games
+          ),
+
+        recentCombinedRunsAway:
+          getCombinedRunsFromRecentF5Games(
+            awayF5Form?.recentF5Games
+          ),
+
+        h2hCombinedRuns:
+          getCombinedRunsFromF5H2H(
+            matchingGame?.f5H2HMeetings
+          ),
+
+        homeStarterERA:
+          matchingGame?.homeERA ??
+          null,
+
+        awayStarterERA:
+          matchingGame?.awayERA ??
+          null,
+      };
+    }
+  );
+
+  console.table(
+  calculatedF5Totals
+    .slice(0, 15)
+    .map((total) => ({
+      Matchup:
+        `${total.awayTeam} @ ${total.homeTeam}`,
+
+      Pick:
+        `${total.direction} ${total.line}`,
+
+      Price:
+        total.bestPrice,
+
+      Score:
+        total.score,
+
+      Verdict:
+        total.verdict,
+
+      HomeRecent:
+        total.factors.homeRecent,
+
+      AwayRecent:
+        total.factors.awayRecent,
+
+      H2H:
+        total.factors.h2h,
+
+      StartingPitching:
+        total.factors.startingPitching,
+
+      Bookmakers:
+        total.factors.bookmakerConsensus,
+
+      PriceQuality:
+        total.factors.priceQuality,
+
+      HomeRecord:
+        total.recentHome.record,
+
+      AwayRecord:
+        total.recentAway.record,
+
+      H2HRecord:
+        total.h2h.record,
+    }))
+);
+
+setRankedF5Totals(
+  calculatedF5Totals
+);
+
+console.table(
+  calculatedF5Totals
+    .slice(0, 15)
+    .map((total) => ({
+      Matchup:
+        `${total.awayTeam} @ ${total.homeTeam}`,
+
+      Pick:
+        `${total.direction} ${total.line}`,
+
+      Price:
+        total.bestPrice,
+
+      Score:
+        total.score,
+
+      Verdict:
+        total.verdict,
+
+      HomeRecord:
+        total.recentHome.record,
+
+      AwayRecord:
+        total.recentAway.record,
+
+      H2HRecord:
+        total.h2h.record,
+    }))
+);
+
 setGames(gamesWithLiveData);
 
     } catch {
@@ -1087,6 +1540,422 @@ Do not substitute another game's teams, date, or time.
   setQuestion(gameQuestion);
   analyzeQuestion(gameQuestion);
 }
+
+function buildMLBAlternateTotalsReport(
+  selections: ScoredAlternateTotal[]
+) {
+  const divider =
+    "━━━━━━━━━━━━━━━━━━━━━━";
+
+  const confidenceFromScore = (
+    score: number
+  ) => {
+    if (score >= 90) {
+      return "Very High";
+    }
+
+    if (score >= 80) {
+      return "High";
+    }
+
+    if (score >= 70) {
+      return "Moderate";
+    }
+
+    return "Low";
+  };
+
+  const formatLocalDate = (
+    value: string
+  ) => {
+    const date = new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "Not supplied";
+    }
+
+    return date.toLocaleString();
+  };
+
+  const formatUTCDate = (
+    value: string
+  ) => {
+    const date = new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "Not supplied";
+    }
+
+    return date.toUTCString();
+  };
+
+  const selectionBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          const confidence =
+            confidenceFromScore(
+              total.score
+            );
+
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Selection:
+${total.direction} ${total.line}
+
+Game Date and Time:
+Local: ${formatLocalDate(
+            total.commenceTime
+          )}
+UTC: ${formatUTCDate(
+            total.commenceTime
+          )}
+
+EasyRunLine Total Score:
+${total.score}/100
+
+Engine Confidence:
+${confidence}
+
+Engine Verdict:
+${total.verdict}
+
+Best Available Price:
+${total.bestPrice}
+
+Bookmaker:
+${total.bookmaker}`;
+        }
+      )
+      .join(
+        `\n\n${divider}\n\n`
+      );
+
+  const confidenceBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          const confidence =
+            confidenceFromScore(
+              total.score
+            );
+
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Engine Confidence: ${confidence}
+
+A ${confidence} confidence rating reflects the strength and agreement of the available recent scoring, H2H, pitching, bullpen and market evidence supporting ${total.direction} ${total.line}.`;
+        }
+      )
+      .join("\n\n");
+
+  const scoringOutlook =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+${total.direction} ${total.line}
+
+
+Home Recent Record (${total.direction} ${total.line})
+${total.recentHome.wins} ${
+  total.recentHome.wins === 1
+    ? "Win"
+    : "Wins"
+} • ${total.recentHome.losses} ${
+  total.recentHome.losses === 1
+    ? "Loss"
+    : "Losses"
+} • ${total.recentHome.pushes} ${
+  total.recentHome.pushes === 1
+    ? "Push"
+    : "Pushes"
+}
+Hit Rate: ${total.recentHome.hitRate}%
+
+Away Recent Record (${total.direction} ${total.line})
+${total.recentAway.wins} ${
+  total.recentAway.wins === 1
+    ? "Win"
+    : "Wins"
+} • ${total.recentAway.losses} ${
+  total.recentAway.losses === 1
+    ? "Loss"
+    : "Losses"
+} • ${total.recentAway.pushes} ${
+  total.recentAway.pushes === 1
+    ? "Push"
+    : "Pushes"
+}
+Hit Rate: ${total.recentAway.hitRate}%
+
+Head-to-Head Record (${total.direction} ${total.line})
+${total.h2h.wins} ${
+  total.h2h.wins === 1
+    ? "Win"
+    : "Wins"
+} • ${total.h2h.losses} ${
+  total.h2h.losses === 1
+    ? "Loss"
+    : "Losses"
+} • ${total.h2h.pushes} ${
+  total.h2h.pushes === 1
+    ? "Push"
+    : "Pushes"
+}
+Hit Rate: ${total.h2h.hitRate}%
+
+Home Recent Average Combined Runs:
+${total.recentHome.averageCombinedRuns}
+
+Away Recent Average Combined Runs:
+${total.recentAway.averageCombinedRuns}
+
+Head-to-Head Average Combined Runs:
+${total.h2h.averageCombinedRuns}`;
+
+        }
+      )
+      .join("\n\n");
+
+  const pitchingBlocks =
+  selections
+    .map(
+      (
+        total,
+        index
+      ) => {
+        return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Starting-Pitching Score:
+${total.factors.startingPitching}/15
+
+This factor measures whether the starting-pitching profile supports the selected ${total.direction} direction.`;
+      }
+    )
+    .join("\n\n");
+
+  const bullpenBlocks =
+  selections
+    .map(
+      (
+        total,
+        index
+      ) => {
+        return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Bullpen Score:
+${total.factors.bullpen}/10
+
+This factor measures whether the bullpen profile supports the selected ${total.direction} direction.`;
+      }
+    )
+    .join("\n\n");
+
+    const marketBlocks =
+  selections
+    .map(
+      (
+        total,
+        index
+      ) => {
+        return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Selection:
+${total.direction} ${total.line}
+
+Best Price:
+${total.bestPrice}
+
+Best Bookmaker:
+${total.bookmaker}
+
+Supporting Bookmakers:
+${total.supportingBookmakers}
+
+Bookmaker Consensus Score:
+${total.factors.bookmakerConsensus}/10
+
+Price Quality Score:
+${total.factors.priceQuality}/5`;
+      }
+    )
+    .join("\n\n");
+
+  const whyBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+• Qualified EasyRunLine ${total.direction} ${total.line} alternate-total candidate
+• Overall Total Score: ${total.score}/100
+• Engine Verdict: ${total.verdict}
+• Home Recent Record (${total.direction} ${total.line}):
+  ${total.recentHome.wins} Wins • ${total.recentHome.losses} Losses • ${total.recentHome.pushes} ${total.recentHome.pushes === 1 ? "Push" : "Pushes"}
+
+• Hit Rate: ${total.recentHome.hitRate}%
+
+• Away Recent Record (${total.direction} ${total.line}):
+  ${total.recentAway.wins} Wins • ${total.recentAway.losses} Losses • ${total.recentAway.pushes} ${total.recentAway.pushes === 1 ? "Push" : "Pushes"}
+
+• Hit Rate: ${total.recentAway.hitRate}%
+
+• Head-to-Head Record (${total.direction} ${total.line}):
+  ${total.h2h.wins} Wins • ${total.h2h.losses} Losses • ${total.h2h.pushes} ${total.h2h.pushes === 1 ? "Push" : "Pushes"}
+
+• Hit Rate: ${total.h2h.hitRate}%
+• Starting-pitching factor: ${total.factors.startingPitching}/15
+• Bullpen factor: ${total.factors.bullpen}/10
+• Market consensus factor: ${total.factors.bookmakerConsensus}/10
+• Price-quality factor: ${total.factors.priceQuality}/5
+• Best available price: ${total.bestPrice} at ${total.bookmaker}`;
+        }
+      )
+      .join("\n\n");
+
+  const verdictBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          const confidence =
+            confidenceFromScore(
+              total.score
+            );
+
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Selection:
+${total.direction} ${total.line}
+
+Engine Verdict:
+${total.verdict}
+
+EasyRunLine Total Score:
+${total.score}/100
+
+Engine Confidence:
+${confidence}
+
+The verdict reflects the combined recent scoring profile, H2H total history, starting-pitching environment, bullpen environment, bookmaker support and available market price.
+
+If the displayed alternate line or price is no longer available at your sportsbook, do not force the selection.`;
+        }
+      )
+      .join("\n\n");
+
+  return `══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🔥 Safest MLB Alternate Totals
+
+${selectionBlocks}
+
+${divider}
+
+📊 Individual Confidence
+
+${confidenceBlocks}
+
+${divider}
+
+⚾ Full-Game Scoring Outlook
+
+${scoringOutlook}
+
+${divider}
+
+⚾ Starting Pitching Assessment
+
+${pitchingBlocks}
+
+${divider}
+
+🔥 Bullpen Assessment
+
+${bullpenBlocks}
+
+${divider}
+
+💰 Market Verification
+
+These selections use live alternate-total markets returned by the connected sportsbook feed.
+
+Always verify that the exact ${selections
+    .map(
+      (total) =>
+        `${total.direction} ${total.line}`
+    )
+    .join(
+      " and "
+    )} line and displayed price remain available before placing a wager.
+
+Market movement may change the available line or price without changing the historical matchup data.
+
+${divider}
+
+📖 Visible Market Details
+
+${marketBlocks}
+
+${divider}
+
+🧠 Why These Alternate Total Selections
+
+${whyBlocks}
+
+${divider}
+
+⚠ Important Limitations
+
+Weather: Not currently included in this total score.
+Confirmed batting lineups: Not currently included.
+Market prices can move after the EasyRunLine analysis is generated.
+Historical performance supports analysis but does not guarantee the next result.
+
+${divider}
+
+🏆 EasyRunLine Individual Total Verdicts
+
+${verdictBlocks}
+
+${divider}
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+Verify every exact alternate total line and price independently.
+If the recommended line is unavailable or changes materially, PASS rather than forcing the wager.`;
+}
+
+
   function findSafestSingle() {
   if (games.length === 0) {
     return;
@@ -2578,6 +3447,128 @@ Always explain uncertainty.
 >
   Safest Single +4.5
 </button>
+
+<button
+  onClick={() => {
+    const qualified =
+      rankedAlternateTotals
+        .filter(
+          (total) =>
+            total.verdict ===
+              "STRONG PLAY" ||
+            total.verdict ===
+              "PLAY"
+        )
+        .filter(
+          (total, index, all) =>
+            index ===
+            all.findIndex(
+              (other) =>
+                other.gameId ===
+                total.gameId
+            )
+        )
+        .slice(0, 2);
+
+    if (qualified.length === 0) {
+  const bestLean =
+    rankedAlternateTotals.find(
+      (total) =>
+        total.verdict === "LEAN"
+    );
+
+  if (!bestLean) {
+    setAnswer(
+      `══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+⚠ No Official Alternate Total Play
+
+No MLB alternate total currently qualifies as a PLAY, STRONG PLAY, or LEAN.
+
+EasyRunLine Action:
+PASS — no qualified alternate-total wager is recommended on this slate.`
+    );
+
+    return;
+  }
+
+  setAnswer(
+    `══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+⚠ No Official Alternate Total Play
+
+No MLB alternate total currently qualifies as a PLAY or STRONG PLAY.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+Best Available Lean:
+
+${bestLean.awayTeam} vs ${bestLean.homeTeam}
+
+Selection:
+${bestLean.direction} ${bestLean.line}
+
+EasyRunLine Total Score:
+${bestLean.score}/100
+
+Engine Verdict:
+${bestLean.verdict}
+
+Best Available Price:
+${bestLean.bestPrice}
+
+Bookmaker:
+${bestLean.bookmaker}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+EasyRunLine Action:
+
+LEAN ONLY — not an official play.
+
+The selection is shown for reference because it is the strongest remaining alternate-total candidate, but it does not meet the EasyRunLine threshold for an official PLAY.
+
+If the line or price changes materially, PASS rather than forcing the wager.`
+  );
+
+  window.setTimeout(() => {
+    answerRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, 100);
+
+  return;
+}
+
+    setAnswer(
+  buildMLBAlternateTotalsReport(
+    qualified
+  )
+);
+
+    window.setTimeout(() => {
+      answerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  }}
+  disabled={
+    loading ||
+    gamesLoading ||
+    rankedAlternateTotals.length === 0
+  }
+  className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
+>
+  Safest Alternate Totals
+</button>
+
+
 <button
   onClick={findBestTwoLegParlay}
   disabled={
