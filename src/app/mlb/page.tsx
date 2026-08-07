@@ -1954,7 +1954,386 @@ Never call anything a lock.
 Verify every exact alternate total line and price independently.
 If the recommended line is unavailable or changes materially, PASS rather than forcing the wager.`;
 }
+function buildMLBF5AlternateTotalsReport(
+  selections: ScoredF5Total[]
+) {
+  const divider =
+    "━━━━━━━━━━━━━━━━━━━━━━";
 
+  const confidenceFromScore = (
+    score: number
+  ) => {
+    if (score >= 90) {
+      return "Very High";
+    }
+
+    if (score >= 80) {
+      return "High";
+    }
+
+    if (score >= 70) {
+      return "Moderate";
+    }
+
+    return "Low";
+  };
+
+  const formatLocalDate = (
+    value: string
+  ) => {
+    const date = new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "Not supplied";
+    }
+
+    return date.toLocaleString();
+  };
+
+  const formatUTCDate = (
+    value: string
+  ) => {
+    const date = new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "Not supplied";
+    }
+
+    return date.toUTCString();
+  };
+
+  const selectionBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          const confidence =
+            confidenceFromScore(
+              total.score
+            );
+
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Selection:
+${total.direction} ${total.line}
+
+Game Date and Time:
+Local: ${formatLocalDate(
+            total.commenceTime
+          )}
+UTC: ${formatUTCDate(
+            total.commenceTime
+          )}
+
+F5 EasyRunLine Total Score:
+${total.score}/100
+
+Engine Confidence:
+${confidence}
+
+Engine Verdict:
+${total.verdict}
+
+Best Available Price:
+${total.bestPrice}
+
+Bookmaker:
+${total.bookmaker}`;
+        }
+      )
+      .join(
+        `\n\n${divider}\n\n`
+      );
+
+  const confidenceBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          const confidence =
+            confidenceFromScore(
+              total.score
+            );
+
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Engine Confidence: ${confidence}
+
+A ${confidence} confidence rating reflects the strength and agreement of recent first-five scoring, F5 head-to-head history, starting pitching and live market evidence supporting ${total.direction} ${total.line}.`;
+        }
+      )
+      .join("\n\n");
+
+  const scoringOutlook =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+${total.direction} ${total.line}
+
+Home Recent F5 Record (${total.direction} ${total.line})
+${total.recentHome.wins} ${
+  total.recentHome.wins === 1
+    ? "Win"
+    : "Wins"
+} • ${total.recentHome.losses} ${
+  total.recentHome.losses === 1
+    ? "Loss"
+    : "Losses"
+} • ${total.recentHome.pushes} ${
+  total.recentHome.pushes === 1
+    ? "Push"
+    : "Pushes"
+}
+Hit Rate: ${total.recentHome.hitRate}%
+
+Away Recent F5 Record (${total.direction} ${total.line})
+${total.recentAway.wins} ${
+  total.recentAway.wins === 1
+    ? "Win"
+    : "Wins"
+} • ${total.recentAway.losses} ${
+  total.recentAway.losses === 1
+    ? "Loss"
+    : "Losses"
+} • ${total.recentAway.pushes} ${
+  total.recentAway.pushes === 1
+    ? "Push"
+    : "Pushes"
+}
+Hit Rate: ${total.recentAway.hitRate}%
+
+Head-to-Head F5 Record (${total.direction} ${total.line})
+${total.h2h.wins} ${
+  total.h2h.wins === 1
+    ? "Win"
+    : "Wins"
+} • ${total.h2h.losses} ${
+  total.h2h.losses === 1
+    ? "Loss"
+    : "Losses"
+} • ${total.h2h.pushes} ${
+  total.h2h.pushes === 1
+    ? "Push"
+    : "Pushes"
+}
+Hit Rate: ${total.h2h.hitRate}%
+
+Home Recent F5 Average Combined Runs:
+${total.recentHome.averageCombinedRuns}
+
+Away Recent F5 Average Combined Runs:
+${total.recentAway.averageCombinedRuns}
+
+Head-to-Head F5 Average Combined Runs:
+${total.h2h.averageCombinedRuns}`;
+        }
+      )
+      .join("\n\n");
+
+  const pitchingBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Starting-Pitching Score:
+${total.factors.startingPitching}/15
+
+Starting pitching is especially important for an F5 total because the wager covers only the first five innings. This factor measures whether the starting-pitching environment supports ${total.direction} ${total.line}.`;
+        }
+      )
+      .join("\n\n");
+
+  const marketBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Selection:
+${total.direction} ${total.line}
+
+Best Price:
+${total.bestPrice}
+
+Best Bookmaker:
+${total.bookmaker}
+
+Supporting Bookmakers:
+${total.supportingBookmakers}
+
+Bookmaker Consensus Score:
+${total.factors.bookmakerConsensus}/10
+
+Price Quality Score:
+${total.factors.priceQuality}/5`;
+        }
+      )
+      .join("\n\n");
+
+  const whyBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+• Qualified EasyRunLine F5 ${total.direction} ${total.line} candidate
+• F5 Total Score: ${total.score}/100
+• Engine Verdict: ${total.verdict}
+• Home Recent F5 Record: ${total.recentHome.wins} Wins • ${total.recentHome.losses} Losses • ${total.recentHome.pushes} Pushes
+• Home F5 Hit Rate: ${total.recentHome.hitRate}%
+• Away Recent F5 Record: ${total.recentAway.wins} Wins • ${total.recentAway.losses} Losses • ${total.recentAway.pushes} Pushes
+• Away F5 Hit Rate: ${total.recentAway.hitRate}%
+• Head-to-Head F5 Record: ${total.h2h.wins} Wins • ${total.h2h.losses} Losses • ${total.h2h.pushes} Pushes
+• Head-to-Head F5 Hit Rate: ${total.h2h.hitRate}%
+• Starting-pitching factor: ${total.factors.startingPitching}/15
+• Bookmaker-consensus factor: ${total.factors.bookmakerConsensus}/10
+• Price-quality factor: ${total.factors.priceQuality}/5
+• Best available price: ${total.bestPrice} at ${total.bookmaker}`;
+        }
+      )
+      .join("\n\n");
+
+  const verdictBlocks =
+    selections
+      .map(
+        (
+          total,
+          index
+        ) => {
+          const confidence =
+            confidenceFromScore(
+              total.score
+            );
+
+          return `${index + 1}. ${total.awayTeam} vs ${total.homeTeam}
+
+Selection:
+${total.direction} ${total.line}
+
+Engine Verdict:
+${total.verdict}
+
+F5 EasyRunLine Total Score:
+${total.score}/100
+
+Engine Confidence:
+${confidence}
+
+The verdict reflects recent first-five scoring, F5 head-to-head history, starting-pitching conditions, bookmaker support and available price.
+
+If the displayed F5 alternate line or price is no longer available at your sportsbook, do not force the selection.`;
+        }
+      )
+      .join("\n\n");
+
+  return `══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+🔥 Best F5 Alternate Totals
+
+${selectionBlocks}
+
+${divider}
+
+📊 Individual Confidence
+
+${confidenceBlocks}
+
+${divider}
+
+⚾ First 5 Innings Scoring Outlook
+
+${scoringOutlook}
+
+${divider}
+
+⚾ Starting Pitching Assessment
+
+${pitchingBlocks}
+
+${divider}
+
+💰 F5 Market Verification
+
+These selections use live First 5 Innings alternate-total markets returned by the connected sportsbook feed.
+
+Always verify that the exact ${selections
+    .map(
+      (total) =>
+        `${total.direction} ${total.line}`
+    )
+    .join(
+      " and "
+    )} line and displayed price remain available before placing a wager.
+
+Market movement may change the available F5 line or price without changing the historical matchup data.
+
+${divider}
+
+📖 Visible F5 Market Details
+
+${marketBlocks}
+
+${divider}
+
+🧠 Why These F5 Total Selections
+
+${whyBlocks}
+
+${divider}
+
+⚠ Important Limitations
+
+Weather: Not currently included in this F5 total score.
+Confirmed batting lineups: Not currently included.
+F5 alternate prices can move after the analysis is generated.
+Historical F5 performance supports analysis but does not guarantee the next result.
+
+${divider}
+
+🏆 EasyRunLine Individual F5 Total Verdicts
+
+${verdictBlocks}
+
+${divider}
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+F5 totals cover only the First 5 Innings.
+Verify every exact F5 alternate total line and price independently.
+If the recommended F5 line is unavailable or changes materially, PASS rather than forcing the wager.`;
+}
 
   function findSafestSingle() {
   if (games.length === 0) {
@@ -3566,6 +3945,144 @@ If the line or price changes materially, PASS rather than forcing the wager.`
   className="rounded-xl bg-emerald-600 px-5 py-3 font-bold text-white transition hover:bg-emerald-500 disabled:opacity-50"
 >
   Safest Alternate Totals
+</button>
+
+<button
+  onClick={() => {
+    const qualified =
+      rankedF5Totals
+        .filter(
+          (total) =>
+            total.verdict === "STRONG PLAY" ||
+            total.verdict === "PLAY"
+        )
+        .filter(
+          (total, index, all) =>
+            index ===
+            all.findIndex(
+              (other) =>
+                other.gameId ===
+                total.gameId
+            )
+        )
+        .slice(0, 2);
+
+    if (qualified.length === 0) {
+      const bestLean =
+        rankedF5Totals.find(
+          (total) =>
+            total.verdict === "LEAN"
+        );
+
+      if (!bestLean) {
+        setAnswer(
+          `══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+⚠ No Official F5 Alternate Total Play
+
+No MLB F5 alternate total currently qualifies as a PLAY, STRONG PLAY, or LEAN.
+
+EasyRunLine Action:
+PASS — no qualified F5 alternate-total wager is recommended on this slate.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+F5 totals cover only the First 5 Innings.
+Verify every exact F5 alternate total line and price independently.`
+        );
+
+        return;
+      }
+
+      setAnswer(
+        `══════════════════════════════
+⚾ EASYRUNLINE AI REPORT
+══════════════════════════════
+
+⚠ No Official F5 Alternate Total Play
+
+No MLB F5 alternate total currently qualifies as a PLAY or STRONG PLAY.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+Best Available Lean:
+
+${bestLean.awayTeam} vs ${bestLean.homeTeam}
+
+Selection:
+${bestLean.direction} ${bestLean.line}
+
+F5 EasyRunLine Total Score:
+${bestLean.score}/100
+
+Engine Verdict:
+${bestLean.verdict}
+
+Best Available Price:
+${bestLean.bestPrice}
+
+Bookmaker:
+${bestLean.bookmaker}
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+EasyRunLine Action:
+
+LEAN ONLY — not an official play.
+
+The selection is shown because it is the strongest remaining F5 alternate-total candidate, but it does not meet the EasyRunLine threshold for an official PLAY.
+
+If the line or price changes materially, PASS rather than forcing the wager.
+
+━━━━━━━━━━━━━━━━━━━━━━
+
+📌 EasyRunLine Rule
+
+One Unit Only.
+Never chase losses.
+Never call anything a lock.
+F5 totals cover only the First 5 Innings.
+Verify every exact F5 alternate total line and price independently.`
+      );
+
+      window.setTimeout(() => {
+        answerRef.current?.scrollIntoView({
+          behavior: "smooth",
+          block: "start",
+        });
+      }, 100);
+
+      return;
+    }
+
+    setAnswer(
+      buildMLBF5AlternateTotalsReport(
+        qualified
+      )
+    );
+
+    window.setTimeout(() => {
+      answerRef.current?.scrollIntoView({
+        behavior: "smooth",
+        block: "start",
+      });
+    }, 100);
+  }}
+  disabled={
+    loading ||
+    gamesLoading ||
+    rankedF5Totals.length === 0
+  }
+  className="rounded-xl bg-teal-600 px-5 py-3 font-bold text-white transition hover:bg-teal-500 disabled:opacity-50"
+>
+  Best F5 Alternate Totals
 </button>
 
 
